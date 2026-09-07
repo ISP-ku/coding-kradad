@@ -1,4 +1,13 @@
-# Discord Login Demo (Flask + OAuth2)
+# Project D: Course Support & Activity Dashboard
+
+## Group members
+
+1.Sirapat Pringprom(pringpromn-lang)
+2.Chatthaya Tipatnaranan(chatthaya)
+3.Thanutdit Jiravichalert(thanutdit-ku)
+4.Kasithat Panya(zortorrrr)
+
+## Current project status
 
 A minimal "Login with Discord" demo. Clicking the button sends the user to
 Discord, they approve, Discord sends them back with their profile, and the
