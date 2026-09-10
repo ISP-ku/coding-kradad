@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Discord Login Demo</title>
+    <title>Course Dashboard Login</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -21,17 +21,22 @@
             text-align: center;
             box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         }
-        .discord-btn {
-            display: inline-block;
-            margin-top: 16px;
+        .login-btn {
+            display: block;
+            margin-top: 12px;
             padding: 12px 24px;
-            background: #5865F2;
             color: white;
             text-decoration: none;
             border-radius: 8px;
             font-weight: 600;
         }
+        .discord-btn { background: #5865F2; }
         .discord-btn:hover { background: #4752c4; }
+        .google-btn { background: #ffffff; color: #1f1f1f; }
+        .google-btn:hover { background: #e8e8e8; }
+        .line-btn { background: #06C755; }
+        .line-btn:hover { background: #05a648; }
+        .discord-btn.action { display: inline-block; }
         .user-box img {
             border-radius: 50%;
             width: 64px;
@@ -48,13 +53,16 @@
                     <img src="{{ user.avatar_url }}" alt="avatar">
                 {% endif %}
                 <h2>Welcome, {{ user.username }}</h2>
-                <p><a class="discord-btn" href="{{ url_for('dashboard') }}">Go to Dashboard</a></p>
+                <p><small>via {{ user.provider|capitalize }}</small></p>
+                <p><a class="discord-btn login-btn action" href="{{ url_for('dashboard') }}">Go to Dashboard</a></p>
                 <p><a class="secondary" href="{{ url_for('logout') }}">Log out</a></p>
             </div>
         {% else %}
             <h1>My Course Dashboard</h1>
             <p>Sign in to continue</p>
-            <a class="discord-btn" href="{{ url_for('login') }}">Login with Discord</a>
+            <a class="login-btn discord-btn" href="{{ url_for('login', provider='discord') }}">Login with Discord</a>
+            <a class="login-btn google-btn" href="{{ url_for('login', provider='google') }}">Login with Google (Classroom)</a>
+            <a class="login-btn line-btn" href="{{ url_for('login', provider='line') }}">Login with LINE</a>
         {% endif %}
     </div>
 </body>

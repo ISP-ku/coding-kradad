@@ -38,6 +38,15 @@
             border-radius: 8px;
             color: #333;
         }
+        .courses {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        .courses ul { margin: 8px 0 0; padding-left: 20px; }
+        .courses li { margin-bottom: 4px; }
     </style>
 </head>
 <body>
@@ -47,7 +56,8 @@
         {% endif %}
         <div>
             <strong>{{ user.username }}</strong><br>
-            <small>Discord ID: {{ user.id }}</small>
+            <small>{{ user.provider|capitalize }} ID: {{ user.id }}</small>
+            {% if user.email %}<br><small>{{ user.email }}</small>{% endif %}
         </div>
         <a class="logout" href="{{ url_for('logout') }}">Log out</a>
     </div>
@@ -55,13 +65,33 @@
     <div class="note">
         This is a placeholder dashboard. This is where your combined activity
         dashboard (deadlines, tasks, consultations) would render once the
-        Discord-authenticated user is linked to a Users &amp; Roles record
-        in your database.
+        authenticated user is linked to a Users &amp; Roles record in your
+        database.
     </div>
 
+    {% if user.classroom_courses %}
+    <div class="courses">
+        <strong>Your Google Classroom courses</strong>
+        <ul>
+            {% for course in user.classroom_courses %}
+            <li>{{ course.name }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% elif user.provider == "google" %}
+    <div class="courses">
+        <strong>Your Google Classroom courses</strong>
+        <p>No active courses found (or the Classroom API isn't enabled yet for this app - see README.md).</p>
+    </div>
+    {% endif %}
+
     <div style="margin-top: 20px; display: flex; gap: 12px;">
+        {% if has_faq|default(false) %}
         <a href="{{ url_for('faq') }}" style="padding: 12px 20px; background: #5865F2; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">FAQ / Issue Log</a>
+        {% endif %}
+        {% if has_homework|default(false) %}
         <a href="{{ url_for('homework') }}" style="padding: 12px 20px; background: #5865F2; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">Homework Collector</a>
+        {% endif %}
     </div>
 </body>
 </html>
