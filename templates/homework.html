@@ -1,108 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Homework Collector</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: #f5f6fa;
-            margin: 0;
-            padding: 40px;
-        }
-        .topbar {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-            margin-bottom: 24px;
-        }
-        .topbar a { color: #5865F2; text-decoration: none; font-weight: 600; }
+{% extends "base.html" %}
+{% set page = "homework" %}{% set title = "Homework Collector" %}{% set heading = "Your homework overview" %}{% set subtitle = "Keep track of assignments and submissions." %}
+{% block content %}
 
-        .scope-note {
-            background: #fff4e0;
-            border-left: 4px solid #b5750b;
-            padding: 14px 18px;
-            border-radius: 8px;
-            color: #6b4a05;
-            font-size: 13px;
-            margin-bottom: 24px;
-        }
+    
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-        }
-        th, td {
-            text-align: left;
-            padding: 14px 16px;
-            border-bottom: 1px solid #eee;
-            font-size: 14px;
-        }
-        th { background: #f0f1f5; font-weight: 700; color: #333; }
-        tr:last-child td { border-bottom: none; }
+    <div class="scope-note">Preview feature · Homework collection is a UI concept for a future iteration.</div>
 
-        .status {
-            font-size: 12px;
-            font-weight: 700;
-            padding: 3px 10px;
-            border-radius: 999px;
-        }
-        .status-submitted { background: #e3f9e5; color: #1a7f37; }
-        .status-missing { background: #fde8e8; color: #c0392b; }
-        .status-late { background: #fff4e0; color: #b5750b; }
-
-        .upload-panel {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            margin-top: 30px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-        }
-        .upload-panel h3 { margin-top: 0; }
-        .upload-panel select, .upload-panel input {
-            width: 100%;
-            padding: 10px 12px;
-            margin-top: 6px;
-            margin-bottom: 14px;
-            border: 1px solid #dcdfe4;
-            border-radius: 8px;
-            font-size: 14px;
-            box-sizing: border-box;
-        }
-        .upload-panel label { font-size: 13px; font-weight: 600; color: #333; }
-        .upload-panel button {
-            padding: 12px 22px;
-            background: #5865F2;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-    </style>
-</head>
-<body>
-    <div class="topbar">
-        <a href="{{ url_for('index') }}">&larr; Back</a>
-        <strong>Homework Collector</strong>
-    </div>
-
-    <div class="scope-note">
-        Note: this page is a UI concept only — homework/assignment collection is
-        not part of the current SRS scope (which covers activity tracking and
-        support logging). Treat this as a proposal, not delivered scope, until
-        it's formally added to a future iteration.
-    </div>
-
-    <table>
+    <div class="table-wrap"><table>
         <tr>
             <th>Student</th>
             <th>Assignment</th>
@@ -119,23 +23,23 @@
         {% else %}
         <tr><td colspan="4">No submissions yet.</td></tr>
         {% endfor %}
-    </table>
+    </table></div>
 
     <div class="upload-panel">
         <h3>Submit homework</h3>
         <form method="post" action="{{ url_for('homework_submit') }}">
-            <label>Assignment</label>
-            <select name="assignment">
+            <label for="assignment">Assignment</label>
+<select id="assignment" name="assignment">
                 {% for a in assignment_options %}
                     <option value="{{ a }}">{{ a }}</option>
                 {% endfor %}
             </select>
 
-            <label>File</label>
-            <input type="file" name="file">
+            <label for="file">File</label>
+<input type="file" id="file" name="file">
 
             <button type="submit">Submit</button>
         </form>
     </div>
-</body>
-</html>
+
+{% endblock %}
