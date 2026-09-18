@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
+from flask import url_for
 
 import app as app_module
 
@@ -142,7 +143,11 @@ def test_callback_legacy_delegates_to_discord(client):
 def test_dashboard_without_login_redirects_to_index(client):
     resp = client.get("/dashboard")
     assert resp.status_code == 302
-    assert resp.headers["Location"].rstrip("/").endswith("") or resp.headers["Location"] == "/"
+    # NOTE: the old version of this assertion (`.endswith("")`) was always
+    # true regardless of the Location header, so it never actually checked
+    # the redirect target. Compare against the real index URL instead.
+    with app_module.app.test_request_context():
+        assert resp.headers["Location"] == url_for("index")
 
 
 def test_dashboard_with_login_returns_200(client):
@@ -264,3 +269,109 @@ def test_fetch_line_profile_maps_fields(mock_get):
     assert profile["username"] == "Charlie"
     assert profile["email"] is None
     assert profile["avatar_url"] == "https://example.com/c.png"
+
+
+# ---- additional coverage: flows, edge cases, security ----
+
+def test_dashboard_after_logout_redirects_to_index(client):
+    """Full flow: log in, log out, then hit /dashboard again - the old
+    session must not leak through, and it must land back on index."""
+    with client.session_transaction() as sess:
+        sess["user"] = _profile(username="Alice")
+    client.get("/logout")
+    resp = client.get("/dashboard", follow_redirects=True)
+    assert resp.status_code == 200
+    assert b"Login with Discord" in resp.data
+
+
+def test_dashboard_hides_faq_and_homework_links(client):
+    """app.py doesn't implement /faq or /homework (only test_ui.py's fake
+    preview does) - dashboard.html must not render links to routes that
+    don't exist here, or it would 500 with a Jinja BuildError."""
+    with client.session_transaction() as sess:
+        sess["user"] = _profile(username="Alice")
+    resp = client.get("/dashboard")
+    assert resp.status_code == 200
+    assert b"FAQ" not in resp.data
+    assert b"Homework" not in resp.data
+
+
+def test_dashboard_username_with_html_is_escaped(client):
+    """Username comes straight from the OAuth provider - untrusted input.
+    Jinja autoescaping must stay on, or a crafted display name is a stored
+    XSS vector against every other viewer of this dashboard."""
+    with client.session_transaction() as sess:
+        sess["user"] = _profile(username="<script>alert(1)</script>")
+    resp = client.get("/dashboard")
+    assert b"<script>alert(1)</script>" not in resp.data
+    assert b"&lt;script&gt;alert(1)&lt;/script&gt;" in resp.data
+
+
+def test_dashboard_shows_google_classroom_courses(client):
+    with client.session_transaction() as sess:
+        sess["user"] = _profile(
+            provider="google",
+            username="Alice",
+            classroom_courses=[{"id": "1", "name": "Intro to Databases"}],
+        )
+    resp = client.get("/dashboard")
+    assert resp.status_code == 200
+    assert b"Intro to Databases" in resp.data
+
+
+def test_dashboard_shows_no_courses_message_for_google_without_courses(client):
+    with client.session_transaction() as sess:
+        sess["user"] = _profile(provider="google", username="Alice", classroom_courses=None)
+    resp = client.get("/dashboard")
+    assert b"No active courses found" in resp.data
+
+
+def test_callback_with_no_prior_login_session_returns_400(client):
+    """Hitting /callback directly with no /login visit first (no session
+    state at all) - e.g. a replayed, bookmarked, or forged URL - must not
+    be accepted as a valid login."""
+    resp = client.get("/callback/discord?code=xyz&state=someguess")
+    assert resp.status_code == 400
+
+
+def test_callback_provider_mismatch_with_session_returns_400(client):
+    """Session started a Discord login but the callback claims to be for
+    Google - a matching state alone isn't enough, the provider must match
+    what /login actually started."""
+    with client.session_transaction() as sess:
+        sess["oauth_state"] = "abc"
+        sess["oauth_provider"] = "discord"
+    resp = client.get("/callback/google?code=xyz&state=abc")
+    assert resp.status_code == 400
+
+
+def test_login_state_is_unique_per_request(client):
+    """Two separate /login/discord hits must not reuse the same CSRF state
+    token, or an attacker could pre-generate and replay a valid one."""
+    client.get("/login/discord")
+    with client.session_transaction() as sess:
+        first_state = sess["oauth_state"]
+
+    client.get("/login/discord")
+    with client.session_transaction() as sess:
+        second_state = sess["oauth_state"]
+
+    assert first_state != second_state
+
+
+def test_callback_state_is_single_use(client):
+    """Once a state has been consumed by a successful callback, replaying
+    the same code/state pair must fail - callback() pops the state out of
+    the session so it can't be reused."""
+    with client.session_transaction() as sess:
+        sess["oauth_state"] = "abc"
+        sess["oauth_provider"] = "discord"
+
+    fake_profile = _profile(username="Alice")
+    with patch.object(app_module, "exchange_code_for_token", return_value="fake-token"), \
+         patch.dict(app_module.PROFILE_FETCHERS, {"discord": lambda _token: fake_profile}):
+        first = client.get("/callback/discord?code=xyz&state=abc")
+    assert first.status_code == 302
+
+    replay = client.get("/callback/discord?code=xyz&state=abc")
+    assert replay.status_code == 400
