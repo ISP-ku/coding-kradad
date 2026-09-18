@@ -1,0 +1,62 @@
+.page {
+  background: #313338;
+  color: #f2f3f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.card {
+  background: #2b2d31;
+  padding: 40px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.loginBtn {
+  display: block;
+  margin-top: 12px;
+  padding: 12px 24px;
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.discordBtn {
+  background: #5865f2;
+}
+.discordBtn:hover {
+  background: #4752c4;
+}
+
+.googleBtn {
+  background: #ffffff;
+  color: #1f1f1f;
+}
+.googleBtn:hover {
+  background: #e8e8e8;
+}
+
+.lineBtn {
+  background: #06c755;
+}
+.lineBtn:hover {
+  background: #05a648;
+}
+
+.action {
+  display: inline-block;
+}
+
+.userBox img {
+  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+}
+
+.secondary {
+  color: #b5bac1;
+}

@@ -1,0 +1,118 @@
+.page {
+  background: #f5f6fa;
+  min-height: 100vh;
+  padding: 40px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+}
+
+.topbar a {
+  color: #5865f2;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.scopeNote {
+  background: #fff4e0;
+  border-left: 4px solid #b5750b;
+  padding: 14px 18px;
+  border-radius: 8px;
+  color: #6b4a05;
+  font-size: 13px;
+  margin-bottom: 24px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+}
+
+.table th {
+  background: #f0f1f5;
+  font-weight: 700;
+  color: #333;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.status {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.statusSubmitted {
+  background: #e3f9e5;
+  color: #1a7f37;
+}
+.statusMissing {
+  background: #fde8e8;
+  color: #c0392b;
+}
+.statusLate {
+  background: #fff4e0;
+  color: #b5750b;
+}
+
+.uploadPanel {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 30px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.uploadPanel h3 {
+  margin-top: 0;
+}
+
+.uploadPanel select,
+.uploadPanel input {
+  width: 100%;
+  padding: 10px 12px;
+  margin-top: 6px;
+  margin-bottom: 14px;
+  border: 1px solid #dcdfe4;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.uploadPanel label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.uploadPanel button {
+  padding: 12px 22px;
+  background: #5865f2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
