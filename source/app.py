@@ -1,79 +1,68 @@
 """
-Flask app: multi-provider login for the Course Support & Activity Dashboard.
+FastAPI app: multi-provider login for the Course Support & Activity Dashboard.
 
-Providers supported (all standard OAuth2 "Authorization Code" flow):
-- Discord -> basic profile only (identify)
-- Google  -> profile + a read-only list of the user's Google Classroom courses
-- LINE    -> LINE Login profile (LINE calls its OAuth app a "channel")
+Providers (standard OAuth2 Authorization Code flow):
+- Discord -> basic profile (identify)
+- Google  -> profile + read-only Google Classroom course list
+- LINE    -> LINE Login profile
 
-Flow (same shape for every provider):
-1. User clicks a "Login with X" button -> GET /login/<provider>
-   -> we redirect to that provider's authorize page, carrying a random
-      one-time `state` value for CSRF protection.
-2. Provider redirects back to GET /callback/<provider>?code=...&state=...
-   -> we check `state` matches what we generated, exchange the code for an
-      access token, then fetch the user's profile with that token.
-   -> for Google specifically, we also call the Classroom API to list courses.
-3. We store a normalized profile dict in the Flask session - this is our
-   "logged in" state.
+Flow:
+1. GET /login/{provider} -> redirect to provider's authorize page with a
+   random `state` value (CSRF protection).
+2. Provider redirects to GET /callback/{provider}?code=...&state=...
+   -> verify state, exchange code for access token, fetch profile.
+3. Normalized profile dict stored in session = "logged in" state.
 
-Setup required for each provider (see README.md for the full walkthrough):
-- Discord:  https://discord.com/developers/applications
-- Google:   https://console.cloud.google.com/  (enable the "Google Classroom API")
-- LINE:     https://developers.line.biz/console/  (create a "LINE Login" channel,
-            NOT a Messaging API channel - those are different products)
+Setup: see README.md for registering each provider and .env.example for
+required environment variables.
 
-Environment variables (or put them in a .env file next to this script - see
-.env.example at the project root):
-    FLASK_SECRET_KEY
-    DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI
-    GOOGLE_CLIENT_ID,  GOOGLE_CLIENT_SECRET,  GOOGLE_REDIRECT_URI
-    LINE_CLIENT_ID,    LINE_CLIENT_SECRET,    LINE_REDIRECT_URI
-    PORT, HOST (optional - default 127.0.0.1:5000)
+Run:
+    python app.py
+    # or: uvicorn app:app --reload --host 127.0.0.1 --port 5000
 """
 
 import os
 import secrets
 from pathlib import Path
+from typing import Optional
 
 import requests
-from flask import Flask, abort, redirect, render_template, request, session, url_for
+import uvicorn
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import PlainTextResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
 
 try:
     from dotenv import load_dotenv
-    load_dotenv()  # reads a .env file in the current directory, if present
+    load_dotenv()
 except ImportError:
-    pass  # python-dotenv is optional; exporting env vars another way still works
+    pass
 
-# templates/ and static/ live at the project root, one level above this
-# file's folder (source/). Building the path from __file__ keeps this
-# correct no matter which directory you launch the app from, on macOS,
-# Linux or Windows.
+# templates/ and static/ live one level above this file's folder (source/).
 BASE_DIR = Path(__file__).resolve().parent.parent
 TEMPLATE_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
 
-app = Flask(__name__, template_folder=str(TEMPLATE_DIR), static_folder=str(STATIC_DIR))
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-me")
-
 HOST = os.environ.get("HOST", "127.0.0.1")
 PORT = int(os.environ.get("PORT", "5000"))
+SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-me")
+
+app = FastAPI(title="Course Support & Activity Dashboard")
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+
+if STATIC_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
 
 
 def _redirect_uri(env_name, default_path):
-    """Read <NAME>_REDIRECT_URI from the environment, or build a localhost
-    default from the HOST/PORT this process will actually bind to. Keeping
-    this in sync with the real bind address matters: every provider only
-    ever redirects back to a URI you registered with them ahead of time, so
-    if we silently ran on a different port than this default assumes, the
-    callback would never reach us."""
+    """Read <NAME>_REDIRECT_URI from env, or default to this process's own
+    HOST/PORT. Must match what's registered with the provider exactly."""
     return os.environ.get(env_name, f"http://localhost:{PORT}{default_path}")
 
-
-# ---- Provider configuration ----
-# Each provider needs: client_id/secret, the 3 OAuth endpoints, the scopes
-# we ask for, and (below) a fetch_<provider>_profile() function that turns
-# that provider's raw profile response into our normalized shape.
 
 PROVIDERS = {
     "discord": {
@@ -91,15 +80,11 @@ PROVIDERS = {
         "redirect_uri": _redirect_uri("GOOGLE_REDIRECT_URI", "/callback/google"),
         "authorize_url": "https://accounts.google.com/o/oauth2/v2/auth",
         "token_url": "https://oauth2.googleapis.com/token",
-        # openid+email+profile = who they are; classroom.courses.readonly = what
-        # we need to list their Google Classroom courses on the dashboard.
         "scope": (
             "openid email profile "
             "https://www.googleapis.com/auth/classroom.courses.readonly"
         ),
-        # access_type=offline + prompt=consent so Google actually issues a
-        # refresh_token (useful later if the dashboard wants to refresh
-        # Classroom data without forcing the user to log in again).
+        # offline + consent so Google issues a refresh_token
         "auth_extra": {"access_type": "offline", "prompt": "consent"},
     },
     "line": {
@@ -113,7 +98,7 @@ PROVIDERS = {
     },
 }
 
-REQUEST_TIMEOUT = 10  # seconds - don't hang forever if a provider is slow/down
+REQUEST_TIMEOUT = 10
 
 
 def build_authorize_url(provider_name, state):
@@ -131,7 +116,6 @@ def build_authorize_url(provider_name, state):
 
 
 def exchange_code_for_token(provider_name, code):
-    """Step 1 of every provider's flow: trade the one-time code for an access token."""
     provider = PROVIDERS[provider_name]
     data = {
         "client_id": provider["client_id"],
@@ -169,12 +153,8 @@ def fetch_discord_profile(access_token):
 
 
 def fetch_google_classroom_courses(access_token):
-    """Best-effort: list up to 20 active Google Classroom courses for this user.
-
-    Returns None (rather than raising) if the call fails - e.g. the Classroom
-    API isn't enabled yet on the Google Cloud project, or the account has no
-    courses. A login should never fail just because this extra step did.
-    """
+    """Returns None on failure instead of raising - login shouldn't fail
+    just because this extra step did (e.g. Classroom API not enabled)."""
     try:
         r = requests.get(
             "https://classroom.googleapis.com/v1/courses",
@@ -232,103 +212,94 @@ PROFILE_FETCHERS = {
 }
 
 
-@app.route("/")
-def index():
-    user = session.get("user")
-    return render_template("index.html", user=user)
+@app.get("/")
+async def index(request: Request):
+    user = request.session.get("user")
+    return templates.TemplateResponse(request, "index.html", {"user": user})
 
 
-@app.route("/login/<provider>")
-def login(provider):
-    """Redirect the user to <provider>'s OAuth2 authorize page."""
+@app.get("/login/{provider}")
+async def login(request: Request, provider: str):
     if provider not in PROVIDERS:
-        abort(404, f"Unknown login provider: {provider}")
+        raise HTTPException(status_code=404, detail=f"Unknown login provider: {provider}")
 
-    # A random, one-time `state` value proves the /callback we receive later
-    # was actually triggered by this login attempt, and not forged by an
-    # attacker linking a victim to the attacker's own account (login CSRF).
-    # We check it again in callback() below.
+    # state proves the later callback came from this login attempt (CSRF protection)
     state = secrets.token_urlsafe(24)
-    session["oauth_state"] = state
-    session["oauth_provider"] = provider
-    return redirect(build_authorize_url(provider, state))
+    request.session["oauth_state"] = state
+    request.session["oauth_provider"] = provider
+    return RedirectResponse(build_authorize_url(provider, state))
 
 
-@app.route("/login")
-def login_legacy():
-    """Backward-compatible alias for a Discord app already registered with
-    the old (pre-multi-provider) redirect URI of just /login."""
-    return redirect(url_for("login", provider="discord"))
+@app.get("/login")
+async def login_legacy(request: Request):
+    """Alias for redirect URIs registered before multi-provider support."""
+    return RedirectResponse(str(request.url_for("login", provider="discord")))
 
 
-@app.route("/callback/<provider>")
-def callback(provider):
-    """Every provider redirects back here after the user approves the login."""
+@app.get("/callback/{provider}")
+async def callback(
+    request: Request,
+    provider: str,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+):
     if provider not in PROVIDERS:
-        abort(404, f"Unknown login provider: {provider}")
+        raise HTTPException(status_code=404, detail=f"Unknown login provider: {provider}")
 
-    error = request.args.get("error")
     if error:
-        return f"{provider.title()} returned an error: {error}", 400
+        return PlainTextResponse(f"{provider.title()} returned an error: {error}", status_code=400)
 
-    code = request.args.get("code")
     if not code:
-        return f"Missing authorization code from {provider.title()}.", 400
+        return PlainTextResponse(f"Missing authorization code from {provider.title()}.", status_code=400)
 
-    expected_state = session.pop("oauth_state", None)
-    got_state = request.args.get("state")
-    expected_provider = session.pop("oauth_provider", None)
-    if not expected_state or got_state != expected_state or expected_provider != provider:
-        return "Login request could not be verified (state mismatch). Please try logging in again.", 400
+    expected_state = request.session.pop("oauth_state", None)
+    expected_provider = request.session.pop("oauth_provider", None)
+    if not expected_state or state != expected_state or expected_provider != provider:
+        return PlainTextResponse(
+            "Login request could not be verified (state mismatch). Please try logging in again.",
+            status_code=400,
+        )
 
     try:
         access_token = exchange_code_for_token(provider, code)
         profile = PROFILE_FETCHERS[provider](access_token)
     except requests.RequestException as exc:
-        return f"Failed to complete {provider.title()} login: {exc}", 400
+        return PlainTextResponse(f"Failed to complete {provider.title()} login: {exc}", status_code=400)
 
-    session["user"] = profile
-    return redirect(url_for("dashboard"))
-
-
-@app.route("/callback")
-def callback_legacy():
-    """Backward-compatible alias for a Discord app already registered with
-    the old (pre-multi-provider) redirect URI of just /callback."""
-    return callback("discord")
+    request.session["user"] = profile
+    return RedirectResponse(str(request.url_for("dashboard")))
 
 
-@app.route("/dashboard")
-def dashboard():
-    """A page only reachable if the user is logged in."""
-    user = session.get("user")
+@app.get("/callback")
+async def callback_legacy(
+    request: Request,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+):
+    """Alias for redirect URIs registered before multi-provider support."""
+    return await callback(request, "discord", code=code, state=state, error=error)
+
+
+@app.get("/dashboard")
+async def dashboard(request: Request):
+    user = request.session.get("user")
     if not user:
-        return redirect(url_for("index"))
-    # dashboard.html is shared with test_ui.py, which also defines /faq and
-    # /homework demo pages; this app doesn't (yet), so we tell the template
-    # not to render those links here rather than crash with a BuildError.
-    return render_template("dashboard.html", user=user, has_faq=False, has_homework=False)
+        return RedirectResponse(str(request.url_for("index")))
+    return templates.TemplateResponse(
+        request, "dashboard.html", {"user": user, "has_faq": False, "has_homework": False}
+    )
 
 
-@app.route("/logout")
-def logout():
-    session.pop("user", None)
-    return redirect(url_for("index"))
+@app.get("/logout")
+async def logout(request: Request):
+    request.session.pop("user", None)
+    return RedirectResponse(str(request.url_for("index")))
 
 
-if __name__ == "__main__":
-    # NOTE: with debug=True below, Flask's reloader re-executes this entire
-    # file in a child process (WERKZEUG_RUN_MAIN=true) to watch for code
-    # changes; that child inherits the parent's already-bound listening
-    # socket. A "probe" pre-check here (bind a throwaway socket first to see
-    # if the port is free, then let app.run() bind for real) sounds
-    # reasonable but is NOT safe with that reloader: the check runs again in
-    # the child, sees the parent's own live socket, and reports a false
-    # "port in use" - killing an otherwise-healthy server. So we don't
-    # pre-check; we let app.run() bind for real and rely on Werkzeug's own
-    # "Address already in use" message (it already suggests checking for
-    # AirPlay Receiver on macOS) if that fails. If your *_REDIRECT_URI env
-    # vars assume a specific port, remember to update them to match PORT.
+@app.on_event("startup")
+async def warn_about_missing_credentials():
     missing = [
         name for name, cfg in PROVIDERS.items()
         if not cfg["client_id"] or not cfg["client_secret"]
@@ -338,6 +309,8 @@ if __name__ == "__main__":
         print("Those login buttons will redirect but fail at the provider. See README.md.")
 
     if not TEMPLATE_DIR.is_dir():
-        raise SystemExit(f"Cannot find the templates folder at {TEMPLATE_DIR}")
+        raise RuntimeError(f"Cannot find the templates folder at {TEMPLATE_DIR}")
 
-    app.run(debug=True, host=HOST, port=PORT)
+
+if __name__ == "__main__":
+    uvicorn.run("app:app", host=HOST, port=PORT, reload=True)
