@@ -1,104 +1,110 @@
-import Link from "next/link";
-import type { Homework, HomeworkStatus } from "@/lib/types";
+import type { Metadata } from "next";
+import AppShell from "@/components/AppShell";
+import { API_BASE, logoutUrl } from "@/lib/api";
+import { PREVIEW, previewAssignments, previewHomeworks } from "@/lib/preview";
+import { getSessionUser } from "@/lib/session";
+import type { Homework } from "@/lib/types";
 import styles from "./page.module.css";
 
-const API_BASE = process.env.API_BASE_URL ?? "http://localhost:8000";
+export const metadata: Metadata = { title: "Homework Collector · Course Support" };
 
-const statusClass: Record<HomeworkStatus, string> = {
+const statusClass: Record<string, string> = {
   submitted: styles.statusSubmitted,
   missing: styles.statusMissing,
   late: styles.statusLate,
 };
 
-async function getHomeworks(): Promise<Homework[]> {
-  const res = await fetch(`${API_BASE}/api/homework`, { cache: "no-store" });
-  if (!res.ok) return [];
-  return (await res.json()) as Homework[];
-}
-
-async function getAssignmentOptions(): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/api/homework/assignments`, {
-    cache: "no-store",
-  });
-  if (!res.ok) return [];
-  return (await res.json()) as string[];
+async function getJson<T>(path: string, fallback: T): Promise<T> {
+  try {
+    const res = await fetch(`${API_BASE}${path}`, { cache: "no-store" });
+    if (!res.ok) return fallback;
+    return (await res.json()) as T;
+  } catch {
+    return fallback;
+  }
 }
 
 export default async function HomeworkPage() {
-  const [homeworks, assignmentOptions] = await Promise.all([
-    getHomeworks(),
-    getAssignmentOptions(),
+  const [viewer, homeworks, assignmentOptions] = await Promise.all([
+    getSessionUser(),
+    PREVIEW ? previewHomeworks : getJson<Homework[]>("/api/homework", []),
+    PREVIEW ? previewAssignments : getJson<string[]>("/api/homework/assignments", []),
   ]);
 
   return (
-    <main className={styles.page}>
-      <div className={styles.topbar}>
-        <Link href="/">&larr; Back</Link>
-        <strong>Homework Collector</strong>
-      </div>
+    <AppShell
+      page="homework"
+      title="Homework Collector"
+      heading="Your homework overview"
+      subtitle="Keep track of assignments and submissions."
+      viewer={viewer}
+      logoutHref={logoutUrl}
+    >
+      <div className={styles.page}>
+        <div className={styles.scopeNote}>
+          Preview feature · Homework collection is a UI concept for a future iteration.
+        </div>
 
-      <div className={styles.scopeNote}>
-        Note: this page is a UI concept only — homework/assignment collection
-        is not part of the current SRS scope (which covers activity tracking
-        and support logging). Treat this as a proposal, not delivered scope,
-        until it&apos;s formally added to a future iteration.
-      </div>
-
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th>Student</th>
-            <th>Assignment</th>
-            <th>Due Date</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {homeworks.length > 0 ? (
-            homeworks.map((hw, i) => (
-              <tr key={i}>
-                <td>{hw.student}</td>
-                <td>{hw.assignment}</td>
-                <td>{hw.due_date}</td>
-                <td>
-                  <span
-                    className={`${styles.status} ${statusClass[hw.status]}`}
-                  >
-                    {hw.status}
-                  </span>
-                </td>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Assignment</th>
+                <th>Due Date</th>
+                <th>Status</th>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={4}>No submissions yet.</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {homeworks.length > 0 ? (
+                homeworks.map((hw, i) => (
+                  <tr key={i}>
+                    <td>{hw.student}</td>
+                    <td>{hw.assignment}</td>
+                    <td>{hw.due_date}</td>
+                    <td>
+                      <span
+                        className={`${styles.status} ${statusClass[hw.status.toLowerCase()] ?? ""}`}
+                      >
+                        {hw.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4}>No submissions yet.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
-      <div className={styles.uploadPanel}>
-        <h3>Submit homework</h3>
-        <form
-          method="post"
-          action={`${API_BASE}/homework/submit`}
-          encType="multipart/form-data"
-        >
-          <label>Assignment</label>
-          <select name="assignment">
-            {assignmentOptions.map((a) => (
-              <option value={a} key={a}>
-                {a}
-              </option>
-            ))}
-          </select>
+        <div className={styles.uploadPanel}>
+          <h3>Submit homework</h3>
+          <form
+            method="post"
+            action={`${API_BASE}/homework/submit`}
+            encType="multipart/form-data"
+          >
+            <label htmlFor="assignment">Assignment</label>
+            <select id="assignment" name="assignment">
+              {assignmentOptions.map((a) => (
+                <option value={a} key={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
 
-          <label>File</label>
-          <input type="file" name="file" />
+            <label htmlFor="file">File</label>
+            <input type="file" id="file" name="file" />
 
-          <button type="submit">Submit</button>
-        </form>
+            <button type="submit" className={styles.btn}>
+              Submit
+            </button>
+          </form>
+        </div>
       </div>
-    </main>
+    </AppShell>
   );
 }

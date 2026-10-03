@@ -1,8 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { loginUrl, logoutUrl } from "@/lib/api";
 import { getSessionUser } from "@/lib/session";
 import styles from "./page.module.css";
 
-const API_BASE = process.env.API_BASE_URL ?? "http://localhost:8000";
+export const metadata: Metadata = { title: "Sign in · Course Support" };
 
 export default async function LoginPage() {
   const user = await getSessionUser();
@@ -72,7 +74,7 @@ export default async function LoginPage() {
               <Link className={`${styles.loginBtn} ${styles.primary}`} href="/dashboard">
                 Go to Dashboard <span aria-hidden="true">→</span>
               </Link>
-              <a className={styles.secondary} href={`${API_BASE}/logout`}>
+              <a className={styles.secondary} href={logoutUrl}>
                 Log out and use another account
               </a>
             </>
@@ -80,16 +82,16 @@ export default async function LoginPage() {
             <>
               <h2>Welcome back.</h2>
               <p className={styles.description}>Sign in to open your course dashboard.</p>
-              <a className={styles.loginBtn} href={`${API_BASE}/login/google`}>
+              <a className={styles.loginBtn} href={loginUrl("google")}>
                 <span className={`${styles.providerSymbol} ${styles.google}`} aria-hidden="true">G</span>
                 Login with Google (Classroom)
               </a>
               <div className={styles.divider}>or continue with</div>
-              <a className={styles.loginBtn} href={`${API_BASE}/login/discord`}>
+              <a className={styles.loginBtn} href={loginUrl("discord")}>
                 <span className={`${styles.providerSymbol} ${styles.discord}`} aria-hidden="true">D</span>
                 Login with Discord
               </a>
-              <a className={styles.loginBtn} href={`${API_BASE}/login/line`}>
+              <a className={styles.loginBtn} href={loginUrl("line")}>
                 <span className={`${styles.providerSymbol} ${styles.line}`} aria-hidden="true">LINE</span>
                 Login with LINE
               </a>

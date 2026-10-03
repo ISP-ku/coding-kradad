@@ -1,145 +1,24 @@
-.page {
-  background: #f5f6fa;
-  min-height: 100vh;
-  padding: 40px;
-}
-
-.topbar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-  margin-bottom: 24px;
-}
-
-.topbar a {
-  color: #5865f2;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.searchBox {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-
-.searchBox input {
-  flex: 1;
-  padding: 12px 14px;
-  border: 1px solid #dcdfe4;
-  border-radius: 8px;
-  font-size: 15px;
-}
-
-.searchBox button {
-  padding: 12px 20px;
-  background: #5865f2;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.faqCard {
-  background: white;
-  border-radius: 10px;
-  padding: 18px 20px;
-  margin-bottom: 14px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-
-.faqQuestion {
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-
-.faqAnswer {
-  color: #444;
-  margin-bottom: 10px;
-}
-
-.faqMeta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.tag {
-  background: #eef0ff;
-  color: #5865f2;
-  font-size: 12px;
-  padding: 3px 10px;
-  border-radius: 999px;
-}
-
-.status {
-  font-size: 12px;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 999px;
-}
-
-.statusPublished {
-  background: #e3f9e5;
-  color: #1a7f37;
-}
-.statusPending {
-  background: #fff4e0;
-  color: #b5750b;
-}
-.statusRejected {
-  background: #fde8e8;
-  color: #c0392b;
-}
-
-.submitPanel {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  margin-top: 30px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-}
-
-.submitPanel h3 {
-  margin-top: 0;
-}
-
-.submitPanel input,
-.submitPanel textarea {
-  width: 100%;
-  padding: 10px 12px;
-  margin-top: 6px;
-  margin-bottom: 14px;
-  border: 1px solid #dcdfe4;
-  border-radius: 8px;
-  font-size: 14px;
-  font-family: inherit;
-}
-
-.submitPanel label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #333;
-}
-
-.submitPanel button {
-  padding: 12px 22px;
-  background: #5865f2;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.hint {
-  font-size: 12px;
-  color: #888;
-  margin-top: -8px;
-  margin-bottom: 14px;
-}
+.btn{border:0;border-radius:10px;background:#7355cf;color:#fff;padding:11px 22px;font-weight:600;display:inline-block}
+.btn:hover{filter:brightness(.94)}
+.page input:not([type="file"]),.page textarea,.page select{width:100%;padding:11px 14px;border:1px solid #dce2e5;background:#fff;border-radius:10px;color:var(--ink);min-width:0}
+.page input:focus,.page textarea:focus,.page select:focus{outline:2px solid #7355cf44;border-color:var(--accent)}
+.page textarea{resize:vertical}
+.searchBox{display:flex;gap:10px;margin:0 0 24px}
+.searchBox input{flex:1}
+.faqCard,.submitPanel{background:#fff;border:1px solid #eeebf3;border-radius:16px;box-shadow:0 5px 20px #33264a04}
+.faqCard{padding:22px 26px;margin-bottom:14px}
+.faqQuestion{font-weight:650;font-size:16px;margin-bottom:8px}
+.faqAnswer{margin-bottom:14px}
+.faqMeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tag,.status{font-size:12px;border-radius:20px;padding:3px 11px;display:inline-block}
+.tag{background:#f0f3f5;color:#68747c}
+.status{font-weight:600}
+.statusPublished{background:#e3f6ec;color:#157345}
+.statusPending{background:#fff3db;color:#92610a}
+.statusRejected{background:#ffebeb;color:#b63737}
+.submitPanel{padding:26px 28px;margin-top:28px}
+.submitPanel h3{margin:0 0 16px;font-size:20px;font-weight:500}
+.submitPanel label{display:block;font-size:14px;font-weight:600;margin:16px 0 6px}
+.submitPanel .btn{margin-top:20px}
+.hint{font-size:13px;color:var(--muted)}
+@media(max-width:760px){.submitPanel,.faqCard{padding:20px}.searchBox .btn{padding:10px 15px}}

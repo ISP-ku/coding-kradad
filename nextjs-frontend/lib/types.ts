@@ -8,23 +8,20 @@ export type SessionUser = {
   provider: "discord" | "google" | "line";
   avatar_url?: string;
   email?: string;
+  student_id?: string;
   classroom_courses?: ClassroomCourse[];
 };
-
-export type FaqStatus = "published" | "pending" | "rejected";
 
 export type FaqEntry = {
   question: string;
   answer: string;
-  status: FaqStatus;
+  status: string; // "Published" | "Pending" | "Rejected" (any casing)
   tags: string[];
 };
-
-export type HomeworkStatus = "submitted" | "missing" | "late";
 
 export type Homework = {
   student: string;
   assignment: string;
   due_date: string;
-  status: HomeworkStatus;
+  status: string; // "Submitted" | "Missing" | "Late" (any casing)
 };
