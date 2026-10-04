@@ -7,6 +7,16 @@ __pycache__/
 venv/
 .venv/
 env/
+*.egg-info/
+
+# Tests / coverage
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Secrets
 .env
+
+# Editors
+.vscode/
+.idea/

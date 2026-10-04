@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  backend:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,7 +20,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r source/requirements.txt
+        run: pip install -r source/requirements-dev.txt
 
       - name: Check Python files compile
         run: python -m py_compile source/*.py
@@ -30,3 +30,29 @@ jobs:
         run: |
           python -c "import app"
           python -c "import test_ui"
+
+      - name: Run backend unit tests
+        working-directory: source
+        run: pytest -v
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: nextjs-frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: nextjs-frontend
+        run: npm ci
+
+      - name: Run frontend unit tests
+        working-directory: nextjs-frontend
+        run: npm test

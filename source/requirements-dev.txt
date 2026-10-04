@@ -1,0 +1,4 @@
+-r requirements.txt
+pytest>=8.0
+# starlette's TestClient needs this for test_app.py; not a runtime dependency
+httpx2>=2.0

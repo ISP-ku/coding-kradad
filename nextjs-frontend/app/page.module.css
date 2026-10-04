@@ -1,0 +1,43 @@
+.loginLayout { min-height: 100svh; display: grid; grid-template-columns: 1.05fr 1fr; }
+.intro { position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 48px 64px 36px; background: #25243c; color: #f5f1ff; overflow: hidden; }
+.brand { display: flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 650; }
+.brandMark { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: #bba5f2; color: #25243c; }
+.brandMark svg { width: 22px; height: 22px; }
+.story { max-width: 470px; margin: 64px 0; }
+.eyebrow { margin: 0 0 22px; color: #c2b2e4; font-size: 11px; font-weight: 700; letter-spacing: 2.3px; }
+.story h1 { margin: 0 0 24px; font-size: clamp(36px, 4vw, 60px); line-height: 1.12; letter-spacing: -2px; font-weight: 650; }
+.story h1 span { color: #c5aff7; }
+.story > p { color: #c3bfd2; max-width: 370px; font-size: 16px; }
+.illustration { position: relative; margin-top: 40px; padding: 25px; border: 1px solid #ffffff1a; border-radius: 20px; background: #302e49; transform: rotate(-2deg); max-width: 380px; }
+.illustrationTop { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+.miniLabel { width: 85px; height: 8px; border-radius: 4px; background: #88809f; }
+.miniDots { display: flex; gap: 5px; }
+.miniDots i { width: 5px; height: 5px; border-radius: 50%; background: #88809f; }
+.miniRow { display: flex; align-items: center; gap: 13px; padding: 14px; border-radius: 11px; background: #3d3957; margin-top: 10px; }
+.miniCheck { width: 25px; height: 25px; border-radius: 8px; display: grid; place-items: center; background: #bba5f2; color: #302544; font-size: 16px; }
+.miniLines { flex: 1; }
+.miniLines i { display: block; height: 6px; width: 75%; border-radius: 4px; background: #b4aacb; }
+.miniLines i + i { width: 45%; margin-top: 7px; background: #756b8d; }
+.miniPill { width: 38px; height: 14px; border-radius: 6px; background: #786596; }
+.introFooter { color: #aba4bd; font-size: 12px; }
+.signIn { display: flex; align-items: center; justify-content: center; padding: 48px; }
+.loginCard { width: 100%; max-width: 405px; }
+.portalLabel { display: inline-block; padding: 5px 12px; border-radius: 20px; background: #eee7fc; color: #6948bd; font-size: 12px; font-weight: 600; margin-bottom: 22px; }
+.loginCard h2 { font-size: 34px; line-height: 1.2; letter-spacing: -1px; margin: 0 0 12px; }
+.description { color: #737286; margin: 0 0 32px; }
+.loginBtn { display: flex; justify-content: center; align-items: center; gap: 13px; width: 100%; border: 1px solid #e1dce9; border-radius: 12px; min-height: 56px; padding: 14px 18px; margin-top: 13px; color: #343449; background: #fff; font-size: 14px; font-weight: 600; transition: background .15s, border-color .15s; }
+.loginBtn:hover { background: #f0ebfa; border-color: #ab96d7; }
+.providerSymbol { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 7px; font-weight: 750; font-size: 15px; }
+.google { color: #4285f4; background: #f1f5ff; }
+.discord { color: #5865f2; background: #efefff; }
+.line { color: #087d37; background: #eaf8ee; font-size: 9px; }
+.divider { display: flex; gap: 15px; align-items: center; color: #8b8497; font-size: 12px; margin: 25px 0; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #e4dfec; }
+.loginHelp { margin: 28px 0 0; padding-top: 22px; border-top: 1px solid #e4dfec; font-size: 12px; color: #737286; text-align: center; }
+.avatar { display: block; width: 64px; height: 64px; border-radius: 20px; margin-bottom: 22px; }
+.primary { background: #7355cf; color: white; border-color: #7355cf; }
+.primary:hover { background: #6445bd; color: white; }
+.secondary { display: block; color: #6948bd; text-align: center; margin-top: 22px; font-size: 14px; }
+@media (max-width: 1000px) { .intro { padding: 36px; } .signIn { padding: 36px; } }
+@media (max-width: 700px) { .loginLayout { grid-template-columns: 1fr; } .intro { padding: 24px; } .story { margin: 30px 0 8px; } .story h1 { font-size: 35px; letter-spacing: -1px; margin-bottom: 14px; } .story > p { font-size: 14px; margin-bottom: 10px; } .illustration, .introFooter, .eyebrow { display: none; } .signIn { padding: 36px 24px 48px; align-items: flex-start; } .loginCard { max-width: 440px; } .loginCard h2 { font-size: 29px; } .portalLabel { margin-bottom: 16px; } }
+@media (prefers-reduced-motion: reduce) { .loginBtn { transition: none; } }

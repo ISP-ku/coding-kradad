@@ -1,0 +1,21 @@
+.btn{border:0;border-radius:10px;background:#7355cf;color:#fff;padding:11px 22px;font-weight:600;display:inline-block}
+.btn:hover{filter:brightness(.94)}
+.page input:not([type="file"]),.page textarea,.page select{width:100%;padding:11px 14px;border:1px solid #dce2e5;background:#fff;border-radius:10px;color:var(--ink);min-width:0}
+.page select:focus{outline:2px solid #7355cf44;border-color:var(--accent)}
+.page input[type="file"]{display:block;width:100%;padding:18px;border:1px dashed #d5cbe7;border-radius:10px;background:#faf8fe}
+.page input[type="file"]::file-selector-button{padding:7px 12px;border:0;border-radius:3px;margin-right:12px;color:#6948bd;background:#eee7fc}
+.scopeNote{background:#fff8e9;border-left:3px solid #e4b959;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#87662d}
+.tableWrap{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:10px}
+.table{width:100%;border-collapse:collapse;white-space:nowrap}
+.table th,.table td{text-align:left;padding:17px 22px;border-bottom:1px solid var(--line);font-size:14px}
+.table th{background:#f4f1fb;color:#635779;font-weight:600}
+.table tr:last-child td{border:0}
+.status{font-size:12px;border-radius:20px;padding:3px 11px;display:inline-block;font-weight:600}
+.statusSubmitted{background:#e3f6ec;color:#157345}
+.statusLate{background:#fff3db;color:#92610a}
+.statusMissing{background:#ffebeb;color:#b63737}
+.uploadPanel{background:#fff;border:1px solid #eeebf3;border-radius:16px;box-shadow:0 5px 20px #33264a04;padding:26px 28px;margin-top:28px}
+.uploadPanel h3{margin:0 0 16px;font-size:20px;font-weight:500}
+.uploadPanel label{display:block;font-size:14px;font-weight:600;margin:16px 0 6px}
+.uploadPanel .btn{margin-top:20px}
+@media(max-width:760px){.uploadPanel{padding:20px}}
