@@ -162,7 +162,7 @@ PORT=5001 python source/app.py
 
 ## Files
 
-- `source/app.py` - Flask routes and the OAuth2 exchange logic for
+- `source/app.py` - FastAPI routes and the OAuth2 exchange logic for
   Discord/Google/LINE, plus the Google Classroom course lookup
 - `source/test_ui.py` - credential-free UI preview (fake login for all 3
   providers, plus the FAQ/Homework demo pages)

@@ -25,7 +25,7 @@ jobs:
       - name: Check Python files compile
         run: python -m py_compile source/*.py
 
-      - name: Import Flask apps
+      - name: Import FastAPI apps
         working-directory: source
         run: |
           python -c "import app"
