@@ -2,68 +2,95 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Course Dashboard Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign in · Course Support</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: #313338;
-            color: #f2f3f5;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .card {
-            background: #2b2d31;
-            padding: 40px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-        }
-        .login-btn {
-            display: block;
-            margin-top: 12px;
-            padding: 12px 24px;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-        }
-        .discord-btn { background: #5865F2; }
-        .discord-btn:hover { background: #4752c4; }
-        .google-btn { background: #ffffff; color: #1f1f1f; }
-        .google-btn:hover { background: #e8e8e8; }
-        .line-btn { background: #06C755; }
-        .line-btn:hover { background: #05a648; }
-        .discord-btn.action { display: inline-block; }
-        .user-box img {
-            border-radius: 50%;
-            width: 64px;
-            height: 64px;
-        }
-        a.secondary { color: #b5bac1; }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #f7f6fa; color: #343449; font: 15px/1.6 "Segoe UI", Tahoma, Arial, sans-serif; }
+        a { text-decoration: none; }
+        a:focus-visible { outline: 3px solid #9b83e3; outline-offset: 5px; }
+        .login-layout { min-height: 100svh; display: grid; grid-template-columns: 1.05fr 1fr; }
+        .intro { position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 48px 64px 36px; background: #25243c; color: #f5f1ff; overflow: hidden; }
+        .brand { display: flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 650; }
+        .brand-mark { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: #bba5f2; color: #25243c; }
+        .brand-mark svg { width: 22px; height: 22px; }
+        .story { max-width: 470px; margin: 64px 0; }
+        .eyebrow { margin: 0 0 22px; color: #c2b2e4; font-size: 11px; font-weight: 700; letter-spacing: 2.3px; }
+        .story h1 { margin: 0 0 24px; font-size: clamp(36px, 4vw, 60px); line-height: 1.12; letter-spacing: -2px; font-weight: 650; }
+        .story h1 span { color: #c5aff7; }
+        .story > p { color: #c3bfd2; max-width: 370px; font-size: 16px; }
+        .illustration { position: relative; margin-top: 40px; padding: 25px; border: 1px solid #ffffff1a; border-radius: 20px; background: #302e49; transform: rotate(-2deg); max-width: 380px; }
+        .illustration-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+        .mini-label { width: 85px; height: 8px; border-radius: 4px; background: #88809f; }
+        .mini-dots { display: flex; gap: 5px; }
+        .mini-dots i { width: 5px; height: 5px; border-radius: 50%; background: #88809f; }
+        .mini-row { display: flex; align-items: center; gap: 13px; padding: 14px; border-radius: 11px; background: #3d3957; margin-top: 10px; }
+        .mini-check { width: 25px; height: 25px; border-radius: 8px; display: grid; place-items: center; background: #bba5f2; color: #302544; font-size: 16px; }
+        .mini-lines { flex: 1; }
+        .mini-lines i { display: block; height: 6px; width: 75%; border-radius: 4px; background: #b4aacb; }
+        .mini-lines i + i { width: 45%; margin-top: 7px; background: #756b8d; }
+        .mini-pill { width: 38px; height: 14px; border-radius: 6px; background: #786596; }
+        .intro-footer { color: #aba4bd; font-size: 12px; }
+        .sign-in { display: flex; align-items: center; justify-content: center; padding: 48px; }
+        .login-card { width: 100%; max-width: 405px; }
+        .portal-label { display: inline-block; padding: 5px 12px; border-radius: 20px; background: #eee7fc; color: #6948bd; font-size: 12px; font-weight: 600; margin-bottom: 22px; }
+        .login-card h2 { font-size: 34px; line-height: 1.2; letter-spacing: -1px; margin: 0 0 12px; }
+        .description { color: #737286; margin: 0 0 32px; }
+        .login-btn { display: flex; justify-content: center; align-items: center; gap: 13px; width: 100%; border: 1px solid #e1dce9; border-radius: 12px; min-height: 56px; padding: 14px 18px; margin-top: 13px; color: #343449; background: #fff; font-size: 14px; font-weight: 600; transition: background .15s, border-color .15s; }
+        .login-btn:hover { background: #f0ebfa; border-color: #ab96d7; }
+        .provider-symbol { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 7px; font-weight: 750; font-size: 15px; }
+        .google { color: #4285f4; background: #f1f5ff; }
+        .discord { color: #5865f2; background: #efefff; }
+        .line { color: #087d37; background: #eaf8ee; font-size: 9px; }
+        .divider { display: flex; gap: 15px; align-items: center; color: #8b8497; font-size: 12px; margin: 25px 0; }
+        .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #e4dfec; }
+        .login-help { margin: 28px 0 0; padding-top: 22px; border-top: 1px solid #e4dfec; font-size: 12px; color: #737286; text-align: center; }
+        .avatar { display: block; width: 64px; height: 64px; border-radius: 20px; margin-bottom: 22px; }
+        .primary { background: #7355cf; color: white; border-color: #7355cf; }
+        .primary:hover { background: #6445bd; color: white; }
+        .secondary { display: block; color: #6948bd; text-align: center; margin-top: 22px; font-size: 14px; }
+        @media (max-width: 1000px) { .intro { padding: 36px; } .sign-in { padding: 36px; } }
+        @media (max-width: 700px) { .login-layout { grid-template-columns: 1fr; } .intro { padding: 24px; } .story { margin: 30px 0 8px; } .story h1 { font-size: 35px; letter-spacing: -1px; margin-bottom: 14px; } .story > p { font-size: 14px; margin-bottom: 10px; } .illustration, .intro-footer, .eyebrow { display: none; } .sign-in { padding: 36px 24px 48px; align-items: flex-start; } .login-card { max-width: 440px; } .login-card h2 { font-size: 29px; } .portal-label { margin-bottom: 16px; } }
+        @media (prefers-reduced-motion: reduce) { .login-btn { transition: none; } }
     </style>
 </head>
 <body>
-    <div class="card">
-        {% if user %}
-            <div class="user-box">
-                {% if user.avatar_url %}
-                    <img src="{{ user.avatar_url }}" alt="avatar">
-                {% endif %}
-                <h2>Welcome, {{ user.username }}</h2>
-                <p><small>via {{ user.provider|capitalize }}</small></p>
-                <p><a class="discord-btn login-btn action" href="{{ url_for('dashboard') }}">Go to Dashboard</a></p>
-                <p><a class="secondary" href="{{ url_for('logout') }}">Log out</a></p>
+    <main class="login-layout">
+        <section class="intro" aria-label="About Course Support">
+            <div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 6v15M3 3c4 0 6 1 9 3 3-2 5-3 9-3v15c-4 0-6 1-9 3-3-2-5-3-9-3z"/></svg></span>Course Support</div>
+            <div class="story">
+                <p class="eyebrow">YOUR STUDENT WORKSPACE</p>
+                <h1>A clearer space<br>for <span>learning.</span></h1>
+                <p>Connect with your courses and teaching team. Start with the account you already use.</p>
+                <div class="illustration" aria-hidden="true">
+                    <div class="illustration-top"><span class="mini-label"></span><span class="mini-dots"><i></i><i></i><i></i></span></div>
+                    <div class="mini-row"><span class="mini-check">✓</span><span class="mini-lines"><i></i><i></i></span><span class="mini-pill"></span></div>
+                    <div class="mini-row"><span class="mini-check">✓</span><span class="mini-lines"><i></i><i></i></span><span class="mini-pill"></span></div>
+                    <div class="mini-row"><span class="mini-check">✓</span><span class="mini-lines"><i></i><i></i></span><span class="mini-pill"></span></div>
+                </div>
             </div>
-        {% else %}
-            <h1>My Course Dashboard</h1>
-            <p>Sign in to continue</p>
-            <a class="login-btn discord-btn" href="{{ url_for('login', provider='discord') }}">Login with Discord</a>
-            <a class="login-btn google-btn" href="{{ url_for('login', provider='google') }}">Login with Google (Classroom)</a>
-            <a class="login-btn line-btn" href="{{ url_for('login', provider='line') }}">Login with LINE</a>
-        {% endif %}
-    </div>
+            <div class="intro-footer">Course Support &amp; Activity Dashboard</div>
+        </section>
+        <section class="sign-in" aria-label="Account access">
+            <div class="login-card">
+                <span class="portal-label">Student portal</span>
+                {% if user %}
+                    {% if user.avatar_url %}<img class="avatar" src="{{ user.avatar_url }}" alt="Your profile photo" referrerpolicy="no-referrer">{% endif %}
+                    <h2>Welcome back,<br>{{ user.username }}</h2>
+                    <p class="description">You're signed in with {{ user.provider|capitalize }}. Your workspace is ready.</p>
+                    <a class="login-btn primary" href="{{ url_for('dashboard') }}">Go to Dashboard <span aria-hidden="true">→</span></a>
+                    <a class="secondary" href="{{ url_for('logout') }}">Log out and use another account</a>
+                {% else %}
+                    <h2>Welcome back.</h2>
+                    <p class="description">Sign in to open your course dashboard.</p>
+                    <a class="login-btn" href="{{ url_for('login', provider='google') }}"><span class="provider-symbol google" aria-hidden="true">G</span>Login with Google (Classroom)</a>
+                    <div class="divider">or continue with</div>
+                    <a class="login-btn" href="{{ url_for('login', provider='discord') }}"><span class="provider-symbol discord" aria-hidden="true">D</span>Login with Discord</a>
+                    <a class="login-btn" href="{{ url_for('login', provider='line') }}"><span class="provider-symbol line" aria-hidden="true">LINE</span>Login with LINE</a>
+                {% endif %}
+                <p class="login-help">Use the account you normally use for your courses.</p>
+            </div>
+        </section>
+    </main>
 </body>
 </html>
