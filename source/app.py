@@ -34,6 +34,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
+from consultations import router as consultations_router
+from database import init_db
+
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -51,6 +54,10 @@ SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "dev-secret-change-me")
 
 app = FastAPI(title="Course Support & Activity Dashboard")
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+
+# Consultation logging (SRS-14, SRS-15)
+init_db()
+app.include_router(consultations_router)
 
 if STATIC_DIR.is_dir():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
