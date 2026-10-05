@@ -10,7 +10,10 @@ const baseUser: SessionUser = {
   provider: "google",
 };
 
-function renderShell(viewer: SessionUser | null, page: "dashboard" | "faq" | "homework" = "dashboard") {
+function renderShell(
+  viewer: SessionUser | null,
+  page: "dashboard" | "faq" | "homework" | "reports" = "dashboard",
+) {
   return render(
     <AppShell
       page={page}
@@ -53,6 +56,20 @@ describe("AppShell (signed in)", () => {
     renderShell(baseUser, "faq");
     expect(screen.getByRole("link", { name: /faq/i })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: /dashboard/i })).not.toHaveAttribute("aria-current");
+  });
+
+  it("shows a Reports nav link only for a Lecturer (SRS-18, SRS-19)", () => {
+    renderShell(null);
+    expect(screen.queryByRole("link", { name: /reports/i })).not.toBeInTheDocument();
+
+    renderShell(baseUser); // signed in, but no role
+    expect(screen.queryByRole("link", { name: /reports/i })).not.toBeInTheDocument();
+
+    renderShell({ ...baseUser, role: "ta" });
+    expect(screen.queryByRole("link", { name: /reports/i })).not.toBeInTheDocument();
+
+    renderShell({ ...baseUser, role: "lecturer" });
+    expect(screen.getByRole("link", { name: /reports/i })).toHaveAttribute("href", "/reports");
   });
 
   it("points the logout link at logoutHref", () => {

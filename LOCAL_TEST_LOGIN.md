@@ -29,7 +29,7 @@ Edit **data/allowed_users.json**:
 ]
 ```
 
-These are fake examples, not real mailboxes. The file is read by the backend when you open or submit the test form. Only listed users can use local test login. Editing a role takes effect the next time that user logs in. The role is stored in the session; this does not implement role permissions for course features.
+These are fake examples, not real mailboxes. The file is read by the backend when you open or submit the test form. Only listed users can use local test login. Editing a role takes effect the next time that user logs in. The role is saved to the `users` table and the session, and role-restricted features use it. For example, sign in as `test.lecturer@ku.th` to see the lecturer-only Reports page.
 
 This file controls local test users only. Real Google login still accepts verified KU Google accounts; it does not use this file as a real-user allowlist.
 

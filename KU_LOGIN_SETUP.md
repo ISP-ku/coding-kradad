@@ -103,7 +103,7 @@ npm run build
 
 Tests simulate Google responses and verify KU allow/deny rules, nonce/state validation, replay attempts with consumed sessions, logout, removed provider routes and frontend cookie forwarding. They do not use real KU credentials. Real Google/KU sign-in must be confirmed with your configured OAuth client.
 
-This authenticates KU accounts; it does not assign lecturer/TA roles or prove current enrollment. Role permissions and course membership remain separate project features. No account database is introduced.
+This authenticates KU accounts but does not prove current course enrollment. Each sign-in is recorded in the `users` table (SQLite `dashboard.db` by default, or `DATABASE_URL`), together with a role: emails in `LECTURER_EMAILS` become lecturers, emails in `TA_EMAILS` become TAs, and everyone else is a student. The role is re-checked on every login and copied into the session. Lecturer-only features such as Reports (`/api/reports/...`) check it. See `source/users.py`.
 
 `source/test_ui.py` remains a separate fake UI demonstration and must not be used as the real backend. Next.js UI_PREVIEW=1 is available only in development and is disabled in production builds.
 
