@@ -2,23 +2,13 @@ import type { FaqEntry, Homework, SessionUser } from "./types";
 
 // UI preview mode: set UI_PREVIEW=1 in .env.local to browse every page with
 // fake data (same data as source/test_ui.py), without a running backend.
-export const PREVIEW = process.env.UI_PREVIEW === "1";
+export const PREVIEW = process.env.UI_PREVIEW === "1" && process.env.NODE_ENV !== "production";
 export const PREVIEW_COOKIE = "preview_user";
 
-export function makePreviewUser(provider: string): SessionUser {
-  const p = (
-    ["discord", "google", "line"].includes(provider) ? provider : "discord"
-  ) as SessionUser["provider"];
+export function makePreviewUser(): SessionUser {
   return {
-    id: "123456789012345678",
-    username: "TestStudent",
-    avatar_url: "https://cdn.discordapp.com/embed/avatars/0.png",
-    provider: p,
-    email: p === "google" ? "teststudent@example.com" : undefined,
-    classroom_courses:
-      p === "google"
-        ? [{ name: "Intro to Databases" }, { name: "Software Engineering Lab" }]
-        : undefined,
+    id: "preview-ku-user", username: "TestStudent", provider: "google",
+    email: "teststudent@ku.th",
   };
 }
 

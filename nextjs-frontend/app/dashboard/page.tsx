@@ -27,7 +27,7 @@ export default async function DashboardPage() {
         <a href="#overview" className={styles.selected}>
           Overview
         </a>
-        {(user.provider === "google" || courses.length > 0) && (
+        {courses.length > 0 && (
           <a href="#courses">My courses</a>
         )}
       </nav>
@@ -66,20 +66,6 @@ export default async function DashboardPage() {
                 </li>
               ))}
             </ul>
-          </div>
-        </section>
-      ) : user.provider === "google" ? (
-        <section className={`${styles.panel} ${styles.courses}`} id="courses">
-          <div className={styles.panelHeading}>
-            <h2>Your Google Classroom courses</h2>
-          </div>
-          <div className={styles.emptyState}>
-            <Icon name="book" />
-            <h3>No active courses found</h3>
-            <p>
-              Your courses will appear here when they are available from Google
-              Classroom.
-            </p>
           </div>
         </section>
       ) : null}

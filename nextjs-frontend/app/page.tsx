@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { loginUrl, logoutUrl } from "@/lib/api";
+import { API_BASE, localTestLoginAvailable, loginUrl, logoutUrl } from "@/lib/api";
 import { getSessionUser } from "@/lib/session";
 import styles from "./page.module.css";
 
@@ -8,6 +8,7 @@ export const metadata: Metadata = { title: "Sign in · Course Support" };
 
 export default async function LoginPage() {
   const user = await getSessionUser();
+  const localTesting = await localTestLoginAvailable();
 
   return (
     <main className={styles.loginLayout}>
@@ -81,23 +82,19 @@ export default async function LoginPage() {
           ) : (
             <>
               <h2>Welcome back.</h2>
-              <p className={styles.description}>Sign in to open your course dashboard.</p>
+              <p className={styles.description}>Sign in with your KU email to open your course dashboard.</p>
               <a className={styles.loginBtn} href={loginUrl("google")}>
                 <span className={`${styles.providerSymbol} ${styles.google}`} aria-hidden="true">G</span>
-                Login with Google (Classroom)
+                Sign in with KU Google
               </a>
-              <div className={styles.divider}>or continue with</div>
-              <a className={styles.loginBtn} href={loginUrl("discord")}>
-                <span className={`${styles.providerSymbol} ${styles.discord}`} aria-hidden="true">D</span>
-                Login with Discord
-              </a>
-              <a className={styles.loginBtn} href={loginUrl("line")}>
-                <span className={`${styles.providerSymbol} ${styles.line}`} aria-hidden="true">LINE</span>
-                Login with LINE
-              </a>
+              {localTesting && (
+                <a className={styles.loginBtn} href={`${API_BASE}/local-test-login`}>
+                  Local test login (no Google)
+                </a>
+              )}
             </>
           )}
-          <p className={styles.loginHelp}>Use the account you normally use for your courses.</p>
+          <p className={styles.loginHelp}>Use your university Google account ending in @ku.th.</p>
         </div>
       </section>
     </main>

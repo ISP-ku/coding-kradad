@@ -7,7 +7,7 @@ import AppShell from "./AppShell";
 const baseUser: SessionUser = {
   id: "42",
   username: "Alice",
-  provider: "discord",
+  provider: "google",
 };
 
 function renderShell(viewer: SessionUser | null, page: "dashboard" | "faq" | "homework" = "dashboard") {
@@ -46,7 +46,7 @@ describe("AppShell (signed in)", () => {
     renderShell(baseUser);
 
     expect(screen.getAllByText("Alice").length).toBeGreaterThan(0);
-    expect(screen.getByText("Discord account")).toBeInTheDocument();
+    expect(screen.getByText("Google account")).toBeInTheDocument();
   });
 
   it("marks the current page's nav link as active", () => {
@@ -70,7 +70,7 @@ describe("AppShell (signed in)", () => {
     expect(dialog).toHaveAttribute("open");
     // student ID and email are both unset on baseUser, so "Not provided" appears twice
     expect(screen.getAllByText("Not provided")).toHaveLength(2);
-    expect(screen.getAllByText("Discord").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Google").length).toBeGreaterThan(0);
   });
 
   it("lists Google Classroom courses in the account dialog when present", async () => {
