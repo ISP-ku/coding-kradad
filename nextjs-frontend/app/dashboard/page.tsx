@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import Icon from "@/components/Icon";
+import ActivityWorkspace from "@/components/ActivityWorkspace";
 import { logoutUrl } from "@/lib/api";
 import { getSessionUser } from "@/lib/session";
 import styles from "./page.module.css";
@@ -39,14 +40,7 @@ export default async function DashboardPage() {
           </span>
           <h2>Activity overview</h2>
         </div>
-        <div className={styles.emptyState}>
-          <Icon name="chat" />
-          <h3>Your activity overview will appear here</h3>
-          <p>
-            Deadlines, tasks and consultations will be available once your course
-            account is connected.
-          </p>
-        </div>
+        <ActivityWorkspace viewerName={user.username} />
       </section>
 
       {courses.length > 0 ? (
