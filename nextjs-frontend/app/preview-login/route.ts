@@ -5,8 +5,8 @@ import { PREVIEW, PREVIEW_COOKIE } from "@/lib/preview";
 export function GET(req: NextRequest) {
   const res = NextResponse.redirect(new URL(PREVIEW ? "/dashboard" : "/", req.url));
   if (PREVIEW) {
-    const provider = req.nextUrl.searchParams.get("provider") ?? "discord";
-    res.cookies.set(PREVIEW_COOKIE, provider, { path: "/" });
+    const provider = "google";
+    res.cookies.set(PREVIEW_COOKIE, provider, { path: "/", httpOnly: true, sameSite: "lax" });
   }
   return res;
 }

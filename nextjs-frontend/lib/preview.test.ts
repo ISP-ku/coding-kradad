@@ -2,34 +2,11 @@ import { describe, expect, it } from "vitest";
 import { makePreviewUser, previewFaq, previewHomeworks } from "./preview";
 
 describe("makePreviewUser", () => {
-  it("builds a discord preview user with no email or courses", () => {
-    const user = makePreviewUser("discord");
-    expect(user.provider).toBe("discord");
-    expect(user.username).toBe("TestStudent");
-    expect(user.email).toBeUndefined();
-    expect(user.classroom_courses).toBeUndefined();
-  });
-
-  it("builds a google preview user with an email and classroom courses", () => {
-    const user = makePreviewUser("google");
+  it("builds a KU Google preview account without Classroom access", () => {
+    const user = makePreviewUser();
     expect(user.provider).toBe("google");
-    expect(user.email).toBe("teststudent@example.com");
-    expect(user.classroom_courses).toEqual([
-      { name: "Intro to Databases" },
-      { name: "Software Engineering Lab" },
-    ]);
-  });
-
-  it("builds a line preview user with no email or courses", () => {
-    const user = makePreviewUser("line");
-    expect(user.provider).toBe("line");
-    expect(user.email).toBeUndefined();
+    expect(user.email).toBe("teststudent@ku.th");
     expect(user.classroom_courses).toBeUndefined();
-  });
-
-  it("falls back to discord for an unknown provider", () => {
-    const user = makePreviewUser("not-a-real-provider");
-    expect(user.provider).toBe("discord");
   });
 });
 

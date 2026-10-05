@@ -133,7 +133,7 @@ export default function AppShell({
           <div className={styles.avatar}>{avatar}</div>
           <div className={styles.profileText}>
             <strong>{viewer ? viewer.username : "Course Support"}</strong>
-            <small>{viewer ? `${cap(viewer.provider)} account` : "Student portal"}</small>
+            <small>{viewer ? `${viewer.provider === "local" ? "Local test" : cap(viewer.provider)} account` : "Student portal"}</small>
           </div>
         </div>
         <nav className={styles.nav}>

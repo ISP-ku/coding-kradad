@@ -5,7 +5,9 @@ export type ClassroomCourse = {
 export type SessionUser = {
   id: string;
   username: string;
-  provider: "discord" | "google" | "line";
+  provider: "google" | "local";
+  role?: "student" | "ta" | "lecturer";
+  auth_method?: "ku_google" | "local_test";
   avatar_url?: string;
   email?: string;
   student_id?: string;

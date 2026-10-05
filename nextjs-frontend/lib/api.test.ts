@@ -21,7 +21,7 @@ describe("lib/api (preview mode off)", () => {
     const { loginUrl, logoutUrl, API_BASE } = await loadApi();
 
     expect(API_BASE).toBe("http://localhost:8000");
-    expect(loginUrl("discord")).toBe("http://localhost:8000/login/discord");
+    expect(loginUrl("google")).toBe("http://localhost:8000/login/google");
     expect(logoutUrl).toBe("http://localhost:8000/logout");
   });
 
@@ -46,5 +46,25 @@ describe("lib/api (preview mode on)", () => {
 
     expect(loginUrl("google")).toBe("/preview-login?provider=google");
     expect(logoutUrl).toBe("/preview-logout");
+  });
+});
+
+describe("backend local test login availability", () => {
+  afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+  it("shows the local option only when the backend enables it", async () => {
+    vi.stubEnv("UI_PREVIEW", "0"); vi.stubEnv("NODE_ENV", "development");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ local_test_login: true }) }));
+    expect(await (await loadApi()).localTestLoginAvailable()).toBe(true);
+  });
+  it("hides the option if the backend is unavailable", async () => {
+    vi.stubEnv("UI_PREVIEW", "0"); vi.stubEnv("NODE_ENV", "development");
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    expect(await (await loadApi()).localTestLoginAvailable()).toBe(false);
+  });
+  it("never shows the option in a production frontend", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const fetcher = vi.fn(); vi.stubGlobal("fetch", fetcher);
+    expect(await (await loadApi()).localTestLoginAvailable()).toBe(false);
+    expect(fetcher).not.toHaveBeenCalled();
   });
 });

@@ -1,0 +1,5 @@
+[
+  {"email": "test.student@ku.th", "name": "Test Student", "role": "student"},
+  {"email": "test.ta@ku.th", "name": "Test TA", "role": "ta"},
+  {"email": "test.lecturer@ku.th", "name": "Test Lecturer", "role": "lecturer"}
+]
