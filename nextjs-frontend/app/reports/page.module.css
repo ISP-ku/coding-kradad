@@ -1,0 +1,30 @@
+.page{display:block}
+.muted{color:var(--muted);font-size:13px}
+.scopeNote{background:#fff8e9;border-left:3px solid #e4b959;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#87662d}
+.filterForm{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-bottom:24px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:160px}
+.field label{font-size:13px;font-weight:600;color:var(--muted)}
+.field input,.field select{padding:10px 12px;border:1px solid #dce2e5;background:#fff;border-radius:8px;color:var(--ink)}
+.field select:focus,.field input:focus{outline:2px solid #7355cf44;border-color:var(--accent)}
+.btn{border:0;border-radius:10px;background:#7355cf;color:#fff;padding:11px 22px;font-weight:600}
+.btn:hover{filter:brightness(.94)}
+
+.summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px}
+.summaryPill{background:#eee7fc;color:#6948bd;border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600}
+
+.emptyState{margin:16px 0;border:1px dashed #dfd6ee;border-radius:12px;background:#f7f5fc;min-height:200px;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:35px 20px}
+.emptyState h3{font-size:17px;font-weight:500;margin:0 0 5px}
+.emptyState p{color:var(--muted);max-width:460px;font-size:14px;margin:0}
+
+.tableWrap{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:10px}
+.table{width:100%;border-collapse:collapse;white-space:nowrap}
+.table th,.table td{text-align:left;padding:15px 20px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:top}
+.table th{background:#f4f1fb;color:#635779;font-weight:600}
+.table tr:last-child td{border:0}
+
+.taskChip{display:inline-flex;align-items:center;gap:6px;font-size:12px;border-radius:20px;padding:3px 11px;font-weight:600;margin:2px 4px 2px 0}
+.statusDone{background:#e3f6ec;color:#157345}
+.statusInProgress{background:#fff3db;color:#92610a}
+.statusNotStarted{background:#f0f3f5;color:#68747c}
+
+@media(max-width:760px){.filterForm{padding:16px}}

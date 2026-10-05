@@ -89,6 +89,27 @@ def test_valid_ku_login_and_logout(client, monkeypatch):
     assert client.get("/api/me").status_code == 401
 
 
+def test_ku_login_defaults_to_student_role(client, monkeypatch):
+    """SRS-18, SRS-22: a KU account not on any allowlist never gets staff access."""
+    monkeypatch.delenv("LECTURER_EMAILS", raising=False)
+    monkeypatch.delenv("TA_EMAILS", raising=False)
+    complete(client, monkeypatch)
+    assert client.get("/api/me").json()["role"] == "student"
+
+
+def test_ku_login_role_from_allowlist_and_resynced_each_login(client, monkeypatch):
+    """SRS-18, SRS-22: allowlisted emails get their role, and a later allowlist
+    change applies on the next login."""
+    monkeypatch.setenv("LECTURER_EMAILS", "Student@KU.th")
+    complete(client, monkeypatch)
+    assert client.get("/api/me").json()["role"] == "lecturer"
+
+    monkeypatch.setenv("LECTURER_EMAILS", "")
+    monkeypatch.setenv("TA_EMAILS", "student@ku.th")
+    complete(client, monkeypatch)
+    assert client.get("/api/me").json()["role"] == "ta"
+
+
 @pytest.mark.parametrize("overrides", [
     {"email": "student@gmail.com", "hd": None},
     {"email": "student@another.ac.th", "hd": "another.ac.th"},

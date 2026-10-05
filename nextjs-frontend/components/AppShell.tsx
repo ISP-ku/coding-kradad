@@ -7,7 +7,7 @@ import Icon from "./Icon";
 import styles from "./AppShell.module.css";
 
 type Props = {
-  page: "dashboard" | "faq" | "homework";
+  page: "dashboard" | "faq" | "homework" | "reports";
   title: string;
   heading: string;
   subtitle: string;
@@ -104,7 +104,7 @@ export default function AppShell({
     }
   };
 
-  const navLink = (href: string, key: typeof page, icon: "grid" | "chat" | "book", label: string) => (
+  const navLink = (href: string, key: typeof page, icon: "grid" | "chat" | "book" | "calendar", label: string) => (
     <Link
       href={href}
       className={page === key ? styles.active : undefined}
@@ -140,6 +140,7 @@ export default function AppShell({
           {navLink(viewer ? "/dashboard" : "/", "dashboard", "grid", "Dashboard")}
           {navLink("/faq", "faq", "chat", "FAQ / Issue Log")}
           {navLink("/homework", "homework", "book", "Homework Collector")}
+          {viewer?.role === "lecturer" && navLink("/reports", "reports", "calendar", "Reports")}
           {viewer ? (
             <button
               className={styles.accountTrigger}

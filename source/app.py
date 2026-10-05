@@ -19,6 +19,10 @@ from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2 import id_token
 from starlette.middleware.sessions import SessionMiddleware
 
+from database import SessionLocal, init_db
+from reports import router as reports_router
+from users import sync_user
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 HOST = os.getenv("HOST", "127.0.0.1")
@@ -80,6 +84,10 @@ app.add_middleware(
 )
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
+# Users, Activities / Tasks and Consultation tables (see database.py).
+init_db()
+app.include_router(reports_router)
+
 
 def current_user(request):
     user = request.session.get("user")
@@ -91,6 +99,16 @@ def current_user(request):
     if user.get("auth_method") == "local_test" and local_login_enabled(request):
         return user
     return None
+
+
+def with_role(user, role=None):
+    """Record the signed-in account in the users table (SRS-22) and copy its
+    role into the session user (SRS-18). See users.py for where roles come
+    from."""
+    with SessionLocal() as db:
+        row = sync_user(db, provider=user["provider"], provider_user_id=user["id"],
+                        email=user.get("email"), display_name=user["username"], role=role)
+        return {**user, "role": row.role}
 
 
 def build_authorize_url(state, nonce):
@@ -181,12 +199,12 @@ def local_test_submit(request: Request, email: str = Form(...), csrf: str = Form
     if not selected:
         raise HTTPException(403, "This account is not in data/allowed_users.json")
     request.session.clear()
-    request.session["user"] = {
+    request.session["user"] = with_role({
         "id": "local:" + selected["email"].lower(), "username": selected["name"],
-        "email": selected["email"].lower(), "role": selected["role"],
+        "email": selected["email"].lower(),
         "provider": "local", "auth_method": "local_test",
         "avatar_url": None, "classroom_courses": None,
-    }
+    }, role=selected["role"])
     return RedirectResponse(FRONTEND_URL + "/dashboard", status_code=303)
 
 
@@ -231,7 +249,7 @@ def callback(request: Request, provider: str, code: str | None = None,
         logger.warning("KU sign-in failed: token exchange or identity validation failed")
         return PlainTextResponse("Google sign-in could not be verified. Please try again.", status_code=400)
     request.session.clear()
-    request.session["user"] = user
+    request.session["user"] = with_role(user)
     return RedirectResponse(FRONTEND_URL + "/dashboard", status_code=303)
 
 
