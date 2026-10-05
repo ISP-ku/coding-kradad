@@ -25,3 +25,12 @@ export type Homework = {
   due_date: string;
   status: string; // "Submitted" | "Missing" | "Late" (any casing)
 };
+
+export type Consultation = {
+  id: number;
+  session_date: string; // "YYYY-MM-DD"
+  duration_minutes: number;
+  topic: string;
+  participants: string;
+  created_at: string;
+};

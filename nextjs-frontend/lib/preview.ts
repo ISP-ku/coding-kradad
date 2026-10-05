@@ -1,4 +1,4 @@
-import type { FaqEntry, Homework, SessionUser } from "./types";
+import type { Consultation, FaqEntry, Homework, SessionUser } from "./types";
 
 // UI preview mode: set UI_PREVIEW=1 in .env.local to browse every page with
 // fake data (same data as source/test_ui.py), without a running backend.
@@ -50,3 +50,11 @@ export const previewHomeworks: Homework[] = [
 ];
 
 export const previewAssignments = ["HW1 - ER Diagram", "HW2 - API Design", "HW3 - Final Report"];
+
+export const previewConsultations: Consultation[] = [
+  { id: 5, session_date: "2026-10-02", duration_minutes: 25, topic: "Pointer vs reference in Lab 4", participants: "Natthawut", created_at: "2026-10-02T14:12:00" },
+  { id: 4, session_date: "2026-09-30", duration_minutes: 50, topic: "ER diagram: many-to-many for course enrolment", participants: "Group 7 (4 students)", created_at: "2026-09-30T16:40:00" },
+  { id: 3, session_date: "2026-09-26", duration_minutes: 15, topic: "docker compose won't start", participants: "Pim", created_at: "2026-09-26T10:05:00" },
+  { id: 2, session_date: "2026-09-24", duration_minutes: 90, topic: "Midterm project scope review", participants: "Group 2, Group 5", created_at: "2026-09-24T17:30:00" },
+  { id: 1, session_date: "2026-09-19", duration_minutes: 35, topic: "Git merge conflict on a feature branch", participants: "Kwan, Tee", created_at: "2026-09-19T13:20:00" },
+];
