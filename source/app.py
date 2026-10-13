@@ -19,6 +19,7 @@ from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2 import id_token
 from starlette.middleware.sessions import SessionMiddleware
 
+from consultations import router as consultations_router
 from database import SessionLocal, init_db
 from reports import router as reports_router
 from users import sync_user
@@ -87,6 +88,7 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 # Users, Activities / Tasks and Consultation tables (see database.py).
 init_db()
 app.include_router(reports_router)
+app.include_router(consultations_router)  # SRS-14, SRS-15
 
 
 def current_user(request):

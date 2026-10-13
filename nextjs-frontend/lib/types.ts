@@ -28,6 +28,15 @@ export type Homework = {
   status: string; // "Submitted" | "Missing" | "Late" (any casing)
 };
 
+export type Consultation = {
+  id: number;
+  session_date: string; // "YYYY-MM-DD"
+  duration_minutes: number;
+  topic: string;
+  participants: string;
+  created_at: string;
+};
+
 // Mirrors source/reports.py's TaskOut / ActivityOut / ActivityReport (SRS-19, SRS-20).
 export type ReportTask = {
   id: number;

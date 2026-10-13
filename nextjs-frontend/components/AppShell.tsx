@@ -7,7 +7,7 @@ import Icon from "./Icon";
 import styles from "./AppShell.module.css";
 
 type Props = {
-  page: "dashboard" | "faq" | "homework" | "reports";
+  page: "dashboard" | "faq" | "homework" | "consultations" | "reports";
   title: string;
   heading: string;
   subtitle: string;
@@ -140,6 +140,7 @@ export default function AppShell({
           {navLink(viewer ? "/dashboard" : "/", "dashboard", "grid", "Dashboard")}
           {navLink("/faq", "faq", "chat", "FAQ / Issue Log")}
           {navLink("/homework", "homework", "book", "Homework Collector")}
+          {navLink("/consultations", "consultations", "calendar", "Consultation Log")}
           {viewer?.role === "lecturer" && navLink("/reports", "reports", "calendar", "Reports")}
           {viewer ? (
             <button
