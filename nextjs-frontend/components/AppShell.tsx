@@ -7,7 +7,7 @@ import Icon from "./Icon";
 import styles from "./AppShell.module.css";
 
 type Props = {
-  page: "dashboard" | "faq" | "homework" | "consultations";
+  page: "dashboard" | "faq" | "homework" | "consultations" | "reports";
   title: string;
   heading: string;
   subtitle: string;
@@ -133,7 +133,7 @@ export default function AppShell({
           <div className={styles.avatar}>{avatar}</div>
           <div className={styles.profileText}>
             <strong>{viewer ? viewer.username : "Course Support"}</strong>
-            <small>{viewer ? `${cap(viewer.provider)} account` : "Student portal"}</small>
+            <small>{viewer ? `${viewer.provider === "local" ? "Local test" : cap(viewer.provider)} account` : "Student portal"}</small>
           </div>
         </div>
         <nav className={styles.nav}>
@@ -141,6 +141,7 @@ export default function AppShell({
           {navLink("/faq", "faq", "chat", "FAQ / Issue Log")}
           {navLink("/homework", "homework", "book", "Homework Collector")}
           {navLink("/consultations", "consultations", "calendar", "Consultation Log")}
+          {viewer?.role === "lecturer" && navLink("/reports", "reports", "calendar", "Reports")}
           {viewer ? (
             <button
               className={styles.accountTrigger}

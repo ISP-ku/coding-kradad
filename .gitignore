@@ -7,9 +7,19 @@ __pycache__/
 venv/
 .venv/
 env/
+*.egg-info/
+
+# Tests / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local SQLite database
+*.db
 
 # Secrets
 .env
 
-# Local database
-*.db
+# Editors
+.vscode/
+.idea/

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import Icon from "@/components/Icon";
+import ActivityWorkspace from "@/components/ActivityWorkspace";
 import { logoutUrl } from "@/lib/api";
 import { getSessionUser } from "@/lib/session";
 import styles from "./page.module.css";
@@ -27,7 +28,7 @@ export default async function DashboardPage() {
         <a href="#overview" className={styles.selected}>
           Overview
         </a>
-        {(user.provider === "google" || courses.length > 0) && (
+        {courses.length > 0 && (
           <a href="#courses">My courses</a>
         )}
       </nav>
@@ -39,14 +40,7 @@ export default async function DashboardPage() {
           </span>
           <h2>Activity overview</h2>
         </div>
-        <div className={styles.emptyState}>
-          <Icon name="chat" />
-          <h3>Your activity overview will appear here</h3>
-          <p>
-            Deadlines, tasks and consultations will be available once your course
-            account is connected.
-          </p>
-        </div>
+        <ActivityWorkspace viewerName={user.username} />
       </section>
 
       {courses.length > 0 ? (
@@ -66,20 +60,6 @@ export default async function DashboardPage() {
                 </li>
               ))}
             </ul>
-          </div>
-        </section>
-      ) : user.provider === "google" ? (
-        <section className={`${styles.panel} ${styles.courses}`} id="courses">
-          <div className={styles.panelHeading}>
-            <h2>Your Google Classroom courses</h2>
-          </div>
-          <div className={styles.emptyState}>
-            <Icon name="book" />
-            <h3>No active courses found</h3>
-            <p>
-              Your courses will appear here when they are available from Google
-              Classroom.
-            </p>
           </div>
         </section>
       ) : null}

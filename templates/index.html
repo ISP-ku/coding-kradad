@@ -83,12 +83,9 @@
                 {% else %}
                     <h2>Welcome back.</h2>
                     <p class="description">Sign in to open your course dashboard.</p>
-                    <a class="login-btn" href="{{ url_for('login', provider='google') }}"><span class="provider-symbol google" aria-hidden="true">G</span>Login with Google (Classroom)</a>
-                    <div class="divider">or continue with</div>
-                    <a class="login-btn" href="{{ url_for('login', provider='discord') }}"><span class="provider-symbol discord" aria-hidden="true">D</span>Login with Discord</a>
-                    <a class="login-btn" href="{{ url_for('login', provider='line') }}"><span class="provider-symbol line" aria-hidden="true">LINE</span>Login with LINE</a>
+                    <a class="login-btn" href="{{ url_for('login', provider='google') }}"><span class="provider-symbol google" aria-hidden="true">G</span>Sign in with KU Google</a>
                 {% endif %}
-                <p class="login-help">Use the account you normally use for your courses.</p>
+                <p class="login-help">Use your university Google account ending in @ku.th.</p>
             </div>
         </section>
     </main>
