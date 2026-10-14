@@ -81,6 +81,8 @@ export type ActivityTask = {
   status: "Not Started" | "In Progress" | "Done";
   assigned_at: string;
   status_changed_at: string | null;
+  is_overdue: boolean;
+  is_at_risk: boolean;
 };
 
 export type CourseActivity = {

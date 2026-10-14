@@ -47,13 +47,18 @@ export default function ActivityWorkspace({ initialActivities, initialError = ""
         const tasks = activity.tasks.length ? activity.tasks : [null];
         return tasks.map((task) => {
           const canUpdate = Boolean(task && (viewerRole === "lecturer" || (viewerRole === "ta" && task.assignee_id === viewerId)));
-          return <article className={styles.entry} key={`${activity.id}-${task?.id ?? "schedule"}`}>
+          const flagClass = task?.is_overdue ? styles.entryOverdue : task?.is_at_risk ? styles.entryAtRisk : "";
+          return <article className={`${styles.entry} ${flagClass}`} key={`${activity.id}-${task?.id ?? "schedule"}`}>
             <div className={styles.dateBlock}>
               <strong>{new Date(activity.starts_at).toLocaleDateString("en", { day: "2-digit" })}</strong>
               <span>{new Date(activity.starts_at).toLocaleDateString("en", { month: "short" })}</span>
             </div>
             <div className={styles.entryInfo}>
-              <strong>{activity.title}</strong>
+              <span className={styles.titleRow}>
+                <strong>{activity.title}</strong>
+                {task?.is_overdue && <span className={`${styles.flag} ${styles.flagOverdue}`}>Overdue</span>}
+                {task?.is_at_risk && <span className={`${styles.flag} ${styles.flagAtRisk}`}>At risk</span>}
+              </span>
               <span>{typeLabels[activity.type]} · {formatDate(activity.starts_at)} · {activity.location}</span>
               <small>{activity.course_id}{task ? ` · Assigned to ${task.assignee_name}` : " · No task assigned"}</small>
             </div>

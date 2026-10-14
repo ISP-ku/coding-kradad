@@ -4,10 +4,12 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
-from database import ACTIVITY_TYPES, ROLE_LECTURER, TASK_STATUSES, Activity, Task, User, get_db
+from database import (
+    ACTIVITY_TYPES, ROLE_LECTURER, TASK_STATUS_DONE, TASK_STATUSES, Activity, Task, User, get_db,
+)
 
 router = APIRouter(prefix="/api/activities", tags=["activities"])
 RequiredText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
@@ -62,6 +64,9 @@ class TaskOut(BaseModel):
     assigned_at: datetime
     status_changed_at: Optional[datetime] = None
     assignee_name: str = "TA account"
+    # Computed by the Task model at read time (SRS-12, SRS-13).
+    is_overdue: bool = False
+    is_at_risk: bool = False
 
 
 class ActivityOut(BaseModel):
@@ -108,7 +113,13 @@ def list_activities(
     query = (
         select(Activity)
         .options(selectinload(Activity.tasks))
-        .where(Activity.archived_at.is_(None), Activity.starts_at >= now)
+        .where(
+            Activity.archived_at.is_(None),
+            # SRS-4 hides only past activities that are finished. A past
+            # activity with an unfinished task stays visible so its
+            # Overdue flag (SRS-12) can be acted on.
+            or_(Activity.starts_at >= now, Activity.tasks.any(Task.status != TASK_STATUS_DONE)),
+        )
         .order_by(Activity.starts_at, Activity.id)
     )
     activities = db.scalars(query).unique().all()
