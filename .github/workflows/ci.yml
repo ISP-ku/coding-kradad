@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, ci]
+    branches: ['**']
   pull_request:
     branches: [main]
 
@@ -56,3 +56,10 @@ jobs:
       - name: Run frontend unit tests
         working-directory: nextjs-frontend
         run: npm test
+
+      - name: Build Next.js
+        working-directory: nextjs-frontend
+        env:
+          UI_PREVIEW: "0"
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: npm run build

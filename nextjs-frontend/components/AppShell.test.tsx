@@ -7,10 +7,13 @@ import AppShell from "./AppShell";
 const baseUser: SessionUser = {
   id: "42",
   username: "Alice",
-  provider: "discord",
+  provider: "google",
 };
 
-function renderShell(viewer: SessionUser | null, page: "dashboard" | "faq" | "homework" = "dashboard") {
+function renderShell(
+  viewer: SessionUser | null,
+  page: "dashboard" | "faq" | "homework" | "reports" = "dashboard",
+) {
   return render(
     <AppShell
       page={page}
@@ -46,13 +49,27 @@ describe("AppShell (signed in)", () => {
     renderShell(baseUser);
 
     expect(screen.getAllByText("Alice").length).toBeGreaterThan(0);
-    expect(screen.getByText("Discord account")).toBeInTheDocument();
+    expect(screen.getByText("Google account")).toBeInTheDocument();
   });
 
   it("marks the current page's nav link as active", () => {
     renderShell(baseUser, "faq");
     expect(screen.getByRole("link", { name: /faq/i })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: /dashboard/i })).not.toHaveAttribute("aria-current");
+  });
+
+  it("shows a Reports nav link only for a Lecturer (SRS-18, SRS-19)", () => {
+    renderShell(null);
+    expect(screen.queryByRole("link", { name: /reports/i })).not.toBeInTheDocument();
+
+    renderShell(baseUser); // signed in, but no role
+    expect(screen.queryByRole("link", { name: /reports/i })).not.toBeInTheDocument();
+
+    renderShell({ ...baseUser, role: "ta" });
+    expect(screen.queryByRole("link", { name: /reports/i })).not.toBeInTheDocument();
+
+    renderShell({ ...baseUser, role: "lecturer" });
+    expect(screen.getByRole("link", { name: /reports/i })).toHaveAttribute("href", "/reports");
   });
 
   it("points the logout link at logoutHref", () => {
@@ -70,7 +87,7 @@ describe("AppShell (signed in)", () => {
     expect(dialog).toHaveAttribute("open");
     // student ID and email are both unset on baseUser, so "Not provided" appears twice
     expect(screen.getAllByText("Not provided")).toHaveLength(2);
-    expect(screen.getAllByText("Discord").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Google").length).toBeGreaterThan(0);
   });
 
   it("lists Google Classroom courses in the account dialog when present", async () => {

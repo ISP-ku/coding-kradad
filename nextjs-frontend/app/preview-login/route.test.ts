@@ -23,14 +23,14 @@ describe("GET /preview-login", () => {
     expect(res.cookies.get("preview_user")?.value).toBe("google");
   });
 
-  it("defaults to the discord provider when none is given", async () => {
+  it("defaults to the google provider when none is given", async () => {
     vi.stubEnv("UI_PREVIEW", "1");
     const { GET } = await loadRoute();
 
     const req = new NextRequest("http://localhost:3000/preview-login");
     const res = GET(req);
 
-    expect(res.cookies.get("preview_user")?.value).toBe("discord");
+    expect(res.cookies.get("preview_user")?.value).toBe("google");
   });
 
   it("redirects to / and does not set a cookie when preview mode is off", async () => {
@@ -43,4 +43,15 @@ describe("GET /preview-login", () => {
     expect(res.headers.get("location")).toBe("http://localhost:3000/");
     expect(res.cookies.get("preview_user")).toBeUndefined();
   });
+});
+
+it("cannot enable fake sign-in in a production build", async () => {
+  vi.stubEnv("UI_PREVIEW", "1");
+  vi.stubEnv("NODE_ENV", "production");
+  try {
+    const { GET } = await loadRoute();
+    const res = GET(new NextRequest("http://localhost:3000/preview-login"));
+    expect(res.cookies.get("preview_user")).toBeUndefined();
+    expect(res.headers.get("location")).toBe("http://localhost:3000/");
+  } finally { vi.unstubAllEnvs(); }
 });

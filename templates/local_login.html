@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Local test login</title>
+<style>body{font:16px/1.5 system-ui;background:#f7f6fa;color:#343449;margin:0;padding:32px}main{max-width:480px;margin:8vh auto;background:white;padding:32px;border-radius:16px}label,select,button{display:block}select,button{width:100%;font:inherit;padding:12px;margin-top:12px;border-radius:8px;border:1px solid #ccc}button{background:#7355cf;color:white;border:0;cursor:pointer}.note{background:#fff3db;padding:12px;border-radius:8px}a{color:#6948bd}</style></head>
+<body><main><h1>Local test login</h1><p class="note">Development only. This uses a fake account and does not verify a Google identity.</p>
+<form method="post" action="/local-test-login">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<label for="email">Choose a test account</label><select name="email" id="email" required>
+{% for user in users %}<option value="{{ user.email }}">{{ user.name }} — {{ user.role }} — {{ user.email }}</option>{% endfor %}
+</select><button type="submit">Continue with test account</button></form>
+<p><a href="/login/google">Use real KU Google login instead</a></p></main></body></html>

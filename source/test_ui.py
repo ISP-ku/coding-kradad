@@ -13,7 +13,7 @@ import socket
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, Form, Request, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -34,7 +34,7 @@ templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
 FAKE_USER = {
     "id": "123456789012345678",
     "username": "TestStudent",
-    "avatar_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+    "avatar_url": None,
 }
 FAKE_CLASSROOM_COURSES = [
     {"id": "111", "name": "Intro to Databases"},
@@ -55,12 +55,9 @@ async def login(request: Request, provider: str):
 
 @app.get("/fake-login/{provider}")
 async def fake_login(request: Request, provider: str):
-    if provider not in ("discord", "google", "line"):
-        provider = "discord"
-    user = dict(FAKE_USER, provider=provider, email=None, classroom_courses=None)
-    if provider == "google":
-        user["email"] = "teststudent@example.com"
-        user["classroom_courses"] = FAKE_CLASSROOM_COURSES
+    if provider != "google":
+        raise HTTPException(404, "Only KU Google preview is supported")
+    user = dict(FAKE_USER, provider="google", email="teststudent@ku.th", classroom_courses=None)
     request.session["user"] = user
     return RedirectResponse(str(request.url_for("dashboard")))
 

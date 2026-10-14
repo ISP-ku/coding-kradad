@@ -14,6 +14,9 @@ env/
 .coverage
 htmlcov/
 
+# Local SQLite database
+*.db
+
 # Secrets
 .env
 
