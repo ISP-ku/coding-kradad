@@ -69,6 +69,13 @@ AT_RISK_WARNING = timedelta(days=2)
 USER_ROLES = ("student", "ta", "lecturer")
 ROLE_LECTURER = "lecturer"
 
+# FaqEntry.status values (SRS-16 to SRS-18). A submitted entry starts
+# Pending and is hidden from everyone but a lecturer until it is reviewed.
+FAQ_STATUS_PENDING = "Pending"
+FAQ_STATUS_PUBLISHED = "Published"
+FAQ_STATUS_REJECTED = "Rejected"
+FAQ_STATUSES = (FAQ_STATUS_PENDING, FAQ_STATUS_PUBLISHED, FAQ_STATUS_REJECTED)
+
 
 class User(Base):
     """An internal account for an authenticated OAuth identity (SRS-22),
@@ -154,6 +161,25 @@ class ConsultationSession(Base):
     topic: Mapped[str] = mapped_column(String(200))
     participants: Mapped[str] = mapped_column(String(300))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
+class FaqEntry(Base):
+    """A searchable FAQ/issue entry (SRS-16 to SRS-18). Submitted by a TA
+    or a student, it starts Pending and only becomes visible to other
+    users once a lecturer approves (Published) or rejects it."""
+
+    __tablename__ = "faq_entries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    question: Mapped[str] = mapped_column(String(300))
+    answer: Mapped[str] = mapped_column(String(2000), default="")
+    # Comma-separated; short free-form tags don't need a join table yet.
+    tags: Mapped[str] = mapped_column(String(300), default="")
+    status: Mapped[str] = mapped_column(String(20), default=FAQ_STATUS_PENDING)
+    submitted_by: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    reviewed_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
 
 def init_db():

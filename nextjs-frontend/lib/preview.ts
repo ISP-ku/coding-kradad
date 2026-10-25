@@ -17,24 +17,30 @@ export function makePreviewUser(): SessionUser {
 
 export const previewFaq: FaqEntry[] = [
   {
+    id: 1,
     question: "When is the midterm project due?",
     answer: "The midterm project is due Friday of Week 8, 23:59.",
     status: "Published",
     tags: ["deadline", "project"],
   },
   {
+    id: 2,
     question: "Can we use a different database for the final project?",
     answer: "Ask your lecturer for approval before switching database technology.",
     status: "Published",
     tags: ["project", "database"],
   },
   {
+    id: 3,
     question: "Is attendance in lab sessions mandatory?",
     answer: "",
     status: "Pending",
     tags: ["lab"],
   },
 ];
+
+// Pending entries awaiting lecturer review (SRS-18), a subset of previewFaq.
+export const previewPendingFaq: FaqEntry[] = previewFaq.filter((e) => e.status === "Pending");
 
 export const previewHomeworks: Homework[] = [
   { student: "TestStudent", assignment: "HW1 - ER Diagram", due_date: "2026-09-10", status: "Submitted" },
