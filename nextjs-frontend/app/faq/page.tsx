@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import AppShell from "@/components/AppShell";
 import { API_BASE, logoutUrl } from "@/lib/api";
+import { getPendingFaq } from "@/lib/faq";
 import { PREVIEW, previewFaq } from "@/lib/preview";
 import { getSessionUser } from "@/lib/session";
 import type { FaqEntry } from "@/lib/types";
@@ -44,6 +45,7 @@ export default async function FaqPage({
 }) {
   const query = searchParams.q ?? "";
   const [viewer, entries] = await Promise.all([getSessionUser(), getFaqEntries(query)]);
+  const pending = viewer?.role === "lecturer" ? await getPendingFaq() : [];
 
   return (
     <AppShell
@@ -123,6 +125,44 @@ export default async function FaqPage({
             </button>
           </form>
         </div>
+
+        {viewer?.role === "lecturer" && (
+          <div className={styles.submitPanel}>
+            <h3>Pending review</h3>
+            <p className={styles.hint}>
+              New submissions stay hidden from everyone else until you approve or reject them.
+            </p>
+            {pending.length > 0 ? (
+              pending.map((entry) => (
+                <div className={styles.faqCard} key={entry.id}>
+                  <div className={styles.faqQuestion}>{entry.question}</div>
+                  {entry.answer && <div className={styles.faqAnswer}>{entry.answer}</div>}
+                  <div className={styles.faqMeta}>
+                    {entry.tags.map((tag) => (
+                      <span className={styles.tag} key={tag}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <div className={styles.reviewActions}>
+                    <form method="post" action={`${API_BASE}/faq/${entry.id}/approve`}>
+                      <button type="submit" className={styles.btn}>
+                        Approve
+                      </button>
+                    </form>
+                    <form method="post" action={`${API_BASE}/faq/${entry.id}/reject`}>
+                      <button type="submit" className={`${styles.btn} ${styles.btnGhost}`}>
+                        Reject
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p>Nothing waiting on review.</p>
+            )}
+          </div>
+        )}
       </div>
     </AppShell>
   );

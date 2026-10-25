@@ -22,6 +22,8 @@ from starlette.middleware.sessions import SessionMiddleware
 from activities import router as activities_router
 from consultations import router as consultations_router
 from database import SessionLocal, init_db
+
+from faq import router as faq_router
 from reports import router as reports_router
 from users import sync_user
 
@@ -91,6 +93,8 @@ init_db()
 app.include_router(activities_router)  # SRS-2 to SRS-13
 app.include_router(reports_router)
 app.include_router(consultations_router)  # SRS-14, SRS-15
+
+app.include_router(faq_router)  # SRS-16, SRS-17, SRS-18
 
 
 def current_user(request):

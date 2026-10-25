@@ -15,6 +15,7 @@ export type SessionUser = {
 };
 
 export type FaqEntry = {
+  id: number;
   question: string;
   answer: string;
   status: string; // "Published" | "Pending" | "Rejected" (any casing)
