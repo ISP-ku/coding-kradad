@@ -74,3 +74,27 @@ export type ActivityReport = {
   activities: ReportActivity[];
   consultations: ConsultationSummary;
 };
+
+export type ActivityTask = {
+  id: number;
+  assignee_id: string;
+  assignee_name: string;
+  status: "Not Started" | "In Progress" | "Done";
+  assigned_at: string;
+  status_changed_at: string | null;
+  is_overdue: boolean;
+  is_at_risk: boolean;
+};
+
+export type CourseActivity = {
+  id: number;
+  course_id: string;
+  title: string;
+  type: "deadline" | "lab" | "consultation" | "milestone";
+  starts_at: string;
+  location: string;
+  created_by: string;
+  tasks: ActivityTask[];
+};
+
+export type ActivityAssignee = { id: string; name: string };

@@ -1,4 +1,4 @@
-export type IconName = "grid" | "book" | "chat" | "user" | "power" | "menu" | "calendar";
+export type IconName = "grid" | "book" | "chat" | "user" | "power" | "menu" | "calendar" | "plus";
 
 const paths: Record<IconName, React.ReactNode> = {
   grid: (
@@ -24,6 +24,7 @@ const paths: Record<IconName, React.ReactNode> = {
   ),
   power: <path d="M12 2v9M6 5a9 9 0 1 0 12 0" />,
   menu: <path d="M3 5h18M3 12h18M3 19h18" />,
+  plus: <path d="M12 5v14M5 12h14" />,
   calendar: (
     <>
       <rect x="4" y="5" width="16" height="16" rx="1" />

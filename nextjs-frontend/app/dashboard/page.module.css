@@ -18,3 +18,6 @@
 .courseList svg{color:var(--accent);padding:8px;width:38px;height:38px;border-radius:10px;background:#f2edfb}
 @media(min-width:1600px){.emptyState{min-height:326px}}
 @media(max-width:760px){.panelHeading{padding:18px}.pageTabs{gap:5px}.pageTabs a{padding:9px 13px}}
+
+.dashboardActions{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:22px 0 14px}.eyebrow{font-size:11px;letter-spacing:.1em;font-weight:700;color:#7355cf}.dashboardActions h2{font-size:22px;margin:3px 0 0;color:var(--dark)}.addButton{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:10px;padding:11px 16px;background:#7355cf;color:white;font-size:14px;font-weight:700;box-shadow:0 5px 14px #7355cf2b;transition:background .15s,transform .15s}.addButton:hover{background:#6242bd;transform:translateY(-1px)}.addButton svg{width:18px;height:18px}.panel{background:#fff;border:1px solid #eeebf3;border-radius:16px;box-shadow:0 5px 20px #33264a04;overflow:hidden}
+@media(max-width:600px){.dashboardActions{align-items:flex-start;flex-direction:column}.addButton{width:100%}}
