@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Consultation Log · Course Support" 
 async function getConsultations(): Promise<{ entries: Consultation[]; signedIn: boolean }> {
   try {
     const res = await fetch(`${API_BASE}/api/consultations`, {
-      headers: { cookie: cookies().toString() },
+      headers: { cookie: cookies().getAll().map(({ name, value }) => `${name}=${value}`).join("; ") },
       cache: "no-store",
     });
     if (res.status === 401) return { entries: [], signedIn: false };
