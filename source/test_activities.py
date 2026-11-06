@@ -58,6 +58,17 @@ def test_lecturer_creates_activity_and_real_ta_task():
     assert client.get("/api/activities").json()[0]["id"] == saved["id"]
 
 
+def test_api_returns_times_as_explicit_utc():
+    """09:30 Bangkok time must come back as 02:30Z, not a bare '02:30' that
+    browsers would read as local time (the 7-hour display bug)."""
+    login_as(LECTURER)
+    saved = client.post("/api/activities", json=VALID).json()
+    assert saved["starts_at"] == "2099-10-21T02:30:00Z"
+    assert saved["tasks"][0]["assigned_at"].endswith("Z")
+    listed = client.get("/api/activities").json()[0]
+    assert listed["starts_at"] == "2099-10-21T02:30:00Z"
+
+
 def test_ta_cannot_create_and_student_cannot_change_status():
     login_as(TA)
     assert client.post("/api/activities", json=VALID).status_code == 403

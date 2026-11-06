@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
+from timeutil import UtcDateTime
 from database import (
     ACTIVITY_TYPES, ROLE_LECTURER, TASK_STATUS_DONE, TASK_STATUSES, Activity, Task, User, get_db,
 )
@@ -61,8 +62,8 @@ class TaskOut(BaseModel):
     id: int
     assignee_id: str
     status: str
-    assigned_at: datetime
-    status_changed_at: Optional[datetime] = None
+    assigned_at: UtcDateTime
+    status_changed_at: Optional[UtcDateTime] = None
     assignee_name: str = "TA account"
     # Computed by the Task model at read time (SRS-12, SRS-13).
     is_overdue: bool = False
@@ -75,7 +76,7 @@ class ActivityOut(BaseModel):
     course_id: str
     title: str
     type: str
-    starts_at: datetime
+    starts_at: UtcDateTime
     location: str
     created_by: str
     tasks: list[TaskOut]
