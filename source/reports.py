@@ -40,6 +40,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from timeutil import UtcDateTime
 from database import ROLE_LECTURER, Activity, ConsultationSession, get_db
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
@@ -67,8 +68,8 @@ class TaskOut(BaseModel):
     id: int
     assignee_id: str
     status: str
-    assigned_at: datetime
-    status_changed_at: Optional[datetime] = None
+    assigned_at: UtcDateTime
+    status_changed_at: Optional[UtcDateTime] = None
 
 
 class ActivityOut(BaseModel):
@@ -77,10 +78,10 @@ class ActivityOut(BaseModel):
     id: int
     title: str
     type: str
-    starts_at: datetime
+    starts_at: UtcDateTime
     location: str
     created_by: str
-    archived_at: Optional[datetime] = None
+    archived_at: Optional[UtcDateTime] = None
     tasks: list[TaskOut] = []
 
 

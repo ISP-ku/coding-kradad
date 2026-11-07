@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from timeutil import UtcDateTime
 from database import ConsultationSession, get_db
 
 router = APIRouter(prefix="/api/consultations", tags=["consultations"])
@@ -34,7 +35,7 @@ class ConsultationOut(BaseModel):
     duration_minutes: int
     topic: str
     participants: str
-    created_at: datetime
+    created_at: UtcDateTime
 
 
 def current_ta_id(request: Request) -> str:
