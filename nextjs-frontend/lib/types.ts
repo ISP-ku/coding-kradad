@@ -94,6 +94,7 @@ export type CourseActivity = {
   starts_at: string;
   location: string;
   created_by: string;
+  archived_at?: string | null;
   tasks: ActivityTask[];
 };
 

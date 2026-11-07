@@ -46,6 +46,21 @@ class ActivityCreate(BaseModel):
         return value
 
 
+class ActivityUpdate(BaseModel):
+    course_id: Optional[RequiredText] = Field(default=None, max_length=100)
+    title: Optional[RequiredText] = Field(default=None, max_length=200)
+    type: Optional[str] = None
+    starts_at: Optional[datetime] = None
+    location: Optional[RequiredText] = Field(default=None, max_length=200)
+
+    @field_validator("type")
+    @classmethod
+    def valid_type(cls, value):
+        if value is not None and value not in ACTIVITY_TYPES:
+            raise ValueError("Unsupported activity type.")
+        return value
+
+
 class TaskStatusUpdate(BaseModel):
     status: str
 
@@ -79,6 +94,7 @@ class ActivityOut(BaseModel):
     starts_at: UtcDateTime
     location: str
     created_by: str
+    archived_at: Optional[UtcDateTime] = None
     tasks: list[TaskOut]
 
 
@@ -102,7 +118,7 @@ def activity_response(activity: Activity, db: Session) -> ActivityOut:
     return ActivityOut.model_validate({
         "id": activity.id, "course_id": activity.course_id, "title": activity.title,
         "type": activity.type, "starts_at": activity.starts_at, "location": activity.location,
-        "created_by": activity.created_by, "tasks": tasks,
+        "created_by": activity.created_by, "archived_at": activity.archived_at, "tasks": tasks,
     })
 
 
@@ -160,6 +176,62 @@ def create_activity(
     db.commit()
     saved = db.scalars(select(Activity).options(selectinload(Activity.tasks)).where(Activity.id == activity.id)).one()
     return activity_response(saved, db)
+
+
+@router.patch("/{activity_id}", response_model=ActivityOut)
+def update_activity(
+    activity_id: int, data: ActivityUpdate,
+    _user: dict = Depends(require_lecturer), db: Session = Depends(get_db),
+):
+    activity = db.scalar(select(Activity).options(selectinload(Activity.tasks)).where(Activity.id == activity_id))
+    if activity is None:
+        raise HTTPException(status_code=404, detail="Activity not found.")
+    if activity.archived_at is not None:
+        raise HTTPException(status_code=409, detail="Archived activities cannot be edited.")
+    changes = data.model_dump(exclude_unset=True)
+    if not changes:
+        raise HTTPException(status_code=422, detail="Provide at least one field to update.")
+    if any(value is None for value in changes.values()):
+        raise HTTPException(status_code=422, detail="Activity fields cannot be null.")
+    if "starts_at" in changes and changes["starts_at"].tzinfo is not None:
+        changes["starts_at"] = changes["starts_at"].astimezone(timezone.utc).replace(tzinfo=None)
+    for key, value in changes.items():
+        setattr(activity, key, value)
+    db.commit()
+    db.refresh(activity)
+    return activity_response(activity, db)
+
+
+@router.post("/{activity_id}/archive", response_model=ActivityOut)
+def archive_activity(
+    activity_id: int, _user: dict = Depends(require_lecturer),
+    db: Session = Depends(get_db),
+):
+    activity = db.scalar(select(Activity).options(selectinload(Activity.tasks)).where(Activity.id == activity_id))
+    if activity is None:
+        raise HTTPException(status_code=404, detail="Activity not found.")
+    if activity.archived_at is None:
+        activity.archived_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        db.commit()
+        db.refresh(activity)
+    return activity_response(activity, db)
+
+
+@router.delete("/{activity_id}", status_code=204)
+def delete_activity(
+    activity_id: int, _user: dict = Depends(require_lecturer),
+    db: Session = Depends(get_db),
+):
+    activity = db.scalar(select(Activity).where(Activity.id == activity_id))
+    if activity is None:
+        raise HTTPException(status_code=404, detail="Activity not found.")
+    if activity.archived_at is not None:
+        raise HTTPException(status_code=409, detail="Archived activities must be retained for reports.")
+    # Delete child tasks first to avoid orphaned records and FK violations.
+    for task in db.scalars(select(Task).where(Task.activity_id == activity_id)).all():
+        db.delete(task)
+    db.delete(activity)
+    db.commit()
 
 
 @router.patch("/{activity_id}/tasks/{task_id}", response_model=TaskOut)
