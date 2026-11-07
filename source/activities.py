@@ -47,6 +47,7 @@ class ActivityCreate(BaseModel):
 
 
 class ActivityUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     course_id: Optional[RequiredText] = Field(default=None, max_length=100)
     title: Optional[RequiredText] = Field(default=None, max_length=200)
     type: Optional[str] = None
