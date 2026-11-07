@@ -4,10 +4,12 @@ A short guide for group members working together on this repo.
 
 ## Setup
 
-Follow [README.md](README.md) to install dependencies and run the project first.
+Follow [README.md](README.md) and [KU_LOGIN_SETUP.md](KU_LOGIN_SETUP.md) (or [LOCAL_TEST_LOGIN.md](LOCAL_TEST_LOGIN.md) to skip Google OAuth) to install dependencies and run both the FastAPI backend and the Next.js frontend first.
 
 ```bash
-pip install -r source/requirements.txt --break-system-packages
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
+python -m pip install -r source/requirements-dev.txt
 ```
 
 ## Branch
@@ -50,7 +52,7 @@ Avoid: `update`, `fix bug`, `asdf`
    ```bash
    python -m py_compile source/*.py
    ```
-3. **Never commit secrets** — `DISCORD_CLIENT_SECRET`, `FLASK_SECRET_KEY` must come from environment variables only. Don't hardcode them in code or push a `.env` file to the repo.
+3. **Never commit secrets** — `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET` must come from environment variables only. Don't hardcode them in code or push a `.env` file to the repo.
 
 ## Pull Request
 
@@ -63,8 +65,8 @@ Avoid: `update`, `fix bug`, `asdf`
 ## Code style
 
 - Python: follow PEP8 (meaningful variable names, consistent spacing).
-- Route/variable names in Flask should match what's used in `templates/` (keep consistent with what's already in `app.py`).
-- If you add a new page, also add a fake-data version in `test_ui.py` so teammates can preview the UI without setting up Discord OAuth.
+- Route/variable names in FastAPI should match what's used in `templates/` (keep consistent with what's already in `app.py`).
+- If you add a new page, also add a fake-data version in `test_ui.py` so teammates can preview the UI without setting up Google OAuth.
 
 ## Reporting issues
 

@@ -94,4 +94,4 @@ From the project root: `python -m pytest source -q`
 
 From nextjs-frontend: `npm test` and `npm run build`
 
-Verified locally: 44 backend tests, 24 frontend tests, Next.js production build, and a live HTTP flow through both running servers (login button, account form, dashboard, /api/me and logout).
+Verified locally: 122 backend tests, 32 frontend tests, Next.js production build, and a live HTTP flow through both running servers (login button, account form, dashboard, /api/me and logout).

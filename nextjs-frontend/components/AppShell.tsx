@@ -7,7 +7,7 @@ import Icon from "./Icon";
 import styles from "./AppShell.module.css";
 
 type Props = {
-  page: "dashboard" | "faq" | "homework" | "consultations" | "reports";
+  page: "dashboard" | "faq" | "consultations" | "reports";
   title: string;
   heading: string;
   subtitle: string;
@@ -17,6 +17,7 @@ type Props = {
 };
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const roleLabel = (role?: string) => (role === "ta" ? "TA" : role ? cap(role) : undefined);
 
 export default function AppShell({
   page,
@@ -133,13 +134,12 @@ export default function AppShell({
           <div className={styles.avatar}>{avatar}</div>
           <div className={styles.profileText}>
             <strong>{viewer ? viewer.username : "Course Support"}</strong>
-            <small>{viewer ? `${viewer.provider === "local" ? "Local test" : cap(viewer.provider)} account` : "Student portal"}</small>
+            <small>{viewer ? `${viewer.provider === "local" ? "Local test" : cap(viewer.provider)} account` : "Sign in to continue"}</small>
           </div>
         </div>
         <nav className={styles.nav}>
           {navLink(viewer ? "/dashboard" : "/", "dashboard", "grid", "Dashboard")}
           {navLink("/faq", "faq", "chat", "FAQ / Issue Log")}
-          {navLink("/homework", "homework", "book", "Homework Collector")}
           {navLink("/consultations", "consultations", "calendar", "Consultation Log")}
           {viewer?.role === "lecturer" && navLink("/reports", "reports", "calendar", "Reports")}
           {viewer ? (
@@ -193,7 +193,8 @@ export default function AppShell({
             <Icon name="menu" />
           </button>
           <div className={styles.appbarTitle}>
-            Course Support <span className={styles.brandDivider}>/</span> Student workspace
+            Course Support <span className={styles.brandDivider}>/</span>{" "}
+            <span>{roleLabel(viewer?.role) ? `${roleLabel(viewer?.role)} workspace` : "Workspace"}</span>
           </div>
           <div className={styles.account}>
             {viewer ? (
@@ -206,7 +207,7 @@ export default function AppShell({
                 </a>
               </>
             ) : (
-              <span className={styles.accountName}>Student portal</span>
+              <span className={styles.accountName}>Sign in to continue</span>
             )}
           </div>
         </header>

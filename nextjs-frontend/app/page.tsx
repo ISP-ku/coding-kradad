@@ -22,7 +22,7 @@ export default async function LoginPage() {
           Course Support
         </div>
         <div className={styles.story}>
-          <p className={styles.eyebrow}>YOUR STUDENT WORKSPACE</p>
+          <p className={styles.eyebrow}>YOUR COURSE WORKSPACE</p>
           <h1>
             A clearer space
             <br />
@@ -55,7 +55,7 @@ export default async function LoginPage() {
 
       <section className={styles.signIn} aria-label="Account access">
         <div className={styles.loginCard}>
-          <span className={styles.portalLabel}>Student portal</span>
+          <span className={styles.portalLabel}>Course Support</span>
           {user ? (
             <>
               {user.avatar_url && (
