@@ -106,3 +106,35 @@ export type CourseActivity = {
 };
 
 export type ActivityAssignee = { id: string; name: string };
+
+// Mirrors source/homework.py (lecturer assigns, students submit, TAs grade).
+export type HomeworkSubmission = {
+  id: number;
+  homework_id: number;
+  student_name: string;
+  answer: string;
+  submitted_at: string;
+  is_late: boolean;
+  score: number | null;
+  feedback: string | null;
+  graded_at: string | null;
+};
+
+export type HomeworkStatus = "todo" | "submitted" | "graded";
+
+export type HomeworkItem = {
+  id: number;
+  course_id: string;
+  title: string;
+  description: string;
+  due_at: string;
+  max_score: number;
+  created_at: string;
+  // Student view only:
+  status: HomeworkStatus | null;
+  is_overdue: boolean;
+  my_submission: HomeworkSubmission | null;
+  // TA / lecturer view only:
+  submission_count: number | null;
+  graded_count: number | null;
+};

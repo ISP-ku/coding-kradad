@@ -31,6 +31,10 @@ jobs:
           python -c "import app"
           python -c "import test_ui"
 
+      - name: Run authentication and role-permission tests
+        working-directory: source
+        run: pytest -v test_app.py test_rbac.py test_users.py
+
       - name: Run backend unit tests
         working-directory: source
         run: pytest -v
@@ -52,6 +56,10 @@ jobs:
       - name: Install dependencies
         working-directory: nextjs-frontend
         run: npm ci
+
+      - name: Type-check frontend
+        working-directory: nextjs-frontend
+        run: npx tsc --noEmit
 
       - name: Run frontend unit tests
         working-directory: nextjs-frontend

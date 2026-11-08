@@ -4,6 +4,7 @@ import AppShell from "@/components/AppShell";
 import Icon from "@/components/Icon";
 import { logoutUrl } from "@/lib/api";
 import { getActivityReport, getReportCourses } from "@/lib/reports";
+import { canAccess } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
 import styles from "./page.module.css";
 
@@ -50,7 +51,7 @@ export default async function ReportsPage({
   const viewer = await getSessionUser();
   if (!viewer) redirect("/");
 
-  if (viewer.role !== "lecturer") {
+  if (!canAccess(viewer, "reports")) {
     return (
       <AppShell
         page="reports"

@@ -12,6 +12,7 @@ from database import (
     ACTIVITY_TYPES, ROLE_LECTURER, TASK_STATUS_DONE, TASK_STATUSES, Activity, Task, User, get_db,
 )
 
+STAFF_ROLES = {"ta", "lecturer"}
 router = APIRouter(prefix="/api/activities", tags=["activities"])
 RequiredText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
@@ -21,6 +22,14 @@ def authenticated_user(request: Request) -> dict:
     user = current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Please sign in first.")
+    return user
+
+
+def require_staff(user: dict = Depends(authenticated_user)) -> dict:
+    """Dashboard data is for course staff only (SRS-18, R-02): students are
+    signed in but have no dashboard, so they get 403, not an empty list."""
+    if user.get("role") not in STAFF_ROLES:
+        raise HTTPException(status_code=403, detail="Teaching staff access required.")
     return user
 
 
@@ -125,7 +134,7 @@ def activity_response(activity: Activity, db: Session) -> ActivityOut:
 
 @router.get("", response_model=list[ActivityOut])
 def list_activities(
-    _user: dict = Depends(authenticated_user), db: Session = Depends(get_db),
+    _user: dict = Depends(require_staff), db: Session = Depends(get_db),
 ):
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     query = (
@@ -247,8 +256,9 @@ def delete_activity(
 @router.patch("/{activity_id}/tasks/{task_id}", response_model=TaskOut)
 def update_task_status(
     activity_id: int, task_id: int, data: TaskStatusUpdate,
-    user: dict = Depends(authenticated_user), db: Session = Depends(get_db),
+    user: dict = Depends(require_staff), db: Session = Depends(get_db),
 ):
+    # require_staff runs first, so students get 403 whether or not the task exists.
     task = db.scalar(select(Task).where(Task.id == task_id, Task.activity_id == activity_id))
     if not task:
         raise HTTPException(status_code=404, detail="Task not found.")

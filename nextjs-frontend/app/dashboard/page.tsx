@@ -6,6 +6,7 @@ import Icon from "@/components/Icon";
 import ActivityWorkspace from "@/components/ActivityWorkspace";
 import { API_BASE, logoutUrl } from "@/lib/api";
 import { PREVIEW } from "@/lib/preview";
+import { canAccess, homePathFor } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
 import type { CourseActivity } from "@/lib/types";
 import styles from "./page.module.css";
@@ -30,6 +31,8 @@ export default async function DashboardPage() {
   if (PREVIEW) redirect("/");
   const user = await getSessionUser();
   if (!user) redirect("/");
+  // R-02: students have no dashboard; the API also refuses them (403).
+  if (!canAccess(user, "dashboard")) redirect(homePathFor(user));
 
   const [activityResult, courses] = await Promise.all([loadActivities(), Promise.resolve(user.classroom_courses ?? [])]);
   const userIdentity = `${user.provider}:${user.id}`;
