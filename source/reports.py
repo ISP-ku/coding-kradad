@@ -41,7 +41,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from timeutil import UtcDateTime
-from database import ROLE_LECTURER, Activity, ConsultationSession, get_db
+from database import ROLE_LECTURER, TASK_STATUS_DONE, Activity, Task, ConsultationSession, get_db
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -137,7 +137,11 @@ def get_activity_report(
             Activity.starts_at >= range_start,
             Activity.starts_at <= range_end,
             # History only: completed (already happened) or archived (SRS-19).
-            or_(Activity.starts_at < _utcnow_naive(), Activity.archived_at.is_not(None)),
+            or_(
+                Activity.starts_at < _utcnow_naive(),
+                Activity.archived_at.is_not(None),
+                Activity.tasks.any() & ~Activity.tasks.any(Task.status != TASK_STATUS_DONE),
+            ),
         )
         .order_by(Activity.starts_at)
     )
