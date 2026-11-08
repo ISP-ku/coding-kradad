@@ -20,25 +20,8 @@ export default function ActivityWorkspace({ initialActivities, initialError = ""
   const [error, setError] = useState(initialError);
   const [savingTask, setSavingTask] = useState<number | null>(null);
   const [busyActivity, setBusyActivity] = useState<number | null>(null);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editValues, setEditValues] = useState({ course_id: "", title: "", type: "deadline" as CourseActivity["type"], starts_at: "", location: "" });
-
-  function localDateTime(iso: string) {
-    const date = new Date(iso);
-    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-    return local.toISOString().slice(0, 16);
-  }
-
-  function startEditing(activity: CourseActivity) {
-    setEditingId(activity.id);
-    setEditValues({
-      course_id: activity.course_id, title: activity.title, type: activity.type,
-      starts_at: localDateTime(activity.starts_at), location: activity.location,
-    });
-    setError("");
-  }
-
-  async function activityRequest(activityId: number, action: "edit" | "delete" | "archive") {
+  // Edit opens its own page, rather than expanding on the dashboard.
+  async function activityRequest(activityId: number, action: "delete" | "archive") {
     if (busyActivity !== null) return;
     if (action === "delete" && !window.confirm("Permanently delete this activity and its tasks? Use Archive instead to keep its history.")) return;
     if (action === "archive" && !window.confirm("Archive this activity? It will move from the dashboard into Reports.")) return;
@@ -46,21 +29,12 @@ export default function ActivityWorkspace({ initialActivities, initialError = ""
     setError("");
     const url = `/api/activities/${activityId}`;
     try {
-      const payload = action === "edit" ? {
-        ...editValues, starts_at: new Date(editValues.starts_at).toISOString(),
-      } : undefined;
       const response = await fetch(action === "archive" ? `${url}/archive` : url, {
-        method: action === "edit" ? "PATCH" : action === "delete" ? "DELETE" : "POST",
-        ...(payload ? { headers: { "content-type": "application/json" }, body: JSON.stringify(payload) } : {}),
+        method: action === "delete" ? "DELETE" : "POST",
       });
       const body = response.status === 204 ? null : await response.json().catch(() => null);
       if (!response.ok) throw new Error(body?.detail ?? `Could not ${action} activity.`);
-      if (action === "edit") {
-        setActivities(current => current.map(item => item.id === activityId ? body as CourseActivity : item));
-        setEditingId(null);
-      } else {
-        setActivities(current => current.filter(item => item.id !== activityId));
-      }
+      setActivities(current => current.filter(item => item.id !== activityId));
     } catch (e) {
       setError(e instanceof Error ? e.message : `Could not ${action} activity.`);
     } finally {
@@ -77,9 +51,12 @@ export default function ActivityWorkspace({ initialActivities, initialError = ""
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.detail ?? "Could not update this task.");
-      setActivities((current) => current.map((activity) => activity.id !== activityId ? activity : {
-        ...activity,
-        tasks: activity.tasks.map((task) => task.id === taskId ? body : task),
+      setActivities((current) => current.flatMap((activity) => {
+        if (activity.id !== activityId) return [activity];
+        const tasks = activity.tasks.map((task) => task.id === taskId ? body : task);
+        return tasks.length > 0 && tasks.every(task => task.status === "Done")
+          ? []
+          : [{ ...activity, tasks }];
       }));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not update this task.");
@@ -112,7 +89,7 @@ export default function ActivityWorkspace({ initialActivities, initialError = ""
               <small>{activity.course_id}{task ? ` · Assigned to ${task.assignee_name}` : " · No task assigned"}</small>
             </div>
             {showActivityActions && <div className={styles.activityActions}>
-              <button type="button" disabled={busyActivity !== null} onClick={() => startEditing(activity)}>Edit</button>
+              <a className={styles.editLink} href={`/dashboard/activities/${activity.id}/edit`}>Edit</a>
               <button type="button" disabled={busyActivity !== null} onClick={() => void activityRequest(activity.id, "archive")}>Archive</button>
               <button type="button" className={styles.danger} disabled={busyActivity !== null} onClick={() => void activityRequest(activity.id, "delete")}>Delete</button>
             </div>}
@@ -122,16 +99,6 @@ export default function ActivityWorkspace({ initialActivities, initialError = ""
                 {statusOptions.map((status) => <option key={status}>{status}</option>)}
               </select>
             </label>}
-            {showActivityActions && editingId === activity.id && <form className={styles.editForm} onSubmit={(event) => { event.preventDefault(); void activityRequest(activity.id, "edit"); }}>
-              <label>Course ID<input required maxLength={100} value={editValues.course_id} onChange={e => setEditValues(v => ({ ...v, course_id: e.target.value }))} /></label>
-              <label>Title<input required maxLength={200} value={editValues.title} onChange={e => setEditValues(v => ({ ...v, title: e.target.value }))} /></label>
-              <label>Type<select value={editValues.type} onChange={e => setEditValues(v => ({ ...v, type: e.target.value as CourseActivity["type"] }))}>
-                {Object.entries(typeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select></label>
-              <label>Date and time<input required type="datetime-local" value={editValues.starts_at} onChange={e => setEditValues(v => ({ ...v, starts_at: e.target.value }))} /></label>
-              <label>Location<input required maxLength={200} value={editValues.location} onChange={e => setEditValues(v => ({ ...v, location: e.target.value }))} /></label>
-              <div className={styles.editButtons}><button type="submit" disabled={busyActivity !== null}>Save changes</button><button type="button" onClick={() => setEditingId(null)}>Cancel</button></div>
-            </form>}
           </article>;
         });
       })}

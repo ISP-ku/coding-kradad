@@ -8,6 +8,7 @@ os.environ["DATABASE_URL"] = f"sqlite:///{os.path.join(_tmp_dir, 'test.db')}"
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from activities import authenticated_user
 from app import app
@@ -132,10 +133,15 @@ def test_overdue_and_at_risk_flags_on_dashboard():
 
 def test_done_tasks_are_never_flagged():
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-    add_activity("Lab tomorrow done", now + timedelta(days=1), status="Done")
+    activity_id = add_activity("Lab tomorrow done", now + timedelta(days=1), status="Done")
     login_as(TA)
-    task = task_for("Lab tomorrow done")
-    assert task["is_at_risk"] is False and task["is_overdue"] is False
+    # Completed activities no longer appear in the dashboard endpoint.
+    assert all(a["id"] != activity_id for a in client.get("/api/activities").json())
+    # Their persisted tasks should still have no overdue / at-risk flags.
+    with SessionLocal() as db:
+        task = db.scalar(select(Task).where(Task.activity_id == activity_id))
+        assert task is not None
+        assert task.is_at_risk is False and task.is_overdue is False
 
 
 def test_past_activity_stays_visible_until_done_then_hides():
@@ -210,3 +216,35 @@ def test_edit_validation_and_missing_activity():
     assert client.patch(url, json={"type": "bad"}).status_code == 422
     assert client.patch(url, json={"unrecognized": 3}).status_code == 422
     assert client.patch("/api/activities/999999", json={"title": "Missing"}).status_code == 404
+
+
+def test_future_done_moves_off_dashboard():
+    login_as(LECTURER)
+    created = client.post("/api/activities", json=VALID).json()
+    task = created["tasks"][0]
+    assert any(a["id"] == created["id"] for a in client.get("/api/activities").json())
+    assert client.patch(f"/api/activities/{created['id']}/tasks/{task['id']}", json={"status": "Done"}).status_code == 200
+    assert all(a["id"] != created["id"] for a in client.get("/api/activities").json())
+
+
+def test_done_requires_all_assigned_tasks():
+    login_as(LECTURER)
+    created = client.post("/api/activities", json=VALID).json()
+    with SessionLocal() as db:
+        db.add(Task(activity_id=created["id"], assignee_id="google:ta-2", status="Not Started"))
+        db.commit()
+    task = created["tasks"][0]
+    client.patch(f"/api/activities/{created['id']}/tasks/{task['id']}", json={"status": "Done"})
+    assert any(a["id"] == created["id"] for a in client.get("/api/activities").json())
+
+
+def test_get_activity_for_edit_lecturer_only():
+    login_as(LECTURER)
+    created = client.post("/api/activities", json=VALID).json()
+    url = f"/api/activities/{created['id']}"
+    assert client.get(url).json()["title"] == VALID["title"]
+    login_as(TA)
+    assert client.get(url).status_code == 403
+    login_as(LECTURER)
+    client.post(url + "/archive")
+    assert client.get(url).status_code == 409

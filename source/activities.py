@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
-from sqlalchemy import or_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from timeutil import UtcDateTime
@@ -133,10 +133,9 @@ def list_activities(
         .options(selectinload(Activity.tasks))
         .where(
             Activity.archived_at.is_(None),
-            # SRS-4 hides only past activities that are finished. A past
-            # activity with an unfinished task stays visible so its
-            # Overdue flag (SRS-12) can be acted on.
-            or_(Activity.starts_at >= now, Activity.tasks.any(Task.status != TASK_STATUS_DONE)),
+            # Finished activities leave the dashboard immediately, even if future.
+            or_(Activity.tasks.any(Task.status != TASK_STATUS_DONE),
+                and_(~Activity.tasks.any(), Activity.starts_at >= now)),
         )
         .order_by(Activity.starts_at, Activity.id)
     )
@@ -177,6 +176,16 @@ def create_activity(
     db.commit()
     saved = db.scalars(select(Activity).options(selectinload(Activity.tasks)).where(Activity.id == activity.id)).one()
     return activity_response(saved, db)
+
+
+@router.get("/{activity_id}", response_model=ActivityOut)
+def get_activity(activity_id: int, _user: dict = Depends(require_lecturer), db: Session = Depends(get_db)):
+    activity = db.scalar(select(Activity).options(selectinload(Activity.tasks)).where(Activity.id == activity_id))
+    if activity is None:
+        raise HTTPException(status_code=404, detail="Activity not found.")
+    if activity.archived_at is not None:
+        raise HTTPException(status_code=409, detail="Archived activities cannot be edited.")
+    return activity_response(activity, db)
 
 
 @router.patch("/{activity_id}", response_model=ActivityOut)

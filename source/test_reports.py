@@ -278,3 +278,17 @@ def test_courses_lists_distinct_course_ids_sorted():
 
 def test_courses_requires_lecturer():
     assert client.get(COURSES_URL).status_code == 401
+
+
+def test_early_done_is_in_report():
+    now = _naive_utcnow()
+    _seed_activity(starts_at=now + timedelta(days=3), title="Finished early", tasks_status=["Done"])
+    login_as("lecturer-1")
+    assert [a["title"] for a in client.get(REPORT_URL, params=_range_around(now)).json()["activities"]] == ["Finished early"]
+
+
+def test_partially_done_future_is_not_in_report():
+    now = _naive_utcnow()
+    _seed_activity(starts_at=now + timedelta(days=3), title="Still active", tasks_status=["Done", "Not Started"])
+    login_as("lecturer-1")
+    assert client.get(REPORT_URL, params=_range_around(now)).json()["activities"] == []
