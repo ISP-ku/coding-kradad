@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import AppShell from "@/components/AppShell";
-import ConsultationLog from "@/components/ConsultationLog";
+import ConsultationHistory, { formatDuration } from "@/components/ConsultationHistory";
+import Icon from "@/components/Icon";
 import { API_BASE, logoutUrl } from "@/lib/api";
 import { PREVIEW, previewConsultations } from "@/lib/preview";
 import { getSessionUser } from "@/lib/session";
 import type { Consultation } from "@/lib/types";
+import styles from "./page.module.css";
 
 export const metadata: Metadata = { title: "Consultation Log · Course Support" };
 
@@ -26,11 +28,12 @@ async function getConsultations(): Promise<{ entries: Consultation[]; signedIn: 
   }
 }
 
-export default async function ConsultationsPage() {
+export default async function ConsultationsPage({ searchParams }: { searchParams?: { saved?: string } }) {
   const viewer = await getSessionUser();
   const { entries, signedIn } = PREVIEW
     ? { entries: viewer ? previewConsultations : [], signedIn: viewer !== null }
     : await getConsultations();
+  const totalMinutes = entries.reduce((sum, e) => sum + e.duration_minutes, 0);
 
   return (
     <AppShell
@@ -42,7 +45,26 @@ export default async function ConsultationsPage() {
       logoutHref={logoutUrl}
     >
       {signedIn ? (
-        <ConsultationLog initial={entries} preview={PREVIEW} />
+        <>
+          <div className={styles.actionsRow}>
+            <div>
+              <span className={styles.eyebrow}>YOUR SUPPORT LOG</span>
+              <h2>Consultation history</h2>
+              {entries.length > 0 && (
+                <p className={styles.summary}>
+                  {entries.length} {entries.length === 1 ? "session" : "sessions"} · {formatDuration(totalMinutes)} in total
+                </p>
+              )}
+            </div>
+            <a className={styles.addButton} href="/consultations/new">
+              <Icon name="plus" /> Record consultation
+            </a>
+          </div>
+          {searchParams?.saved === "1" && (
+            <div className={styles.notice} role="status">Consultation saved.</div>
+          )}
+          <ConsultationHistory entries={entries} />
+        </>
       ) : (
         <p>
           Please <Link href="/">sign in</Link> to record and view your consultations.
