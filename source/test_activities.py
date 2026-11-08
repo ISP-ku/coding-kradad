@@ -8,6 +8,7 @@ os.environ["DATABASE_URL"] = f"sqlite:///{os.path.join(_tmp_dir, 'test.db')}"
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from activities import authenticated_user
 from app import app
@@ -132,10 +133,15 @@ def test_overdue_and_at_risk_flags_on_dashboard():
 
 def test_done_tasks_are_never_flagged():
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-    add_activity("Lab tomorrow done", now + timedelta(days=1), status="Done")
+    activity_id = add_activity("Lab tomorrow done", now + timedelta(days=1), status="Done")
     login_as(TA)
-    task = task_for("Lab tomorrow done")
-    assert task["is_at_risk"] is False and task["is_overdue"] is False
+    # Completed activities no longer appear in the dashboard endpoint.
+    assert all(a["id"] != activity_id for a in client.get("/api/activities").json())
+    # Their persisted tasks should still have no overdue / at-risk flags.
+    with SessionLocal() as db:
+        task = db.scalar(select(Task).where(Task.activity_id == activity_id))
+        assert task is not None
+        assert task.is_at_risk is False and task.is_overdue is False
 
 
 def test_past_activity_stays_visible_until_done_then_hides():
