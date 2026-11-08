@@ -23,6 +23,8 @@ function defaultRange() {
   const end = new Date();
   const start = new Date();
   start.setDate(start.getDate() - 30);
+  // Show activities completed before their scheduled date in the default view.
+  end.setDate(end.getDate() + 30);
   return { start: isoDate(start), end: isoDate(end) };
 }
 
@@ -162,7 +164,11 @@ export default async function ReportsPage({
                     <tr key={activity.id}>
                       <td>
                         {activity.title}
-                        {activity.archived_at && <span className={styles.muted}> · archived</span>}
+                        {activity.archived_at
+                          ? <span className={styles.muted}> · archived</span>
+                          : activity.tasks.length > 0 && activity.tasks.every(task => task.status === "Done")
+                            ? <span className={styles.muted}> · completed</span>
+                            : null}
                       </td>
                       <td>{activity.type}</td>
                       <td>{formatDateTime(activity.starts_at)}</td>
