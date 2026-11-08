@@ -12,7 +12,7 @@ const baseUser: SessionUser = {
 
 function renderShell(
   viewer: SessionUser | null,
-  page: "dashboard" | "faq" | "homework" | "reports" = "dashboard",
+  page: "dashboard" | "faq" | "reports" = "dashboard",
 ) {
   return render(
     <AppShell
@@ -32,8 +32,8 @@ describe("AppShell (signed out)", () => {
   it("shows the signed-out sidebar and a sign-in link instead of an account menu", () => {
     renderShell(null);
 
-    expect(screen.getByText("Course Support")).toBeInTheDocument();
-    expect(screen.getAllByText("Student portal").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Course Support").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Sign in to continue").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: /sign in/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /my account/i })).not.toBeInTheDocument();
   });
@@ -50,6 +50,17 @@ describe("AppShell (signed in)", () => {
 
     expect(screen.getAllByText("Alice").length).toBeGreaterThan(0);
     expect(screen.getByText("Google account")).toBeInTheDocument();
+  });
+
+  it("labels the app bar workspace by the viewer's actual role, not just 'Student'", () => {
+    renderShell({ ...baseUser, role: "ta" });
+    expect(screen.getByText("TA workspace")).toBeInTheDocument();
+
+    renderShell({ ...baseUser, role: "lecturer" });
+    expect(screen.getByText("Lecturer workspace")).toBeInTheDocument();
+
+    renderShell(null);
+    expect(screen.getByText("Workspace")).toBeInTheDocument();
   });
 
   it("marks the current page's nav link as active", () => {

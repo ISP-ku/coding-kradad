@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { makePreviewReport, makePreviewUser, previewFaq, previewHomeworks, previewReportCourses } from "./preview";
+import { makePreviewReport, makePreviewUser, previewFaq, previewReportCourses } from "./preview";
 
 describe("makePreviewUser", () => {
   it("builds a KU Google preview account without Classroom access", () => {
@@ -21,15 +21,6 @@ describe("preview fixtures", () => {
       expect(typeof entry.question).toBe("string");
       expect(typeof entry.status).toBe("string");
       expect(Array.isArray(entry.tags)).toBe(true);
-    }
-  });
-
-  it("exposes at least one homework entry with the expected shape", () => {
-    expect(previewHomeworks.length).toBeGreaterThan(0);
-    for (const hw of previewHomeworks) {
-      expect(typeof hw.student).toBe("string");
-      expect(typeof hw.assignment).toBe("string");
-      expect(typeof hw.status).toBe("string");
     }
   });
 });

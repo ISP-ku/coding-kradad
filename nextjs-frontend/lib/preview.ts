@@ -1,4 +1,4 @@
-import type { ActivityReport, Consultation, FaqEntry, Homework, SessionUser } from "./types";
+import type { ActivityReport, Consultation, FaqEntry, SessionUser } from "./types";
 
 // UI preview mode: set UI_PREVIEW=1 in .env.local to browse every page with
 // fake data (same data as source/test_ui.py), without a running backend.
@@ -41,14 +41,6 @@ export const previewFaq: FaqEntry[] = [
 
 // Pending entries awaiting lecturer review (SRS-18), a subset of previewFaq.
 export const previewPendingFaq: FaqEntry[] = previewFaq.filter((e) => e.status === "Pending");
-
-export const previewHomeworks: Homework[] = [
-  { student: "TestStudent", assignment: "HW1 - ER Diagram", due_date: "2026-09-10", status: "Submitted" },
-  { student: "TestStudent", assignment: "HW2 - API Design", due_date: "2026-09-17", status: "Missing" },
-  { student: "TestStudent", assignment: "HW0 - Setup", due_date: "2026-08-30", status: "Late" },
-];
-
-export const previewAssignments = ["HW1 - ER Diagram", "HW2 - API Design", "HW3 - Final Report"];
 
 export const previewConsultations: Consultation[] = [
   { id: 5, session_date: "2026-10-02", duration_minutes: 25, topic: "Pointer vs reference in Lab 4", participants: "Natthawut", created_at: "2026-10-02T14:12:00" },

@@ -22,13 +22,6 @@ export type FaqEntry = {
   tags: string[];
 };
 
-export type Homework = {
-  student: string;
-  assignment: string;
-  due_date: string;
-  status: string; // "Submitted" | "Missing" | "Late" (any casing)
-};
-
 export type Consultation = {
   id: number;
   session_date: string; // "YYYY-MM-DD"

@@ -27,3 +27,5 @@ See [LOCAL_TEST_LOGIN.md](LOCAL_TEST_LOGIN.md). This mode runs through source/ap
 - templates/: fallback backend login page and legacy UI preview
 - .github/workflows/ci.yml: backend tests, frontend tests and production build
 - docs/: existing course documents
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for branch, commit and PR conventions.

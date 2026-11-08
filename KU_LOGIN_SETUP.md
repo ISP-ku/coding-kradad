@@ -121,4 +121,4 @@ See [LOCAL_TEST_LOGIN.md](LOCAL_TEST_LOGIN.md) for the new backend test login. K
 
 ## Local verification results
 
-44 backend tests passed; 24 frontend tests passed; Next.js production build passed. Checked using Python 3.12 and Node 24 locally. The GitHub CI workflow retains Python 3.11 from your uploaded project; its hosted run is not yet verified.
+122 backend tests passed; 32 frontend tests passed; Next.js production build passed. Checked using Python 3.13 and Node 24 locally. The GitHub CI workflow uses Python 3.11.
