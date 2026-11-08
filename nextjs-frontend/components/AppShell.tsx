@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { canAccess } from "@/lib/permissions";
 import type { SessionUser } from "@/lib/types";
 import Icon from "./Icon";
 import styles from "./AppShell.module.css";
 
 type Props = {
-  page: "dashboard" | "faq" | "consultations" | "reports";
+  page: "dashboard" | "faq" | "homework" | "consultations" | "reports";
   title: string;
   heading: string;
   subtitle: string;
@@ -138,10 +139,12 @@ export default function AppShell({
           </div>
         </div>
         <nav className={styles.nav}>
-          {navLink(viewer ? "/dashboard" : "/", "dashboard", "grid", "Dashboard")}
+          {/* Students have no dashboard (R-02); signed-out visitors see it as the sign-in entry. */}
+          {(!viewer || canAccess(viewer, "dashboard")) && navLink(viewer ? "/dashboard" : "/", "dashboard", "grid", "Dashboard")}
           {navLink("/faq", "faq", "chat", "FAQ / Issue Log")}
-          {navLink("/consultations", "consultations", "calendar", "Consultation Log")}
-          {viewer?.role === "lecturer" && navLink("/reports", "reports", "calendar", "Reports")}
+          {canAccess(viewer, "homework") && navLink("/homework", "homework", "book", "Homework")}
+          {(!viewer || canAccess(viewer, "consultations")) && navLink("/consultations", "consultations", "calendar", "Consultation Log")}
+          {canAccess(viewer, "reports") && navLink("/reports", "reports", "calendar", "Reports")}
           {viewer ? (
             <button
               className={styles.accountTrigger}

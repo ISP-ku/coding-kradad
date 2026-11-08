@@ -39,10 +39,20 @@ class ConsultationOut(BaseModel):
 
 
 def current_ta_id(request: Request) -> str:
-    """Who is logged in, e.g. 'google:1234'. Raises 401 if nobody is."""
-    user = request.session.get("user")
+    """Who is logged in, e.g. 'google:1234'. 401 if nobody is, 403 if the
+    account is not a TA (SRS-14, SRS-18).
+
+    Goes through app.py's current_user() like every other router, so a
+    session that /api/me rejects (old multi-provider sessions, or a local
+    test session after local login was turned off) is rejected here too."""
+    # Imported here, not at module level: app.py imports this module.
+    from app import current_user
+
+    user = current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Please sign in first.")
+    if user.get("role") != "ta":
+        raise HTTPException(status_code=403, detail="Teaching assistant access required.")
     return f"{user['provider']}:{user['id']}"
 
 

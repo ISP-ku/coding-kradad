@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import ConsultationForm from "@/components/ConsultationForm";
 import { logoutUrl } from "@/lib/api";
+import { canAccess, homePathFor } from "@/lib/permissions";
 import { PREVIEW } from "@/lib/preview";
 import { getSessionUser } from "@/lib/session";
 import styles from "./page.module.css";
@@ -13,6 +14,8 @@ export default async function NewConsultationPage() {
   const viewer = await getSessionUser();
   // Not signed in: the history page shows the sign-in message.
   if (!viewer) redirect("/consultations");
+  // SRS-14: only TAs record consultations; the API refuses everyone else (403).
+  if (!PREVIEW && !canAccess(viewer, "consultations")) redirect(homePathFor(viewer));
 
   return (
     <AppShell

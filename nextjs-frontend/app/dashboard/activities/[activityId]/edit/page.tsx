@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import ActivityEditForm from "@/components/ActivityEditForm";
 import { API_BASE, logoutUrl } from "@/lib/api";
+import { canAccess, homePathFor } from "@/lib/permissions";
 import { PREVIEW } from "@/lib/preview";
 import { getSessionUser } from "@/lib/session";
 import type { CourseActivity } from "@/lib/types";
@@ -15,7 +16,7 @@ export default async function EditActivityPage({ params }: { params: { activityI
   if (PREVIEW) redirect("/");
   const user = await getSessionUser();
   if (!user) redirect("/");
-  if (user.role !== "lecturer") redirect("/dashboard");
+  if (!canAccess(user, "addActivity")) redirect(homePathFor(user));
 
   const activityId = Number(params.activityId);
   if (!Number.isSafeInteger(activityId) || activityId <= 0) notFound();

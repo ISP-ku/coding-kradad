@@ -158,12 +158,18 @@ def test_expired_login(client, monkeypatch):
     assert client.get("/callback/google", params={"state": params["state"], "code": "code"}).status_code == 400
 
 
-@pytest.mark.parametrize("exception", [requests.Timeout("private detail"), ValueError("invalid token"), KeyError("id_token")])
-def test_exchange_failure_has_no_session_or_leaked_error(client, monkeypatch, exception):
+@pytest.mark.parametrize("exception,status", [
+    (requests.Timeout("private detail"), 502),      # Google unreachable: not the user's fault
+    (requests.ConnectionError("private detail"), 502),
+    (requests.HTTPError("private detail"), 400),    # Google rejected the code
+    (ValueError("private detail"), 400),
+    (KeyError("id_token"), 400),
+])
+def test_exchange_failure_has_no_session_or_leaked_error(client, monkeypatch, exception, status):
     params = start(client)
     monkeypatch.setattr(backend, "exchange_code_for_token", Mock(side_effect=exception))
     response = client.get("/callback/google", params={"state": params["state"], "code": "code"})
-    assert response.status_code == 400
+    assert response.status_code == status
     assert "private detail" not in response.text
     assert client.get("/api/me").status_code == 401
 
@@ -276,3 +282,79 @@ def test_invalid_users_file_fails_closed(local_client, monkeypatch, tmp_path):
     path.write_text('not json')
     monkeypatch.setattr(backend, "TEST_USERS_FILE", path)
     assert local_client.get("/local-test-login").status_code == 503
+
+
+# --- SRS-23: the error shown must describe the real cause ---------------------
+
+def shown_message(response):
+    import html, re
+    match = re.search(r'role="alert">(.*?)</p>', response.text, re.S)
+    assert match, "sign-in error page has no alert message"
+    return html.unescape(match.group(1).strip())
+
+
+@pytest.mark.parametrize("overrides,message", [
+    ({"email": "student@gmail.com", "hd": None}, backend.MSG_NOT_KU),
+    ({"email": "student@another.ac.th", "hd": "another.ac.th"}, backend.MSG_NOT_KU),
+    ({"email": "student@ku.th.evil.com"}, backend.MSG_NOT_KU),
+    ({"email_verified": False}, backend.MSG_UNVERIFIED),       # a real KU address, so NOT "use your KU account"
+    ({"hd": None}, backend.MSG_NOT_WORKSPACE),
+    ({"hd": "other.com"}, backend.MSG_NOT_WORKSPACE),
+    ({"email": "@ku.th"}, backend.MSG_BAD_EMAIL),
+])
+def test_denied_account_message_matches_the_reason(client, monkeypatch, overrides, message):
+    response, _ = complete(client, monkeypatch, **overrides)
+    assert response.status_code == 403
+    assert shown_message(response) == message
+
+
+@pytest.mark.parametrize("query,message", [
+    ("error=access_denied", backend.MSG_CANCELLED),
+    ("error=admin_policy_enforced", backend.MSG_GOOGLE_ERROR),     # not "cancelled"
+    ("", backend.MSG_NO_CODE),
+])
+def test_callback_problem_message_matches_the_reason(client, query, message):
+    params = start(client)
+    response = client.get(f"/callback/google?state={params['state']}&{query}")
+    assert response.status_code == 400
+    assert shown_message(response) == message
+
+
+def test_bad_state_message(client):
+    start(client)
+    assert shown_message(client.get("/callback/google?code=c&state=wrong")) == backend.MSG_STATE_INVALID
+
+
+@pytest.mark.parametrize("exception,status,message", [
+    (requests.Timeout("x"), 502, backend.MSG_UNREACHABLE),
+    (requests.ConnectionError("x"), 502, backend.MSG_UNREACHABLE),
+    (requests.HTTPError("x"), 400, backend.MSG_CODE_REJECTED),
+    (ValueError("x"), 400, backend.MSG_UNVERIFIABLE),
+])
+def test_exchange_failure_message_matches_the_reason(client, monkeypatch, exception, status, message):
+    params = start(client)
+    monkeypatch.setattr(backend, "exchange_code_for_token", Mock(side_effect=exception))
+    response = client.get("/callback/google", params={"state": params["state"], "code": "c"})
+    assert response.status_code == status
+    assert shown_message(response) == message
+
+
+def test_invalid_id_token_message(client, monkeypatch):
+    params = start(client)
+    monkeypatch.setattr(backend, "exchange_code_for_token", lambda code: "t")
+    monkeypatch.setattr(backend.id_token, "verify_oauth2_token", Mock(side_effect=ValueError("Token expired")))
+    response = client.get("/callback/google", params={"state": params["state"], "code": "c"})
+    assert (response.status_code, shown_message(response)) == (400, backend.MSG_UNVERIFIABLE)
+    assert "expired" not in response.text.lower().replace("expired or could not", "")  # no internal detail leaked
+
+
+def test_not_configured_message(client, monkeypatch):
+    monkeypatch.setattr(backend, "GOOGLE_CLIENT_ID", "")
+    response = client.get("/login/google")
+    assert (response.status_code, shown_message(response)) == (503, backend.MSG_NOT_CONFIGURED)
+
+
+def test_error_page_has_a_way_back_and_escapes_content(client):
+    response = client.get("/callback/google?code=c&state=wrong&error=<script>alert(1)</script>")
+    assert backend.FRONTEND_URL + "/" in response.text
+    assert "<script>alert(1)" not in response.text

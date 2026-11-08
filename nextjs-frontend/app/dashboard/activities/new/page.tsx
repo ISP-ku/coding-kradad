@@ -5,6 +5,7 @@ import AppShell from "@/components/AppShell";
 import ActivityCreateForm from "@/components/ActivityCreateForm";
 import { API_BASE, logoutUrl } from "@/lib/api";
 import { PREVIEW } from "@/lib/preview";
+import { canAccess, homePathFor } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
 import type { ActivityAssignee } from "@/lib/types";
 import styles from "./page.module.css";
@@ -23,7 +24,7 @@ export default async function NewActivityPage() {
   if (PREVIEW) redirect("/");
   const user = await getSessionUser();
   if (!user) redirect("/");
-  if (user.role !== "lecturer") redirect("/dashboard");
+  if (!canAccess(user, "addActivity")) redirect(homePathFor(user));
   const assignees = await loadAssignees();
   return <AppShell page="dashboard" title="Add activity" heading="Create a course activity" subtitle="Add complete details and assign responsibility." viewer={user} logoutHref={logoutUrl}>
     <div className={styles.page}>

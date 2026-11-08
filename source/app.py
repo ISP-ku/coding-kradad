@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from google.auth.exceptions import GoogleAuthError
+from google.auth.exceptions import GoogleAuthError, TransportError
 from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2 import id_token
 from starlette.middleware.sessions import SessionMiddleware
@@ -24,6 +24,7 @@ from consultations import router as consultations_router
 from database import SessionLocal, init_db
 
 from faq import router as faq_router
+from homework import router as homework_router
 from reports import router as reports_router
 from users import sync_user
 
@@ -41,6 +42,22 @@ KU_DOMAIN = "ku.th"
 REQUEST_TIMEOUT = 10
 SESSION_COOKIE = "ku_session"
 logger = logging.getLogger(__name__)
+
+# Messages shown on the sign-in error page (SRS-23). Each one describes exactly
+# one cause, so what the person reads matches what actually went wrong. They are
+# fixed strings: nothing from Google or the request is echoed back.
+MSG_NOT_CONFIGURED = "KU Google login is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env."
+MSG_STATE_INVALID = "Login request expired or could not be verified. Please start again."
+MSG_CANCELLED = "Google sign-in was cancelled. Please try again when you are ready."
+MSG_GOOGLE_ERROR = "Google could not complete the sign-in and reported a problem. Please try again, or contact the course team if it keeps happening."
+MSG_NO_CODE = "Google did not return an authorization code. Please start again."
+MSG_NOT_KU = "Please sign in with your KU Google account ending in @ku.th. Personal Gmail and other accounts are not allowed."
+MSG_BAD_EMAIL = "Google did not return a valid email address for this account. Please try again with your KU Google account."
+MSG_UNVERIFIED = "Google has not verified this email address, so it cannot be used to sign in. Verify it with Google and try again."
+MSG_NOT_WORKSPACE = "Google did not confirm that this account belongs to the KU Google Workspace. Please sign in with your KU Google account."
+MSG_UNREACHABLE = "Could not reach Google to complete the sign-in. Please try again in a moment."
+MSG_CODE_REJECTED = "Google rejected the sign-in request. It has probably expired or was already used. Please start again."
+MSG_UNVERIFIABLE = "Google sign-in could not be verified. Please try again."
 APP_ENV = os.getenv("APP_ENV", "development")
 LOCAL_TEST_LOGIN = os.getenv("LOCAL_TEST_LOGIN", "0") == "1"
 TEST_USERS_FILE = BASE_DIR / "data" / "allowed_users.json"
@@ -95,6 +112,7 @@ app.include_router(reports_router)
 app.include_router(consultations_router)  # SRS-14, SRS-15
 
 app.include_router(faq_router)  # SRS-16, SRS-17, SRS-18
+app.include_router(homework_router)  # Homework: lecturer assigns, student submits, TA grades
 
 
 def current_user(request):
@@ -158,13 +176,15 @@ def ku_profile(claims, nonce):
     if not isinstance(claims.get("nonce"), str) or not secrets.compare_digest(claims["nonce"], nonce):
         raise ValueError("Invalid login nonce")
     email = claims.get("email", "")
-    if (claims.get("email_verified") is not True
-            or claims.get("hd") != KU_DOMAIN
-            or not isinstance(email, str)
-            or email.count("@") != 1
-            or not email.split("@")[0]
-            or email.rsplit("@", 1)[-1].lower() != KU_DOMAIN):
-        raise PermissionError("Only verified KU Google accounts are allowed")
+    # One check per cause, in order, so the message matches the real reason.
+    if not isinstance(email, str) or email.count("@") != 1 or not email.split("@")[0]:
+        raise PermissionError(MSG_BAD_EMAIL)
+    if email.rsplit("@", 1)[-1].lower() != KU_DOMAIN:
+        raise PermissionError(MSG_NOT_KU)
+    if claims.get("email_verified") is not True:
+        raise PermissionError(MSG_UNVERIFIED)
+    if claims.get("hd") != KU_DOMAIN:
+        raise PermissionError(MSG_NOT_WORKSPACE)
     if not claims.get("sub"):
         raise ValueError("Missing account ID")
     return {
@@ -172,6 +192,15 @@ def ku_profile(claims, nonce):
         "email": email, "provider": "google", "auth_method": "ku_google",
         "avatar_url": claims.get("picture"), "classroom_courses": None,
     }
+
+
+def login_error(request, message, status_code):
+    """Readable sign-in error page with a way back, instead of bare text (SRS-23)."""
+    return templates.TemplateResponse(
+        request, "login_error.html",
+        {"message": message, "login_url": FRONTEND_URL + "/"},
+        status_code=status_code, headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.get("/")
@@ -221,7 +250,7 @@ def login(request: Request, provider: str):
     if provider != "google":
         raise HTTPException(404, "Only KU Google login is supported")
     if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
-        return PlainTextResponse("KU Google login is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.", status_code=503)
+        return login_error(request, MSG_NOT_CONFIGURED, 503)
     request.session.clear()
     state, nonce = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
     request.session.update(oauth_state=state, oauth_nonce=nonce, oauth_started=time.time())
@@ -244,18 +273,30 @@ def callback(request: Request, provider: str, code: str | None = None,
     request.session.pop("user", None)
     if (not expected or not state or not secrets.compare_digest(state, expected)
             or not nonce or time.time() - started > 600):
-        return PlainTextResponse("Login request expired or could not be verified. Please start again.", status_code=400)
-    if error or not code:
-        return PlainTextResponse("Google sign-in was cancelled or no authorization code was received. Please try again.", status_code=400)
+        return login_error(request, MSG_STATE_INVALID, 400)
+    if error == "access_denied":
+        return login_error(request, MSG_CANCELLED, 400)
+    if error:
+        logger.warning("KU sign-in failed: Google returned error=%s", error[:40])
+        return login_error(request, MSG_GOOGLE_ERROR, 400)
+    if not code:
+        return login_error(request, MSG_NO_CODE, 400)
     try:
         claims = verify_google_token(exchange_code_for_token(code))
         user = ku_profile(claims, nonce)
-    except PermissionError:
+    except PermissionError as denied:
+        # The message is one of the fixed MSG_* strings raised by ku_profile().
         logger.warning("KU sign-in denied: account does not meet KU domain/verification rules")
-        return PlainTextResponse("Please sign in with your KU Google account ending in @ku.th. Personal Gmail accounts are not allowed.", status_code=403)
+        return login_error(request, str(denied), 403)
+    except (requests.ConnectionError, requests.Timeout, TransportError):
+        logger.warning("KU sign-in failed: could not reach Google")
+        return login_error(request, MSG_UNREACHABLE, 502)
+    except requests.HTTPError:
+        logger.warning("KU sign-in failed: Google rejected the authorization code")
+        return login_error(request, MSG_CODE_REJECTED, 400)
     except (requests.RequestException, GoogleAuthError, ValueError, KeyError, TypeError):
         logger.warning("KU sign-in failed: token exchange or identity validation failed")
-        return PlainTextResponse("Google sign-in could not be verified. Please try again.", status_code=400)
+        return login_error(request, MSG_UNVERIFIABLE, 400)
     request.session.clear()
     request.session["user"] = with_role(user)
     return RedirectResponse(FRONTEND_URL + "/dashboard", status_code=303)

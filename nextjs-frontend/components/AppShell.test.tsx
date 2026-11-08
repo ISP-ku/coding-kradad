@@ -64,7 +64,7 @@ describe("AppShell (signed in)", () => {
   });
 
   it("marks the current page's nav link as active", () => {
-    renderShell(baseUser, "faq");
+    renderShell({ ...baseUser, role: "ta" }, "faq");
     expect(screen.getByRole("link", { name: /faq/i })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: /dashboard/i })).not.toHaveAttribute("aria-current");
   });
@@ -81,6 +81,21 @@ describe("AppShell (signed in)", () => {
 
     renderShell({ ...baseUser, role: "lecturer" });
     expect(screen.getByRole("link", { name: /reports/i })).toHaveAttribute("href", "/reports");
+  });
+
+  it("shows each role only the pages it may use (R-02, SRS-18)", () => {
+    const links = (viewer: SessionUser | null) => {
+      const { unmount } = renderShell(viewer);
+      const names = ["dashboard", "faq", "homework", "consultation", "reports"].filter(
+        (n) => screen.queryByRole("link", { name: new RegExp(n, "i") }),
+      );
+      unmount();
+      return names;
+    };
+    expect(links({ ...baseUser, role: "student" })).toEqual(["faq", "homework"]);
+    expect(links(baseUser)).toEqual(["faq", "homework"]); // no role = student
+    expect(links({ ...baseUser, role: "ta" })).toEqual(["dashboard", "faq", "homework", "consultation"]);
+    expect(links({ ...baseUser, role: "lecturer" })).toEqual(["dashboard", "faq", "homework", "reports"]);
   });
 
   it("points the logout link at logoutHref", () => {
