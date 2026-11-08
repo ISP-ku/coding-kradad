@@ -212,6 +212,47 @@ class SavedTopic(Base):
     saved_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
+class Homework(Base):
+    """A homework assignment a lecturer hands out to the whole course."""
+
+    __tablename__ = "homework"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    course_id: Mapped[str] = mapped_column(String(100), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str] = mapped_column(String(2000), default="")
+    due_at: Mapped[datetime] = mapped_column(DateTime)
+    max_score: Mapped[int] = mapped_column(Integer, default=100)
+    created_by: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+    submissions: Mapped[list["HomeworkSubmission"]] = relationship(back_populates="homework")
+
+
+class HomeworkSubmission(Base):
+    """One student's answer to one Homework, and the TA's grade for it.
+    A student has at most one submission per homework; they may resubmit
+    until it has been graded."""
+
+    __tablename__ = "homework_submissions"
+    __table_args__ = (
+        UniqueConstraint("homework_id", "student_id", name="uq_homework_submissions_student"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    homework_id: Mapped[int] = mapped_column(ForeignKey("homework.id"), index=True)
+    student_id: Mapped[str] = mapped_column(String(100), index=True)
+    student_name: Mapped[str] = mapped_column(String(200))
+    answer: Mapped[str] = mapped_column(String(5000))
+    submitted_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    feedback: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    graded_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    graded_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    homework: Mapped["Homework"] = relationship(back_populates="submissions")
+
+
 def init_db():
     """Create any missing tables."""
     Base.metadata.create_all(engine)
