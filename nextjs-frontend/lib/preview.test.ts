@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { makePreviewReport, makePreviewUser, previewFaq, previewReportCourses } from "./preview";
+import { makePreviewReport, makePreviewUser, previewReportCourses, previewTopicDetail, previewTopics } from "./preview";
 
 describe("makePreviewUser", () => {
   it("builds a KU Google preview account without Classroom access", () => {
@@ -15,13 +15,25 @@ describe("makePreviewUser", () => {
 });
 
 describe("preview fixtures", () => {
-  it("exposes at least one FAQ entry with the expected shape", () => {
-    expect(previewFaq.length).toBeGreaterThan(0);
-    for (const entry of previewFaq) {
-      expect(typeof entry.question).toBe("string");
-      expect(typeof entry.status).toBe("string");
-      expect(Array.isArray(entry.tags)).toBe(true);
+  it("exposes at least one topic with the expected shape", () => {
+    expect(previewTopics.length).toBeGreaterThan(0);
+    for (const topic of previewTopics) {
+      expect(typeof topic.title).toBe("string");
+      expect(typeof topic.description).toBe("string");
+      expect(typeof topic.status).toBe("string");
+      expect(typeof topic.comment_count).toBe("number");
+      expect(typeof topic.saved).toBe("boolean");
     }
+  });
+
+  it("builds a topic detail with its comment thread", () => {
+    const detail = previewTopicDetail(previewTopics[0].id);
+    expect(detail).not.toBeNull();
+    expect(Array.isArray(detail?.comments)).toBe(true);
+  });
+
+  it("returns null for an unknown topic id", () => {
+    expect(previewTopicDetail(999999)).toBeNull();
   });
 });
 

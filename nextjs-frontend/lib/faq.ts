@@ -1,16 +1,16 @@
 import { cookies } from "next/headers";
 import { API_BASE } from "./api";
-import { PREVIEW, previewPendingFaq } from "./preview";
-import type { FaqEntry } from "./types";
+import { PREVIEW, previewPendingTopics } from "./preview";
+import type { Topic } from "./types";
 
 /**
- * FAQ/issue entries awaiting lecturer review (SRS-18). Lecturer-only on
- * the backend, so this forwards the session cookie the same way
- * lib/reports.ts does - the public search in app/faq/page.tsx does not,
- * since that one is reachable without signing in.
+ * Topics awaiting lecturer review (SRS-18). Lecturer-only on the backend,
+ * so this forwards the session cookie the same way lib/reports.ts does -
+ * the public search in app/faq/page.tsx does not, since that one is
+ * reachable without signing in.
  */
-export async function getPendingFaq(): Promise<FaqEntry[]> {
-  if (PREVIEW) return previewPendingFaq;
+export async function getPendingTopics(): Promise<Topic[]> {
+  if (PREVIEW) return previewPendingTopics;
 
   const session = cookies().get("ku_session")?.value;
   if (!session) return [];
@@ -21,7 +21,7 @@ export async function getPendingFaq(): Promise<FaqEntry[]> {
       cache: "no-store",
     });
     if (!res.ok) return [];
-    return (await res.json()) as FaqEntry[];
+    return (await res.json()) as Topic[];
   } catch {
     return [];
   }

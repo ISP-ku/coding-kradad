@@ -69,12 +69,12 @@ AT_RISK_WARNING = timedelta(days=2)
 USER_ROLES = ("student", "ta", "lecturer")
 ROLE_LECTURER = "lecturer"
 
-# FaqEntry.status values (SRS-16 to SRS-18). A submitted entry starts
-# Pending and is hidden from everyone but a lecturer until it is reviewed.
-FAQ_STATUS_PENDING = "Pending"
-FAQ_STATUS_PUBLISHED = "Published"
-FAQ_STATUS_REJECTED = "Rejected"
-FAQ_STATUSES = (FAQ_STATUS_PENDING, FAQ_STATUS_PUBLISHED, FAQ_STATUS_REJECTED)
+# Topic.status values (SRS-16 to SRS-18). A submitted topic starts Pending
+# and is hidden from everyone but a lecturer until it is reviewed.
+TOPIC_STATUS_PENDING = "Pending"
+TOPIC_STATUS_PUBLISHED = "Published"
+TOPIC_STATUS_REJECTED = "Rejected"
+TOPIC_STATUSES = (TOPIC_STATUS_PENDING, TOPIC_STATUS_PUBLISHED, TOPIC_STATUS_REJECTED)
 
 
 class User(Base):
@@ -163,23 +163,53 @@ class ConsultationSession(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
-class FaqEntry(Base):
-    """A searchable FAQ/issue entry (SRS-16 to SRS-18). Submitted by a TA
-    or a student, it starts Pending and only becomes visible to other
-    users once a lecturer approves (Published) or rejects it."""
+class Topic(Base):
+    """A discussion topic on the FAQ/Issue board (SRS-16 to SRS-18).
+    Submitted by a TA or a student, it starts Pending and only becomes
+    visible to other users once a lecturer approves (Published) or
+    rejects it. A Published topic can collect Comments and be bookmarked
+    via SavedTopic."""
 
-    __tablename__ = "faq_entries"
+    __tablename__ = "topics"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    question: Mapped[str] = mapped_column(String(300))
-    answer: Mapped[str] = mapped_column(String(2000), default="")
-    # Comma-separated; short free-form tags don't need a join table yet.
-    tags: Mapped[str] = mapped_column(String(300), default="")
-    status: Mapped[str] = mapped_column(String(20), default=FAQ_STATUS_PENDING)
+    title: Mapped[str] = mapped_column(String(300))
+    description: Mapped[str] = mapped_column(String(2000), default="")
+    status: Mapped[str] = mapped_column(String(20), default=TOPIC_STATUS_PENDING)
     submitted_by: Mapped[str] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     reviewed_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    comments: Mapped[list["Comment"]] = relationship(
+        back_populates="topic", cascade="all, delete-orphan", order_by="Comment.created_at"
+    )
+
+
+class Comment(Base):
+    """A reply inside a Published Topic's discussion thread (SRS-17)."""
+
+    __tablename__ = "comments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    topic_id: Mapped[int] = mapped_column(ForeignKey("topics.id"), index=True)
+    author: Mapped[str] = mapped_column(String(100))
+    body: Mapped[str] = mapped_column(String(2000))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+    topic: Mapped["Topic"] = relationship(back_populates="comments")
+
+
+class SavedTopic(Base):
+    """A signed-in user's bookmark on a Topic, for their "Saved topics" list."""
+
+    __tablename__ = "saved_topics"
+    __table_args__ = (UniqueConstraint("user_id", "topic_id", name="uq_saved_topics_user_topic"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(100), index=True)
+    topic_id: Mapped[int] = mapped_column(ForeignKey("topics.id"), index=True)
+    saved_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
 def init_db():

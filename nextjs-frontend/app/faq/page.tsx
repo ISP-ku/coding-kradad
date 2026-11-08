@@ -1,38 +1,38 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import AppShell from "@/components/AppShell";
+import TopicBoard from "@/components/TopicBoard";
 import { API_BASE, logoutUrl } from "@/lib/api";
-import { getPendingFaq } from "@/lib/faq";
-import { PREVIEW, previewFaq } from "@/lib/preview";
+import { getPendingTopics } from "@/lib/faq";
+import { PREVIEW, previewTopics } from "@/lib/preview";
 import { getSessionUser } from "@/lib/session";
-import type { FaqEntry } from "@/lib/types";
-import styles from "./page.module.css";
+import type { Topic } from "@/lib/types";
 
 export const metadata: Metadata = { title: "FAQ / Issue Log · Course Support" };
 
-const statusClass: Record<string, string> = {
-  published: styles.statusPublished,
-  pending: styles.statusPending,
-  rejected: styles.statusRejected,
-};
-
-async function getFaqEntries(query: string): Promise<FaqEntry[]> {
+// The search endpoint works without a session (students can browse without
+// full account access), but forwarding the cookie when one exists lets the
+// initial render show this viewer's own "saved" stars correctly too.
+async function getTopics(query: string): Promise<Topic[]> {
   if (PREVIEW) {
     const q = query.trim().toLowerCase();
-    if (!q) return previewFaq;
-    return previewFaq.filter(
-      (e) =>
-        e.question.toLowerCase().includes(q) ||
-        e.answer.toLowerCase().includes(q) ||
-        e.tags.some((t) => t.toLowerCase().includes(q)),
+    if (!q) return previewTopics.filter((t) => t.status === "Published");
+    return previewTopics.filter(
+      (t) =>
+        t.status === "Published" &&
+        (t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)),
     );
   }
 
   try {
     const url = new URL(`${API_BASE}/api/faq`);
     if (query) url.searchParams.set("q", query);
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch(url, {
+      headers: { cookie: cookies().getAll().map(({ name, value }) => `${name}=${value}`).join("; ") },
+      cache: "no-store",
+    });
     if (!res.ok) return [];
-    return (await res.json()) as FaqEntry[];
+    return (await res.json()) as Topic[];
   } catch {
     return [];
   }
@@ -44,126 +44,19 @@ export default async function FaqPage({
   searchParams: { q?: string };
 }) {
   const query = searchParams.q ?? "";
-  const [viewer, entries] = await Promise.all([getSessionUser(), getFaqEntries(query)]);
-  const pending = viewer?.role === "lecturer" ? await getPendingFaq() : [];
+  const [viewer, topics] = await Promise.all([getSessionUser(), getTopics(query)]);
+  const pending = viewer?.role === "lecturer" ? await getPendingTopics() : [];
 
   return (
     <AppShell
       page="faq"
       title="FAQ / Issue Log"
       heading="Questions, answers & course support"
-      subtitle="Find an answer or ask your teaching team."
+      subtitle="Browse a topic or start a new one - click in to discuss."
       viewer={viewer}
       logoutHref={logoutUrl}
     >
-      <div className={styles.page}>
-        <form className={styles.searchBox} method="get" action="/faq">
-          <input
-            type="text"
-            aria-label="Search FAQs"
-            name="q"
-            placeholder="Search question, answer, or tag..."
-            defaultValue={query}
-          />
-          <button type="submit" className={styles.btn}>
-            Search
-          </button>
-        </form>
-
-        {entries.length > 0 ? (
-          entries.map((entry, i) => (
-            <div className={styles.faqCard} key={i}>
-              <div className={styles.faqQuestion}>{entry.question}</div>
-              <div className={styles.faqAnswer}>{entry.answer}</div>
-              <div className={styles.faqMeta}>
-                <span
-                  className={`${styles.status} ${statusClass[entry.status.toLowerCase()] ?? ""}`}
-                >
-                  {entry.status}
-                </span>
-                {entry.tags.map((tag) => (
-                  <span className={styles.tag} key={tag}>
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))
-        ) : (
-          <p>No matching FAQ/issue entries found.</p>
-        )}
-
-        <div className={styles.submitPanel}>
-          <h3>Submit a new question</h3>
-          <p className={styles.hint}>
-            New entries are saved as <strong>Pending</strong> and only become visible
-            to others after lecturer approval.
-          </p>
-          <form method="post" action={`${API_BASE}/faq/submit`}>
-            <label htmlFor="question">Question</label>
-            <input
-              type="text"
-              id="question"
-              name="question"
-              placeholder="e.g. When is the midterm project due?"
-              required
-            />
-
-            <label htmlFor="answer">Answer (optional, TA can propose one)</label>
-            <textarea
-              id="answer"
-              name="answer"
-              rows={3}
-              placeholder="Optional draft answer..."
-            />
-
-            <label htmlFor="tags">Tags (comma separated)</label>
-            <input type="text" id="tags" name="tags" placeholder="e.g. deadline, project" />
-
-            <button type="submit" className={styles.btn}>
-              Submit for Approval
-            </button>
-          </form>
-        </div>
-
-        {viewer?.role === "lecturer" && (
-          <div className={styles.submitPanel}>
-            <h3>Pending review</h3>
-            <p className={styles.hint}>
-              New submissions stay hidden from everyone else until you approve or reject them.
-            </p>
-            {pending.length > 0 ? (
-              pending.map((entry) => (
-                <div className={styles.faqCard} key={entry.id}>
-                  <div className={styles.faqQuestion}>{entry.question}</div>
-                  {entry.answer && <div className={styles.faqAnswer}>{entry.answer}</div>}
-                  <div className={styles.faqMeta}>
-                    {entry.tags.map((tag) => (
-                      <span className={styles.tag} key={tag}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                  <div className={styles.reviewActions}>
-                    <form method="post" action={`${API_BASE}/faq/${entry.id}/approve`}>
-                      <button type="submit" className={styles.btn}>
-                        Approve
-                      </button>
-                    </form>
-                    <form method="post" action={`${API_BASE}/faq/${entry.id}/reject`}>
-                      <button type="submit" className={`${styles.btn} ${styles.btnGhost}`}>
-                        Reject
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p>Nothing waiting on review.</p>
-            )}
-          </div>
-        )}
-      </div>
+      <TopicBoard initialTopics={topics} initialPending={pending} viewer={viewer} preview={PREVIEW} query={query} />
     </AppShell>
   );
 }
