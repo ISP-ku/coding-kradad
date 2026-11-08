@@ -150,3 +150,63 @@ def test_past_activity_stays_visible_until_done_then_hides():
     assert response.json()["is_overdue"] is False
     titles = [a["title"] for a in client.get("/api/activities").json()]
     assert "Late grading" not in titles
+
+
+def test_lecturer_can_edit_activity_and_preserve_tasks():
+    login_as(LECTURER)
+    created = client.post("/api/activities", json=VALID).json()
+    updated = client.patch(f"/api/activities/{created['id']}", json={
+        "title": "Updated lab", "starts_at": "2099-10-22T11:30:00+07:00",
+    })
+    assert updated.status_code == 200
+    assert updated.json()["title"] == "Updated lab"
+    assert updated.json()["starts_at"] == "2099-10-22T04:30:00Z"
+    assert updated.json()["tasks"][0]["id"] == created["tasks"][0]["id"]
+
+
+def test_only_lecturer_can_edit_delete_or_archive():
+    login_as(LECTURER)
+    activity_id = client.post("/api/activities", json=VALID).json()["id"]
+    for role in (TA, STUDENT):
+        login_as(role)
+        assert client.patch(f"/api/activities/{activity_id}", json={"title": "No"}).status_code == 403
+        assert client.delete(f"/api/activities/{activity_id}").status_code == 403
+        assert client.post(f"/api/activities/{activity_id}/archive").status_code == 403
+
+
+def test_archive_retains_tasks_and_hides_activity_from_dashboard():
+    login_as(LECTURER)
+    created = client.post("/api/activities", json=VALID).json()
+    url = f"/api/activities/{created['id']}"
+    archived = client.post(url + "/archive")
+    assert archived.status_code == 200
+    assert archived.json()["archived_at"] is not None
+    assert client.post(url + "/archive").json()["archived_at"] == archived.json()["archived_at"]
+    assert created["id"] not in [a["id"] for a in client.get("/api/activities").json()]
+    assert client.patch(url, json={"title": "No"}).status_code == 409
+    assert client.delete(url).status_code == 409
+    with SessionLocal() as db:
+        assert db.get(Activity, created["id"]) is not None
+        assert db.get(Task, created["tasks"][0]["id"]) is not None
+
+
+def test_delete_removes_tasks_and_activity():
+    login_as(LECTURER)
+    created = client.post("/api/activities", json=VALID).json()
+    url = f"/api/activities/{created['id']}"
+    assert client.delete(url).status_code == 204
+    assert client.delete(url).status_code == 404
+    with SessionLocal() as db:
+        assert db.get(Activity, created["id"]) is None
+        assert db.get(Task, created["tasks"][0]["id"]) is None
+
+
+def test_edit_validation_and_missing_activity():
+    login_as(LECTURER)
+    created = client.post("/api/activities", json=VALID).json()
+    url = f"/api/activities/{created['id']}"
+    assert client.patch(url, json={"title": "   "}).status_code == 422
+    assert client.patch(url, json={"starts_at": None}).status_code == 422
+    assert client.patch(url, json={"type": "bad"}).status_code == 422
+    assert client.patch(url, json={"unrecognized": 3}).status_code == 422
+    assert client.patch("/api/activities/999999", json={"title": "Missing"}).status_code == 404
