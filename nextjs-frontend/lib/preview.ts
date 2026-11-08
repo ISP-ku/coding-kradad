@@ -1,4 +1,4 @@
-import type { ActivityReport, Consultation, FaqEntry, SessionUser } from "./types";
+import type { ActivityReport, Comment, Consultation, SessionUser, Topic, TopicDetail } from "./types";
 
 // UI preview mode: set UI_PREVIEW=1 in .env.local to browse every page with
 // fake data (same data as source/test_ui.py), without a running backend.
@@ -15,32 +15,59 @@ export function makePreviewUser(): SessionUser {
   };
 }
 
-export const previewFaq: FaqEntry[] = [
+const previewComments: Record<number, Comment[]> = {
+  1: [
+    { id: 1, author: "google:ta-1", body: "It's due Friday of Week 8, 23:59 - no extensions.", created_at: "2026-09-02T10:15:00Z" },
+    { id: 2, author: "google:student-9", body: "Does that include the report or just the code?", created_at: "2026-09-02T11:02:00Z" },
+  ],
+  2: [
+    { id: 3, author: "google:lecturer-1", body: "Ask me before switching - most alternatives are fine.", created_at: "2026-09-05T09:40:00Z" },
+  ],
+};
+
+export const previewTopics: Topic[] = [
   {
     id: 1,
-    question: "When is the midterm project due?",
-    answer: "The midterm project is due Friday of Week 8, 23:59.",
+    title: "When is the midterm project due?",
+    description: "Trying to plan my week - is it the Friday of Week 8 or Week 9?",
     status: "Published",
-    tags: ["deadline", "project"],
+    submitted_by: "google:student-3",
+    created_at: "2026-09-01T08:00:00Z",
+    comment_count: previewComments[1].length,
+    saved: true,
   },
   {
     id: 2,
-    question: "Can we use a different database for the final project?",
-    answer: "Ask your lecturer for approval before switching database technology.",
+    title: "Can we use a different database for the final project?",
+    description: "We'd like to use MongoDB instead of PostgreSQL - is that allowed?",
     status: "Published",
-    tags: ["project", "database"],
+    submitted_by: "google:student-7",
+    created_at: "2026-09-04T13:30:00Z",
+    comment_count: previewComments[2].length,
+    saved: false,
   },
   {
     id: 3,
-    question: "Is attendance in lab sessions mandatory?",
-    answer: "",
+    title: "Is attendance in lab sessions mandatory?",
+    description: "I might need to miss one lab for a medical appointment.",
     status: "Pending",
-    tags: ["lab"],
+    submitted_by: "google:student-2",
+    created_at: "2026-09-06T16:45:00Z",
+    comment_count: 0,
+    saved: false,
   },
 ];
 
-// Pending entries awaiting lecturer review (SRS-18), a subset of previewFaq.
-export const previewPendingFaq: FaqEntry[] = previewFaq.filter((e) => e.status === "Pending");
+// Pending topics awaiting lecturer review (SRS-18), a subset of previewTopics.
+export const previewPendingTopics: Topic[] = previewTopics.filter((t) => t.status === "Pending");
+
+export const previewSavedTopics: Topic[] = previewTopics.filter((t) => t.saved);
+
+export function previewTopicDetail(id: number): TopicDetail | null {
+  const topic = previewTopics.find((t) => t.id === id);
+  if (!topic) return null;
+  return { ...topic, comments: previewComments[id] ?? [] };
+}
 
 export const previewConsultations: Consultation[] = [
   { id: 5, session_date: "2026-10-02", duration_minutes: 25, topic: "Pointer vs reference in Lab 4", participants: "Natthawut", created_at: "2026-10-02T14:12:00" },

@@ -14,12 +14,26 @@ export type SessionUser = {
   classroom_courses?: ClassroomCourse[];
 };
 
-export type FaqEntry = {
+export type Comment = {
   id: number;
-  question: string;
-  answer: string;
+  author: string;
+  body: string;
+  created_at: string;
+};
+
+export type Topic = {
+  id: number;
+  title: string;
+  description: string;
   status: string; // "Published" | "Pending" | "Rejected" (any casing)
-  tags: string[];
+  submitted_by: string;
+  created_at: string;
+  comment_count: number;
+  saved: boolean;
+};
+
+export type TopicDetail = Topic & {
+  comments: Comment[];
 };
 
 export type Consultation = {
