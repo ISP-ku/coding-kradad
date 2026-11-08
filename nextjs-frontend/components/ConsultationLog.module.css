@@ -16,9 +16,6 @@
 .alert,.notice{border-radius:10px;padding:10px 14px;font-size:14px;margin-top:16px}
 .alert{background:#ffebeb;color:#b63737}
 .notice{background:#e3f6ec;color:#157345}
-.summary{display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;margin:0 0 14px}
-.summary h3{margin:0;font-size:20px;font-weight:500}
-.summary span{color:var(--muted);font-size:14px}
 .card{padding:18px 24px;margin-bottom:12px}
 .topic{font-weight:650;font-size:16px;margin-bottom:6px}
 .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
