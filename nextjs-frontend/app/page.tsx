@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
-import { API_BASE, localTestLoginAvailable, loginUrl, logoutUrl } from "@/lib/api";
+import { API_BASE, authOptions, loginUrl, logoutUrl } from "@/lib/api";
 import { homePathFor } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
 import styles from "./page.module.css";
@@ -47,7 +47,7 @@ function HomePreview() {
 
 export default async function LoginPage() {
   const user = await getSessionUser();
-  const localTesting = await localTestLoginAvailable();
+  const options = await authOptions();
 
   return (
     <div className={styles.layout}>
@@ -72,7 +72,7 @@ export default async function LoginPage() {
               )}
               <h1>Welcome back, {user.username}</h1>
               <p className={styles.lead}>
-                You are signed in with {user.provider === "local" ? "a local test account" : "your KU Google account"}.
+                You are signed in with {user.provider === "local" ? "a local test account" : user.provider === "email" ? "an email code" : "your Google account"}.
               </p>
               <Link className={styles.primary} href={homePathFor(user)}>Open my course</Link>
               <a className={styles.secondary} href={logoutUrl}>Log out and use another account</a>
@@ -91,11 +91,17 @@ export default async function LoginPage() {
                 </svg>
                 Continue with KU Google
               </a>
-              {localTesting && (
+              {(options.email_code || options.personal_google) && <p className={styles.or}>Can&apos;t get through KU ALL?</p>}
+              {options.email_code && <a className={styles.quiet} href="/sign-in/email">Email me a sign-in code</a>}
+              {options.personal_google && (
+                <a className={styles.quiet} href={loginUrl("google-personal")}>Continue with a personal Google account</a>
+              )}
+              {options.local_test_login && (
                 <a className={styles.quiet} href={`${API_BASE}/local-test-login`}>Use a local test account</a>
               )}
               <p className={styles.help}>
-                Use your account ending in @ku.th. If you are new to the course and cannot get in, ask your lecturer to add you.
+                Use your account ending in @ku.th{options.personal_google ? ", or the Gmail address your lecturer added" : ""}.
+                If you are new to the course and cannot get in, ask your lecturer to add you.
               </p>
             </>
           )}
