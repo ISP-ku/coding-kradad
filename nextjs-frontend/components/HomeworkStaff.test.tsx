@@ -53,7 +53,7 @@ describe("HomeworkStaff as a TA", () => {
     expect(await within(alice).findByRole("status")).toHaveTextContent("Grade saved");
     expect(fetcher).toHaveBeenLastCalledWith("/api/homework/1/submissions/7", expect.objectContaining({ method: "PATCH" }));
     expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({ score: 17, feedback: "Good" });
-    expect(screen.getByText("2 submitted · 2 graded")).toBeInTheDocument();   // Alice newly graded
+    expect(screen.getByText("2 submitted, 2 graded")).toBeInTheDocument();   // Alice newly graded
   });
 
   it("keeps the homework on screen after its last submission is graded, until it is closed", async () => {
@@ -84,7 +84,7 @@ describe("HomeworkStaff as a TA", () => {
     fireEvent.change(within(bob).getByLabelText("Score (max 20)"), { target: { value: "15" } });
     fireEvent.click(within(bob).getByRole("button", { name: "Update grade" }));
     await within(bob).findByRole("status");
-    expect(screen.getByText("2 submitted · 1 graded")).toBeInTheDocument();
+    expect(screen.getByText("2 submitted, 1 graded")).toBeInTheDocument();
   });
 
   it.each(["", "21", "-1", "7.5"])("rejects the score %j without calling the server", async (value) => {

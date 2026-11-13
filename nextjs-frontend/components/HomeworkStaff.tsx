@@ -63,7 +63,7 @@ export default function HomeworkStaff({ initial, role }: { initial: HomeworkItem
               </div>
             </div>
             <span className={`${styles.chip} ${waiting(hw) > 0 ? styles.chipSubmitted : styles.chipOk}`}>
-              {hw.submission_count ?? 0} submitted · {hw.graded_count ?? 0} graded
+              {hw.submission_count ?? 0} submitted, {hw.graded_count ?? 0} graded
             </span>
           </div>
           {hw.description && <p className={styles.desc}>{hw.description}</p>}

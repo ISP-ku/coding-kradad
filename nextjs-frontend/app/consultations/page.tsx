@@ -56,11 +56,10 @@ export default async function ConsultationsPage({ searchParams }: { searchParams
         <>
           <div className={styles.actionsRow}>
             <div>
-              <span className={styles.eyebrow}>YOUR SUPPORT LOG</span>
               <h2>Consultation history</h2>
               {entries.length > 0 && (
                 <p className={styles.summary}>
-                  {entries.length} {entries.length === 1 ? "session" : "sessions"} · {formatDuration(totalMinutes)} in total
+                  {entries.length} {entries.length === 1 ? "session" : "sessions"}, {formatDuration(totalMinutes)} in total
                 </p>
               )}
             </div>

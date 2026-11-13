@@ -166,9 +166,9 @@ export default async function ReportsPage({
                       <td>
                         {activity.title}
                         {activity.archived_at
-                          ? <span className={styles.muted}> · archived</span>
+                          ? <span className={styles.muted}> (archived)</span>
                           : activity.tasks.length > 0 && activity.tasks.every(task => task.status === "Done")
-                            ? <span className={styles.muted}> · completed</span>
+                            ? <span className={styles.muted}> (completed)</span>
                             : null}
                       </td>
                       <td>{activity.type}</td>

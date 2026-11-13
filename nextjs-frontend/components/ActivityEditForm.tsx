@@ -48,7 +48,6 @@ export default function ActivityEditForm({ activity }: { activity: CourseActivit
 
   return <section className={styles.card}>
     <header>
-      <span className={styles.eyebrow}>EDIT ACTIVITY</span>
       <h2>Update activity details</h2>
       <p>Existing task assignments and statuses will be kept.</p>
     </header>

@@ -34,7 +34,7 @@ export default function ActivityCreateForm({ assignees }: { assignees: ActivityA
   }
 
   return <section className={styles.card}>
-    <header><span className={styles.eyebrow}>ACTIVITY DETAILS</span><h2>What needs to happen?</h2><p>Required information is saved to the shared course schedule.</p></header>
+    <header><h2>What needs to happen?</h2><p>Required information is saved to the shared course schedule.</p></header>
     {error && <p className={styles.error} role="alert">{error}</p>}
     <form className={styles.form} onSubmit={submit}>
       <label>Course ID<input name="course_id" required maxLength={100} placeholder="e.g. 01219245" /></label>
