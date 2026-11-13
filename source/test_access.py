@@ -197,3 +197,91 @@ def test_local_login_requires_membership(local_client):
 def test_local_login_role_comes_from_access_page(local_client):
     assert local_login(local_client, TA).status_code == 303
     assert local_client.get("/api/me").json()["role"] == "ta"
+
+
+# --- Task 3: roster seeding ---------------------------------------------------
+
+import access  # noqa: E402
+
+
+def empty_access_tables():
+    with SessionLocal() as db:
+        for model in (CourseMember, AccessAccount, Course):
+            db.query(model).delete()
+        db.commit()
+
+
+ROSTER = {"courses": [
+    {"code": "DEMO-101", "name": "Demo course", "members": [
+        {"email": "Test.Lecturer@ku.th", "role": "lecturer"},
+        {"email": "test.ta@ku.th", "role": "ta"},
+        {"email": "test.student@ku.th"},
+    ]},
+    {"code": "DEMO-202", "members": [{"email": "test.ta@ku.th", "role": "ta"}]},
+]}
+
+
+def test_seed_roster_creates_courses_and_members(tmp_path):
+    empty_access_tables()
+    path = tmp_path / "roster.json"
+    path.write_text(json.dumps(ROSTER))
+    with SessionLocal() as db:
+        assert access.seed_roster(db, path) == 2
+        assert {c.code: c.name for c in db.query(Course)} == {"DEMO-101": "Demo course", "DEMO-202": "DEMO-202"}
+        assert {a.email: a.role for a in db.query(AccessAccount)} == {
+            "test.lecturer@ku.th": "lecturer", "test.ta@ku.th": "ta", "test.student@ku.th": "student"}
+        assert db.query(CourseMember).count() == 4
+
+
+@pytest.mark.parametrize("bad", [
+    "not json",
+    json.dumps({"courses": [{"code": "X", "members": [{"email": "a@gmail.com"}]}]}),
+    json.dumps({"courses": [{"code": "X", "members": [{"email": "a@ku.th", "role": "admin"}]}]}),
+    json.dumps({"courses": [{"code": "X", "members": [{"email": "a@ku.th", "role": "ta"}]},
+                            {"code": "Y", "members": [{"email": "a@ku.th", "role": "student"}]}]}),
+    json.dumps({"courses": [{"code": "X", "members": []}, {"code": "x", "members": []}]}),
+    json.dumps({"courses": [{"code": "", "members": []}]}),
+    json.dumps([]),
+])
+def test_seed_invalid_roster_seeds_nothing(tmp_path, bad):
+    empty_access_tables()
+    path = tmp_path / "roster.json"
+    path.write_text(bad)
+    with SessionLocal() as db:
+        assert access.seed_roster(db, path) == 0
+        assert db.query(Course).count() == 0 and db.query(AccessAccount).count() == 0
+
+
+def test_seed_missing_roster_seeds_nothing(tmp_path, monkeypatch):
+    empty_access_tables()
+    with SessionLocal() as db:
+        assert access.seed_roster(db, tmp_path / "missing.json") == 0
+    _, response = google_login(monkeypatch, STUDENT)
+    assert response.status_code == 403
+
+
+def test_seed_skipped_when_courses_exist(tmp_path, monkeypatch):
+    path = tmp_path / "roster.json"
+    path.write_text(json.dumps(ROSTER))
+    monkeypatch.setenv("COURSE_ROSTER_FILE", str(path))
+    assert access.seed_roster_if_empty() == 0
+    with SessionLocal() as db:
+        assert [c.code for c in db.query(Course)] == ["CS101"]
+
+
+def test_seed_if_empty_uses_env_path(tmp_path, monkeypatch):
+    empty_access_tables()
+    path = tmp_path / "roster.json"
+    path.write_text(json.dumps(ROSTER))
+    monkeypatch.setenv("COURSE_ROSTER_FILE", str(path))
+    assert access.seed_roster_if_empty() == 2
+
+
+def test_repo_roster_file_is_valid(tmp_path):
+    empty_access_tables()
+    with SessionLocal() as db:
+        assert access.seed_roster(db, access.DEFAULT_ROSTER_FILE) >= 1
+        emails = {a.email for a in db.query(AccessAccount)}
+    # Every local test account can still sign in once the gate is on.
+    test_users = json.loads((access.DEFAULT_ROSTER_FILE.parent / "allowed_users.json").read_text())
+    assert {u["email"].lower() for u in test_users} <= emails
