@@ -2,10 +2,14 @@
 
 import { useState } from "react";
 import { errorMessage } from "@/lib/homework";
-import { ROLE_LABEL, normaliseKuEmail, type AccessCourse, type AccessRole } from "@/lib/access";
-import styles from "./AccessManager.module.css";
+import { normaliseKuEmail, type AccessCourse, type AccessRole } from "@/lib/access";
+import { ChoiceGroup, Field, FieldRow, FormActions, FormCard, FormMessage, fieldAria, type Choice } from "./form/FormKit";
 
-const ROLES: AccessRole[] = ["student", "ta", "lecturer"];
+const ROLES: Choice<AccessRole>[] = [
+  { value: "student", label: "Student", hint: "Sees homework and the FAQ" },
+  { value: "ta", label: "Teaching assistant", hint: "Gets tasks, grades and logs consultations" },
+  { value: "lecturer", label: "Lecturer", hint: "Manages activities, homework and access" },
+];
 
 async function post<T>(url: string, body: unknown, fallback: string): Promise<{ data?: T; error?: string }> {
   try {
@@ -24,14 +28,16 @@ export function AccessMemberForm({ courses, defaultCourseId, onDone }: {
   /** Called with the course and email after adding; without it the page returns to Access. */
   onDone?: (courseId: number, email: string) => void;
 }) {
-  const [courseId, setCourseId] = useState<number>(defaultCourseId ?? courses[0]?.id ?? 0);
+  const [courseId, setCourseId] = useState<number>(
+    courses.some((c) => c.id === defaultCourseId) ? defaultCourseId! : courses[0]?.id ?? 0,
+  );
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<AccessRole>("student");
   const [emailError, setEmailError] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     const clean = normaliseKuEmail(email);
@@ -49,31 +55,25 @@ export function AccessMemberForm({ courses, defaultCourseId, onDone }: {
   }
 
   return (
-    <form className={styles.panel} onSubmit={submit} noValidate aria-label="Add people">
-      <div className={styles.stack}>
-        <label className={styles.field}>
-          <span>Course</span>
-          <select value={courseId} onChange={(e) => setCourseId(Number(e.target.value))}>
+    <FormCard label="Add people" onSubmit={submit}>
+      <FieldRow>
+        <Field id="member-course" label="Course">
+          <select id="member-course" value={courseId} onChange={(e) => setCourseId(Number(e.target.value))}>
             {courses.map((c) => <option key={c.id} value={c.id}>{c.code}{c.name && c.name !== c.code ? `, ${c.name}` : ""}</option>)}
           </select>
-        </label>
-        <label className={styles.field}>
-          <span>KU email</span>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name.s@ku.th"
-            aria-invalid={emailError ? true : undefined} aria-describedby={emailError ? "member-email-error" : undefined} />
-          {emailError && <span className={styles.fieldError} id="member-email-error">{emailError}</span>}
-        </label>
-        <label className={styles.field}>
-          <span>Role</span>
-          <select value={role} onChange={(e) => setRole(e.target.value as AccessRole)}>
-            {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
-          </select>
-        </label>
-        <p className={styles.hint}>The role applies to every course this person is in. They can sign in as soon as you add them.</p>
-        {error && <p className={styles.alert} role="alert">{error}</p>}
-        <div><button className={styles.btn} type="submit" disabled={busy}>Add to course</button></div>
-      </div>
-    </form>
+        </Field>
+        <Field id="member-email" label="KU email" hint="They sign in with this Google account." error={emailError}>
+          <input id="member-email" type="email" value={email} autoComplete="off" placeholder="name.s@ku.th"
+            onChange={(e) => setEmail(e.target.value)} {...fieldAria("member-email", emailError, true)} />
+        </Field>
+      </FieldRow>
+      <ChoiceGroup legend="Role" name="member-role" options={ROLES} value={role} onChange={setRole} columns={3} />
+      <p style={{ margin: 0, fontSize: 14, color: "var(--muted)" }}>
+        The role applies to every course this person is in. They can sign in as soon as you add them.
+      </p>
+      {error && <FormMessage kind="error">{error}</FormMessage>}
+      <FormActions submitLabel="Add to course" busyLabel="Adding..." busy={busy} cancelHref={`/access?course=${courseId}`} />
+    </FormCard>
   );
 }
 
@@ -85,7 +85,7 @@ export function AccessCourseForm({ onDone }: { onDone?: (courseId: number) => vo
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setCodeError(code.trim() ? "" : "Enter a course code.");
@@ -103,21 +103,19 @@ export function AccessCourseForm({ onDone }: { onDone?: (courseId: number) => vo
   }
 
   return (
-    <form className={styles.panel} onSubmit={submit} noValidate aria-label="New course">
-      <div className={styles.stack}>
-        <label className={styles.field}>
-          <span>Course code</span>
-          <input value={code} onChange={(e) => setCode(e.target.value)} maxLength={50} placeholder="01219245"
-            aria-invalid={codeError ? true : undefined} aria-describedby={codeError ? "course-code-error" : undefined} />
-          {codeError && <span className={styles.fieldError} id="course-code-error">{codeError}</span>}
-        </label>
-        <label className={styles.field}>
-          <span>Course name (optional)</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={200} placeholder="Software Process" />
-        </label>
-        {error && <p className={styles.alert} role="alert">{error}</p>}
-        <div><button className={styles.btn} type="submit" disabled={busy}>Create course</button></div>
-      </div>
-    </form>
+    <FormCard label="New course" onSubmit={submit}>
+      <FieldRow>
+        <Field id="course-code" label="Course code" hint="As it appears in the KU course list." error={codeError}>
+          <input id="course-code" value={code} maxLength={50} placeholder="01219245" autoComplete="off"
+            onChange={(e) => setCode(e.target.value)} {...fieldAria("course-code", codeError, true)} />
+        </Field>
+        <Field id="course-name" label="Course name (optional)" hint="Shown next to the code.">
+          <input id="course-name" value={name} maxLength={200} placeholder="Software Process"
+            onChange={(e) => setName(e.target.value)} {...fieldAria("course-name", undefined, true)} />
+        </Field>
+      </FieldRow>
+      {error && <FormMessage kind="error">{error}</FormMessage>}
+      <FormActions submitLabel="Create course" busyLabel="Creating..." busy={busy} cancelHref="/access" />
+    </FormCard>
   );
 }

@@ -11,7 +11,8 @@ describe("AccessMemberForm", () => {
   it("starts on the course it was opened for", () => {
     render(<AccessMemberForm courses={COURSES} defaultCourseId={2} onDone={onDone} />);
     expect(screen.getByLabelText("Course")).toHaveValue("2");
-    expect(screen.getByLabelText("Role")).toHaveValue("student");
+    expect(screen.getByRole("radio", { name: /Student/ })).toBeChecked();
+    expect(screen.getByText("Sees homework and the FAQ")).toBeInTheDocument();
   });
 
   it("checks the email before sending", () => {
@@ -30,7 +31,7 @@ describe("AccessMemberForm", () => {
     render(<AccessMemberForm courses={COURSES} onDone={onDone} />);
     fireEvent.change(screen.getByLabelText("Course"), { target: { value: "2" } });
     fireEvent.change(screen.getByLabelText("KU email"), { target: { value: " New@KU.th " } });
-    fireEvent.change(screen.getByLabelText("Role"), { target: { value: "ta" } });
+    fireEvent.click(screen.getByRole("radio", { name: /Teaching assistant/ }));
     fireEvent.click(screen.getByRole("button", { name: "Add to course" }));
     await waitFor(() => expect(onDone).toHaveBeenCalledWith(2, "new@ku.th"));
     expect(fetcher).toHaveBeenCalledWith("/api/access/courses/2/members", expect.objectContaining({ method: "POST" }));

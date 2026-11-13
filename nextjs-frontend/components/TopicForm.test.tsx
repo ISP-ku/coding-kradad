@@ -45,4 +45,10 @@ describe("TopicForm", () => {
     render(<TopicForm onSubmitted={onSubmitted} />);
     expect(screen.getByText(/only appear on the board after a lecturer approves them/)).toBeInTheDocument();
   });
+  it("counts characters on the title and description", () => {
+    render(<TopicForm onSubmitted={onSubmitted} />);
+    fill("Midterm", "When?");
+    expect(screen.getByText("7 / 300")).toBeInTheDocument();
+    expect(screen.getByText("5 / 2000")).toBeInTheDocument();
+  });
 });
