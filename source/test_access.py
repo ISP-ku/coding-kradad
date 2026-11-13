@@ -25,6 +25,8 @@ STRANGER = "stranger@ku.th"   # in no course
 
 @pytest.fixture(autouse=True)
 def gate_on(monkeypatch):
+    """Gate on, one course with a lecturer, TA and student; tables emptied
+    again afterwards so other test files (gate off) see no members."""
     monkeypatch.setenv("REQUIRE_COURSE_MEMBERSHIP", "1")
     monkeypatch.setenv("LECTURER_EMAILS", BOSS)
     monkeypatch.setenv("TA_EMAILS", "")
@@ -46,6 +48,10 @@ def gate_on(monkeypatch):
             db.add(CourseMember(course_id=course.id, email=email))
         db.commit()
     yield
+    with SessionLocal() as db:
+        for model in (CourseMember, AccessAccount, Course):
+            db.query(model).delete()
+        db.commit()
 
 
 def course_id(code="CS101"):
@@ -122,3 +128,72 @@ def test_normalise_ku_email_accepts(raw, expected):
 def test_normalise_ku_email_rejects(raw):
     with pytest.raises(ValueError):
         users.normalise_ku_email(raw)
+
+
+# --- Task 2: sign-in gate and per-request refresh ----------------------------
+
+def test_non_member_google_login_denied(monkeypatch):
+    client, response = google_login(monkeypatch, STRANGER)
+    assert response.status_code == 403
+    assert "not registered in any course" in response.text
+    assert client.get("/api/me").status_code == 401
+
+
+def test_member_google_login_gets_member_role(sign_in):
+    assert sign_in(TA).get("/api/me").json()["role"] == "ta"
+    assert sign_in(STUDENT).get("/api/me").json()["role"] == "student"
+
+
+def test_protected_lecturer_signs_in_without_course(sign_in):
+    assert sign_in(BOSS).get("/api/me").json()["role"] == "lecturer"
+
+
+def test_removed_member_loses_session_immediately(sign_in):
+    client = sign_in(TA)
+    assert client.get("/api/activities").status_code == 200
+    with SessionLocal() as db:
+        db.query(CourseMember).filter_by(email=TA).delete()
+        db.commit()
+    assert client.get("/api/me").status_code == 401
+    assert client.get("/api/activities").status_code == 401
+
+
+def test_role_change_applies_to_live_session(sign_in):
+    client = sign_in(TA)
+    assert client.get("/api/activities/assignees").status_code == 403
+    with SessionLocal() as db:
+        db.get(AccessAccount, TA).role = "lecturer"
+        db.commit()
+    assert client.get("/api/me").json()["role"] == "lecturer"
+    assert client.get("/api/activities/assignees").status_code == 200
+
+
+@pytest.fixture
+def local_client(monkeypatch, tmp_path):
+    path = tmp_path / "users.json"
+    path.write_text(json.dumps([
+        {"email": TA, "name": "Test TA", "role": "lecturer"},
+        {"email": STRANGER, "name": "Stranger", "role": "lecturer"},
+    ]))
+    monkeypatch.setattr(backend, "TEST_USERS_FILE", path)
+    monkeypatch.setattr(backend, "LOCAL_TEST_LOGIN", True)
+    monkeypatch.setattr(backend, "APP_ENV", "development")
+    monkeypatch.setattr(backend, "HOST", "127.0.0.1")
+    return TestClient(backend.app, base_url="http://127.0.0.1", client=("127.0.0.1", 5000), follow_redirects=False)
+
+
+def local_login(client, email):
+    form = client.get("/local-test-login")
+    csrf = form.text.split('name="csrf" value="')[1].split('"')[0]
+    return client.post("/local-test-login", data={"email": email, "csrf": csrf})
+
+
+def test_local_login_requires_membership(local_client):
+    response = local_login(local_client, STRANGER)
+    assert response.status_code == 403
+    assert "not registered in any course" in response.text
+
+
+def test_local_login_role_comes_from_access_page(local_client):
+    assert local_login(local_client, TA).status_code == 303
+    assert local_client.get("/api/me").json()["role"] == "ta"
