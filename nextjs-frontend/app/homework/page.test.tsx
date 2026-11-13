@@ -32,7 +32,7 @@ describe("Homework page", () => {
 
   it("gives students the student view, with the session cookie forwarded", async () => {
     const { element, views, fetcher } = await open(account("student"));
-    expect(element.props.heading).toBe("Your homework");
+    expect(element.props.heading).toBe("Homework");
     expect(views).toHaveLength(1);
     expect(views[0].props.initial).toEqual([]);
     expect(views[0].props.role).toBeUndefined();
@@ -42,7 +42,7 @@ describe("Homework page", () => {
 
   it("treats an account with no role as a student", async () => {
     const { element, views } = await open(account(undefined));
-    expect(element.props.heading).toBe("Your homework");
+    expect(element.props.heading).toBe("Homework");
     expect(views[0].props.role).toBeUndefined();
   });
 
