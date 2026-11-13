@@ -20,7 +20,7 @@ async function open(user: unknown, response: Response | Error = new Response("[]
   vi.stubGlobal("fetch", fetcher);
   mocks.getSessionUser.mockResolvedValue(user);
   const { default: Page } = await import("./page");
-  const element = (await Page()) as { props: { heading: string; children: Array<{ type?: { name?: string }; props?: Record<string, unknown> } | false> } };
+  const element = (await Page({ searchParams: {} })) as { props: { heading: string; children: Array<{ type?: { name?: string }; props?: Record<string, unknown> } | false> } };
   return { element, fetcher, views: element.props.children.filter(Boolean) as Array<{ type: unknown; props: Record<string, unknown> }> };
 }
 const account = (role?: string) => ({ id: "1", username: "X", provider: "google", role });

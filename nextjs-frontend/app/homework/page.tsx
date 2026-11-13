@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
+import Icon from "@/components/Icon";
+import ui from "@/components/ui.module.css";
 import HomeworkStaff from "@/components/HomeworkStaff";
 import HomeworkStudent from "@/components/HomeworkStudent";
 import { API_BASE, logoutUrl } from "@/lib/api";
@@ -41,7 +43,7 @@ const COPY = {
   },
 } as const;
 
-export default async function HomeworkPage() {
+export default async function HomeworkPage({ searchParams }: { searchParams?: { assigned?: string } }) {
   const viewer = await getSessionUser();
   if (!viewer) redirect("/");
   const role = effectiveRole(viewer);
@@ -55,7 +57,11 @@ export default async function HomeworkPage() {
       subtitle={COPY[role].subtitle}
       viewer={viewer}
       logoutHref={logoutUrl}
+      actions={role === "lecturer" ? (
+        <a className={ui.actionButton} href="/homework/new"><Icon name="plus" /> Assign homework</a>
+      ) : undefined}
     >
+      {searchParams?.assigned === "1" && <p className={ui.notice} role="status">Homework assigned. Students can see it now.</p>}
       {failed && <p role="alert">Homework could not be loaded right now. Please try again in a moment.</p>}
       {!failed && role === "student" && <HomeworkStudent initial={items} />}
       {!failed && role !== "student" && <HomeworkStaff initial={items} role={role} />}

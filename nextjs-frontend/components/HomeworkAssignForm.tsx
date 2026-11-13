@@ -7,8 +7,12 @@ import styles from "./Homework.module.css";
 
 type Errors = Partial<Record<"course_id" | "title" | "due_at" | "max_score", string>>;
 
-/** Lecturer-only form that assigns a new homework to the whole course. */
-export default function HomeworkAssignForm({ onCreated }: { onCreated: (item: HomeworkItem) => void }) {
+/**
+ * Lecturer-only form that assigns a new homework to the whole course. It has
+ * its own page (/homework/new); after assigning it returns to the homework list
+ * unless a caller handles the new item itself.
+ */
+export default function HomeworkAssignForm({ onCreated }: { onCreated?: (item: HomeworkItem) => void }) {
   const [course, setCourse] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -47,7 +51,12 @@ export default function HomeworkAssignForm({ onCreated }: { onCreated: (item: Ho
         setFormError(await errorMessage(res, "Could not assign the homework. Please check every field."));
         return;
       }
-      onCreated((await res.json()) as HomeworkItem);
+      const created = (await res.json()) as HomeworkItem;
+      if (!onCreated) {
+        window.location.assign("/homework?assigned=1");
+        return;
+      }
+      onCreated(created);
       setCourse(""); setTitle(""); setDescription(""); setDue(""); setMax("100");
       setNotice("Homework assigned. Students can see it now.");
     } catch {
@@ -65,8 +74,6 @@ export default function HomeworkAssignForm({ onCreated }: { onCreated: (item: Ho
 
   return (
     <form className={`${styles.panel} ${styles.form}`} onSubmit={submit} noValidate aria-label="Assign homework">
-      <h3>Assign homework</h3>
-      <p className={styles.hint}>Everyone in the course sees it as soon as you assign it.</p>
       <div className={styles.grid}>
         <div>
           <label htmlFor="hw-course">Course</label>
