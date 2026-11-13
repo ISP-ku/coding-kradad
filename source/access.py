@@ -20,7 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from database import USER_ROLES, AccessAccount, Course, CourseMember, SessionLocal
-from users import normalise_ku_email, role_for_email
+from users import normalise_member_email, role_for_email
 
 logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -56,7 +56,7 @@ def _parse_roster(raw: str) -> list[tuple[str, str, list[tuple[str, str]]]]:
         for member in members:
             if not isinstance(member, dict) or not isinstance(member.get("email"), str):
                 raise ValueError(f"invalid member in {code}")
-            email = normalise_ku_email(member["email"])
+            email = normalise_member_email(member["email"])
             role = member.get("role") or role_for_email(email)
             if role not in USER_ROLES:
                 raise ValueError(f"unknown role {role!r} for {email}")
@@ -140,7 +140,7 @@ class MemberIn(BaseModel):
     @field_validator("email")
     @classmethod
     def ku_email(cls, value: str) -> str:
-        return normalise_ku_email(value)
+        return normalise_member_email(value)
 
 
 class RoleIn(BaseModel):
@@ -166,7 +166,7 @@ def _viewer_email(user: dict) -> str:
 
 def _path_email(raw: str) -> str:
     try:
-        return normalise_ku_email(raw)
+        return normalise_member_email(raw)
     except ValueError:
         raise HTTPException(404, "No such account.")
 
