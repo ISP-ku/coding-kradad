@@ -42,7 +42,7 @@ function summarise(activities: CourseActivity[], role: string, viewerId: string)
   return `${role === "ta" ? "Your list has" : "The course has"} ${parts.join(" and ")}.`;
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams?: { added?: string; updated?: string } }) {
   if (PREVIEW) redirect("/");
   const user = await getSessionUser();
   if (!user) redirect("/");
@@ -77,6 +77,8 @@ export default async function DashboardPage() {
         </a>
       ) : undefined}
     >
+      {searchParams?.added === "1" && <p className={ui.notice} role="status">Activity added and assigned. The TA can see it now.</p>}
+      {searchParams?.updated === "1" && <p className={ui.notice} role="status">Activity updated.</p>}
       <div className={styles.columns}>
         <div className={styles.main}>
           <ActivityWorkspace

@@ -18,7 +18,7 @@ async function openDashboard(user: unknown) {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
   mocks.getSessionUser.mockResolvedValue(user);
   const { default: DashboardPage } = await import("./page");
-  return DashboardPage();
+  return DashboardPage({ searchParams: {} });
 }
 
 describe("Dashboard route guard (R-02)", () => {
