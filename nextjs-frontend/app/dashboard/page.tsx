@@ -11,6 +11,7 @@ import { canAccess, homePathFor } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
 import type { CourseActivity, HomeworkItem, Topic } from "@/lib/types";
 import styles from "./page.module.css";
+import ui from "@/components/ui.module.css";
 
 export const metadata: Metadata = { title: "Today · Course Support" };
 
@@ -71,7 +72,7 @@ export default async function DashboardPage() {
       viewer={user}
       logoutHref={logoutUrl}
       actions={role === "lecturer" ? (
-        <a className={styles.addButton} href="/dashboard/activities/new">
+        <a className={ui.actionButton} href="/dashboard/activities/new">
           <Icon name="plus" /> Add activity
         </a>
       ) : undefined}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import AppShell from "@/components/AppShell";
+import ui from "@/components/ui.module.css";
 import ConsultationHistory, { formatDuration } from "@/components/ConsultationHistory";
 import Icon from "@/components/Icon";
 import { API_BASE, logoutUrl } from "@/lib/api";
@@ -45,10 +46,13 @@ export default async function ConsultationsPage({ searchParams }: { searchParams
     <AppShell
       page="consultations"
       title="Consultation Log"
-      heading="Record and review your consultations"
+      heading="Consultation log"
       subtitle="Keep track of the support you give students."
       viewer={viewer}
       logoutHref={logoutUrl}
+      actions={signedIn && !forbidden ? (
+        <a className={ui.actionButton} href="/consultations/new"><Icon name="plus" /> Record consultation</a>
+      ) : undefined}
     >
       {forbidden ? (
         <p role="alert">The consultation log is only available to teaching assistants.</p>
@@ -63,9 +67,6 @@ export default async function ConsultationsPage({ searchParams }: { searchParams
                 </p>
               )}
             </div>
-            <a className={styles.addButton} href="/consultations/new">
-              <Icon name="plus" /> Record consultation
-            </a>
           </div>
           {searchParams?.saved === "1" && (
             <div className={styles.notice} role="status">Consultation saved.</div>
