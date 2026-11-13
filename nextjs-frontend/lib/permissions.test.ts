@@ -11,6 +11,7 @@ const MATRIX: Record<ProtectedPage, Role[]> = {
   consultations: ["ta"],
   reports: ["lecturer"],
   homework: ["student", "ta", "lecturer"],
+  access: ["lecturer"],
 };
 
 describe("page permissions", () => {
