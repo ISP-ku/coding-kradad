@@ -55,4 +55,18 @@ describe("HomeworkAssignForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Assign homework" }));
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("not allowed"));
   });
+  it("fills the due date and points from quick picks", () => {
+    render(<HomeworkAssignForm onCreated={onCreated} />);
+    fireEvent.click(screen.getByRole("button", { name: "In a week" }));
+    const week = new Date();
+    week.setDate(week.getDate() + 7);
+    expect(screen.getByLabelText("Due date and time")).toHaveValue(`${week.toLocaleDateString("en-CA")}T23:59`);
+    fireEvent.click(screen.getByRole("button", { name: "20 points" }));
+    expect(screen.getByLabelText("Maximum score")).toHaveValue(20);
+  });
+
+  it("suggests known course codes", () => {
+    render(<HomeworkAssignForm onCreated={onCreated} courses={["01219245"]} />);
+    expect(screen.getByLabelText("Course")).toHaveAttribute("list", "homework-courses");
+  });
 });

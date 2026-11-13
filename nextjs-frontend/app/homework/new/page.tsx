@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import HomeworkAssignForm from "@/components/HomeworkAssignForm";
 import { logoutUrl } from "@/lib/api";
+import { getAccess } from "@/lib/access-server";
 import { effectiveRole } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
 import ui from "@/components/ui.module.css";
@@ -14,6 +15,7 @@ export default async function AssignHomeworkPage() {
   if (!viewer) redirect("/");
   // Only lecturers assign homework; the API refuses everyone else (403).
   if (effectiveRole(viewer) !== "lecturer") redirect("/homework");
+  const courses = (await getAccess())?.courses.map((c) => c.code) ?? [];
 
   return (
     <AppShell
@@ -26,7 +28,7 @@ export default async function AssignHomeworkPage() {
     >
       <div className={ui.formPage}>
         <a className={ui.backLink} href="/homework">← Back to homework</a>
-        <HomeworkAssignForm />
+        <HomeworkAssignForm courses={courses} />
       </div>
     </AppShell>
   );
