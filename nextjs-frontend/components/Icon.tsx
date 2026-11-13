@@ -1,4 +1,6 @@
-export type IconName = "grid" | "book" | "chat" | "user" | "power" | "menu" | "calendar" | "plus";
+export type IconName =
+  | "grid" | "book" | "chat" | "user" | "power" | "menu" | "calendar" | "plus"
+  | "today" | "chart" | "key" | "clock" | "list" | "columns";
 
 const paths: Record<IconName, React.ReactNode> = {
   grid: (
@@ -25,6 +27,32 @@ const paths: Record<IconName, React.ReactNode> = {
   power: <path d="M12 2v9M6 5a9 9 0 1 0 12 0" />,
   menu: <path d="M3 5h18M3 12h18M3 19h18" />,
   plus: <path d="M12 5v14M5 12h14" />,
+  today: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8 12.5 2.5 2.5L16 9.5" />
+    </>
+  ),
+  chart: <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
+  key: (
+    <>
+      <circle cx="8" cy="15" r="4" />
+      <path d="m11 12 9-9M17 6l3 3M14 9l2 2" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </>
+  ),
+  list: <path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01" />,
+  columns: (
+    <>
+      <rect x="3" y="4" width="7" height="16" rx="1" />
+      <rect x="14" y="4" width="7" height="16" rx="1" />
+    </>
+  ),
   calendar: (
     <>
       <rect x="4" y="5" width="16" height="16" rx="1" />

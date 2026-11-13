@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
-import ActivityEditForm from "@/components/ActivityEditForm";
+import ActivityForm from "@/components/ActivityForm";
+import ui from "@/components/ui.module.css";
 import { API_BASE, logoutUrl } from "@/lib/api";
 import { canAccess, homePathFor } from "@/lib/permissions";
 import { PREVIEW } from "@/lib/preview";
 import { getSessionUser } from "@/lib/session";
 import type { CourseActivity } from "@/lib/types";
-import styles from "../../new/page.module.css";
 
 export const metadata: Metadata = { title: "Edit activity · Course Support" };
 
@@ -36,14 +36,14 @@ export default async function EditActivityPage({ params }: { params: { activityI
   return <AppShell
     page="dashboard"
     title="Edit activity"
-    heading="Edit course activity"
-    subtitle="Update the activity details without changing its task assignments."
+    heading="Edit activity"
+    subtitle="Change the details. The assigned TA and their progress stay as they are."
     viewer={user}
     logoutHref={logoutUrl}
   >
-    <div className={styles.page}>
-      <a className={styles.backLink} href="/dashboard">← Back to dashboard</a>
-      {activity ? <ActivityEditForm activity={activity} /> : (
+    <div className={ui.formPage}>
+      <a className={ui.backLink} href="/dashboard">← Back to dashboard</a>
+      {activity ? <ActivityForm mode="edit" activity={activity} /> : (
         <p role="alert">Could not load this activity. Check the backend connection and try again.</p>
       )}
     </div>

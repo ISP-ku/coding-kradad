@@ -26,11 +26,6 @@ export default function TopicBoard({ initialTopics, initialPending, viewer, prev
   const [savedLoading, setSavedLoading] = useState(false);
   const [pending, setPending] = useState<Topic[]>(initialPending);
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState("");
-  const [notice, setNotice] = useState("");
 
   function markSaved(id: number, saved: boolean) {
     setTopics((list) => list.map((t) => (t.id === id ? { ...t, saved } : t)));
@@ -62,45 +57,6 @@ export default function TopicBoard({ initialTopics, initialPending, viewer, prev
       setSavedTopics([]);
     } finally {
       setSavedLoading(false);
-    }
-  }
-
-  async function onSubmitCreate(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setNotice("");
-    setSubmitError("");
-
-    if (!title.trim() || !description.trim()) {
-      setSubmitError("Please fill in both the title and the description.");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      if (preview) {
-        setNotice("Submitted (preview mode: this is not saved to the database).");
-      } else {
-        const res = await fetch("/api/faq", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: title.trim(), description: description.trim() }),
-        });
-        if (res.status === 401) {
-          setSubmitError("Please sign in to create a topic.");
-          return;
-        }
-        if (!res.ok) {
-          setSubmitError("The server rejected the form. Please check every field.");
-          return;
-        }
-        setNotice("Submitted - waiting for a lecturer to approve it before it appears on the board.");
-      }
-      setTitle("");
-      setDescription("");
-    } catch {
-      setSubmitError("Could not reach the server. Please try again.");
-    } finally {
-      setSubmitting(false);
     }
   }
 
@@ -165,26 +121,6 @@ export default function TopicBoard({ initialTopics, initialPending, viewer, prev
         <p>{view === "saved" ? "You haven't saved any topics yet." : "No matching topics found."}</p>
       )}
 
-      <div className={styles.submitPanel}>
-        <h3>Create a topic</h3>
-        <p className={styles.hint}>
-          New topics are saved as <strong>Pending</strong> and only appear on the board after lecturer approval.
-        </p>
-        <form onSubmit={onSubmitCreate}>
-          <label htmlFor="title">Title</label>
-          <input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. When is the midterm project due?" maxLength={300} />
-
-          <label htmlFor="description">Description</label>
-          <textarea id="description" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Add any detail that would help someone answer." maxLength={2000} />
-
-          {submitError && <div className={styles.alert} role="alert">{submitError}</div>}
-          {notice && <div className={styles.notice} role="status">{notice}</div>}
-
-          <button type="submit" className={styles.btn} disabled={submitting}>
-            {submitting ? "Submitting..." : "Submit for approval"}
-          </button>
-        </form>
-      </div>
 
       {viewer?.role === "lecturer" && (
         <div className={styles.submitPanel}>

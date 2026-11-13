@@ -18,19 +18,19 @@ async function openDashboard(user: unknown) {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
   mocks.getSessionUser.mockResolvedValue(user);
   const { default: DashboardPage } = await import("./page");
-  return DashboardPage();
+  return DashboardPage({ searchParams: {} });
 }
 
 describe("Dashboard route guard (R-02)", () => {
   it("sends signed-out visitors to the sign-in page", async () => {
     await expect(openDashboard(null)).rejects.toThrow("REDIRECT:/");
   });
-  it("sends students to the FAQ instead of the dashboard", async () => {
+  it("sends students to their homework instead of the dashboard", async () => {
     await expect(openDashboard({ id: "1", username: "S", provider: "google", role: "student" }))
-      .rejects.toThrow("REDIRECT:/faq");
+      .rejects.toThrow("REDIRECT:/homework");
   });
   it("treats a user with no role as a student", async () => {
-    await expect(openDashboard({ id: "1", username: "S", provider: "google" })).rejects.toThrow("REDIRECT:/faq");
+    await expect(openDashboard({ id: "1", username: "S", provider: "google" })).rejects.toThrow("REDIRECT:/homework");
   });
   it.each(["ta", "lecturer"])("lets a %s open the dashboard", async (role) => {
     await expect(openDashboard({ id: "1", username: "X", provider: "google", role })).resolves.toBeTruthy();
