@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import AppShell from "@/components/AppShell";
+import Icon from "@/components/Icon";
+import ui from "@/components/ui.module.css";
 import TopicBoard from "@/components/TopicBoard";
 import { API_BASE, logoutUrl } from "@/lib/api";
 import { getPendingTopics } from "@/lib/faq";
@@ -41,7 +43,7 @@ async function getTopics(query: string): Promise<Topic[]> {
 export default async function FaqPage({
   searchParams,
 }: {
-  searchParams: { q?: string };
+  searchParams: { q?: string; submitted?: string };
 }) {
   const query = searchParams.q ?? "";
   const [viewer, topics] = await Promise.all([getSessionUser(), getTopics(query)]);
@@ -51,11 +53,19 @@ export default async function FaqPage({
     <AppShell
       page="faq"
       title="FAQ / Issue Log"
-      heading="Questions, answers & course support"
-      subtitle="Browse a topic or start a new one - click in to discuss."
+      heading="FAQ"
+      subtitle="Search what others have asked, or ask something new."
       viewer={viewer}
       logoutHref={logoutUrl}
+      actions={viewer || PREVIEW ? (
+        <a className={ui.actionButton} href="/faq/new"><Icon name="plus" /> New topic</a>
+      ) : (
+        <a className={ui.secondaryButton} href="/">Sign in to ask a question</a>
+      )}
     >
+      {searchParams.submitted === "1" && (
+        <p className={ui.notice} role="status">Your topic was sent. It appears on the board once a lecturer approves it.</p>
+      )}
       <TopicBoard initialTopics={topics} initialPending={pending} viewer={viewer} preview={PREVIEW} query={query} />
     </AppShell>
   );
