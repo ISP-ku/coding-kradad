@@ -28,8 +28,8 @@ async function getHomework(): Promise<{ items: HomeworkItem[]; failed: boolean }
 
 const COPY = {
   student: {
-    heading: "Your homework",
-    subtitle: "See what is left to do, hand in your work, and check your grades.",
+    heading: "Homework",
+    subtitle: "Everything your courses have assigned, by due date, on a calendar or by course.",
   },
   ta: {
     heading: "Homework to grade",
