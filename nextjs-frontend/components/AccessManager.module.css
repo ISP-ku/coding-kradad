@@ -29,3 +29,6 @@
 .empty,.hint{color:var(--muted);font-size:14px;margin:0}
 .srOnly{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media(max-width:760px){.panel{padding:18px}.field input,.field select{min-width:0;width:100%}.inline,.field{width:100%}}
+.stack{display:flex;flex-direction:column;gap:16px;max-width:460px}
+.stack .field input,.stack .field select{width:100%}
+.hint{margin:0;font-size:14px;color:var(--muted)}
