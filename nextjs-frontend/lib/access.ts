@@ -17,8 +17,14 @@ export type AccessData = { courses: AccessCourse[]; accounts: AccessAccount[] };
 
 export const ROLE_LABEL: Record<AccessRole, string> = { student: "Student", ta: "TA", lecturer: "Lecturer" };
 
-/** Same rule as the backend's normalise_ku_email; returns null when invalid. */
-export function normaliseKuEmail(raw: string): string | null {
+/**
+ * Same rule as the backend's normalise_member_email: a KU address, or a
+ * Gmail address when personal Google accounts are turned on. Null when invalid.
+ */
+const KU_ONLY = /^[^@\s]+@ku\.th$/;
+const KU_OR_GMAIL = /^[^@\s]+@(ku\.th|gmail\.com)$/;
+
+export function normaliseKuEmail(raw: string, allowPersonal = false): string | null {
   const email = raw.trim().toLowerCase();
-  return /^[^@\s]+@ku\.th$/.test(email) && email.length <= 200 ? email : null;
+  return (allowPersonal ? KU_OR_GMAIL : KU_ONLY).test(email) && email.length <= 200 ? email : null;
 }
