@@ -4,81 +4,91 @@ import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import Icon from "@/components/Icon";
 import ActivityWorkspace from "@/components/ActivityWorkspace";
+import WaitingPanel, { waitingItems } from "@/components/WaitingPanel";
 import { API_BASE, logoutUrl } from "@/lib/api";
 import { PREVIEW } from "@/lib/preview";
 import { canAccess, homePathFor } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
-import type { CourseActivity } from "@/lib/types";
+import type { CourseActivity, HomeworkItem, Topic } from "@/lib/types";
 import styles from "./page.module.css";
 
-export const metadata: Metadata = { title: "Dashboard · Course Support" };
+export const metadata: Metadata = { title: "Today · Course Support" };
 
-async function loadActivities(): Promise<{ activities: CourseActivity[]; error: string }> {
-  const cookieHeader = cookies().getAll().map(({ name, value }) => `${name}=${value}`).join("; ");
+const WEEK = 7 * 24 * 60 * 60 * 1000;
+
+async function getJson<T>(path: string, cookieHeader: string): Promise<{ data: T | null; detail: string }> {
   try {
-    const response = await fetch(`${API_BASE}/api/activities`, { headers: { cookie: cookieHeader }, cache: "no-store" });
+    const response = await fetch(`${API_BASE}${path}`, { headers: { cookie: cookieHeader }, cache: "no-store" });
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
-      return { activities: [], error: body.detail ?? "Could not load course activities." };
+      return { data: null, detail: body.detail ?? "" };
     }
-    return { activities: (await response.json()) as CourseActivity[], error: "" };
+    return { data: (await response.json()) as T, detail: "" };
   } catch {
-    return { activities: [], error: "Activity service is unavailable. Start the backend and refresh this page." };
+    return { data: null, detail: "" };
   }
+}
+
+/** "1 overdue and 2 due in the next 7 days", counted over the tasks this person is looking at first. */
+function summarise(activities: CourseActivity[], role: string, viewerId: string): string {
+  const now = Date.now();
+  const tasks = activities.flatMap((a) => a.tasks.map((t) => ({ a, t })))
+    .filter(({ t }) => role !== "ta" || t.assignee_id === viewerId);
+  const overdue = tasks.filter(({ t }) => t.is_overdue).length;
+  const soon = tasks.filter(({ a, t }) => !t.is_overdue && new Date(a.starts_at).getTime() <= now + WEEK).length;
+  const parts = [overdue && `${overdue} overdue`, soon && `${soon} due in the next 7 days`].filter(Boolean);
+  if (!parts.length) return role === "ta" ? "Nothing of yours is overdue or due this week." : "Nothing is overdue or due this week.";
+  return `${role === "ta" ? "Your list has" : "The course has"} ${parts.join(" and ")}.`;
 }
 
 export default async function DashboardPage() {
   if (PREVIEW) redirect("/");
   const user = await getSessionUser();
   if (!user) redirect("/");
-  // R-02: students have no dashboard; the API also refuses them (403).
+  // R-02: students have no Today page; the API also refuses them (403).
   if (!canAccess(user, "dashboard")) redirect(homePathFor(user));
 
-  const [activityResult, courses] = await Promise.all([loadActivities(), Promise.resolve(user.classroom_courses ?? [])]);
-  const userIdentity = `${user.provider}:${user.id}`;
+  const role = user.role === "lecturer" ? "lecturer" : "ta";
+  const cookieHeader = cookies().getAll().map(({ name, value }) => `${name}=${value}`).join("; ");
+  const [activityResult, homeworkResult, pendingResult] = await Promise.all([
+    getJson<CourseActivity[]>("/api/activities", cookieHeader),
+    getJson<HomeworkItem[]>("/api/homework", cookieHeader),
+    role === "lecturer" ? getJson<Topic[]>("/api/faq/pending", cookieHeader) : Promise.resolve({ data: [] as Topic[], detail: "" }),
+  ]);
+  const activities = activityResult.data ?? [];
+  const activityError = activityResult.data
+    ? ""
+    : activityResult.detail || "Activities could not be loaded. Start the backend and refresh this page.";
+  const viewerId = `${user.provider}:${user.id}`;
+  const firstName = (user.username || "").split(" ")[0] || "there";
 
   return (
     <AppShell
       page="dashboard"
-      title="Dashboard"
-      heading="Welcome to your course dashboard"
-      subtitle="Stay connected with your course activities."
+      title="Today"
+      heading={`Hello, ${firstName}`}
+      subtitle={activityResult.data ? summarise(activities, role, viewerId) : "Here is what needs you, sorted by how soon it is due."}
       viewer={user}
       logoutHref={logoutUrl}
+      actions={role === "lecturer" ? (
+        <a className={styles.addButton} href="/dashboard/activities/new">
+          <Icon name="plus" /> Add activity
+        </a>
+      ) : undefined}
     >
-      <div className={styles.dashboardActions}>
-        <div>
-          <span className={styles.eyebrow}>YOUR COURSE WORKSPACE</span>
-          <h2>Upcoming activities</h2>
+      <div className={styles.columns}>
+        <div className={styles.main}>
+          <ActivityWorkspace
+            initialActivities={activities}
+            initialError={activityError}
+            viewerRole={user.role ?? "student"}
+            viewerId={viewerId}
+          />
         </div>
-        {user.role === "lecturer" && (
-          <a className={styles.addButton} href="/dashboard/activities/new">
-            <Icon name="plus" /> Add activity
-          </a>
-        )}
+        <aside className={styles.side}>
+          <WaitingPanel items={waitingItems(role, homeworkResult.data ?? [], pendingResult.data ?? [])} />
+        </aside>
       </div>
-      <section className={styles.panel} aria-label="Upcoming course activities">
-        <ActivityWorkspace
-          initialActivities={activityResult.activities}
-          initialError={activityResult.error}
-          viewerRole={user.role ?? "student"}
-          viewerId={userIdentity}
-        />
-      </section>
-
-      {courses.length > 0 ? (
-        <section className={`${styles.panel} ${styles.courses}`} id="courses">
-          <div className={styles.panelHeading}>
-            <span className={styles.roundIcon}><Icon name="book" /></span>
-            <h2>Your Google Classroom courses</h2>
-          </div>
-          <div className={styles.panelBody}>
-            <ul className={styles.courseList}>
-              {courses.map((course) => <li key={course.name}><Icon name="book" />{course.name}</li>)}
-            </ul>
-          </div>
-        </section>
-      ) : null}
     </AppShell>
   );
 }

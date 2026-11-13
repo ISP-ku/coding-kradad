@@ -32,4 +32,4 @@ export function canAccess(user: Pick<SessionUser, "role"> | null | undefined, pa
 
 /** Where a signed-in user lands after login or when sent away from a page they cannot use. */
 export const homePathFor = (user: Pick<SessionUser, "role"> | null | undefined): string =>
-  canAccess(user, "dashboard") ? "/dashboard" : "/faq";
+  canAccess(user, "dashboard") ? "/dashboard" : "/homework";
