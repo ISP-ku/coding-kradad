@@ -13,7 +13,7 @@ import type { CourseActivity, HomeworkItem, Topic } from "@/lib/types";
 import styles from "./page.module.css";
 import ui from "@/components/ui.module.css";
 
-export const metadata: Metadata = { title: "Today · Course Support" };
+export const metadata: Metadata = { title: "Dashboard · Course Support" };
 
 const WEEK = 7 * 24 * 60 * 60 * 1000;
 
@@ -46,7 +46,7 @@ export default async function DashboardPage() {
   if (PREVIEW) redirect("/");
   const user = await getSessionUser();
   if (!user) redirect("/");
-  // R-02: students have no Today page; the API also refuses them (403).
+  // R-02: students have no dashboard; the API also refuses them (403).
   if (!canAccess(user, "dashboard")) redirect(homePathFor(user));
 
   const role = user.role === "lecturer" ? "lecturer" : "ta";
@@ -66,7 +66,7 @@ export default async function DashboardPage() {
   return (
     <AppShell
       page="dashboard"
-      title="Today"
+      title="Dashboard"
       heading={`Hello, ${firstName}`}
       subtitle={activityResult.data ? summarise(activities, role, viewerId) : "Here is what needs you, sorted by how soon it is due."}
       viewer={user}

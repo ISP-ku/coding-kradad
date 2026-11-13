@@ -132,8 +132,8 @@ export default function AppShell({ page, heading, subtitle, viewer, logoutHref, 
       <aside className={styles.sidebar} id="navigation" aria-label="Main navigation" ref={navRef}>
         <div className={styles.sideBrand}>{brand}</div>
         <nav className={styles.nav}>
-          {/* Students have no Today page (R-02); signed-out visitors see it as the sign-in entry. */}
-          {(!viewer || canAccess(viewer, "dashboard")) && navLink(viewer ? "/dashboard" : "/", "dashboard", "today", "Today")}
+          {/* Students have no dashboard (R-02); signed-out visitors see it as the sign-in entry. */}
+          {(!viewer || canAccess(viewer, "dashboard")) && navLink(viewer ? "/dashboard" : "/", "dashboard", "grid", "Dashboard")}
           {canAccess(viewer, "homework") && navLink("/homework", "homework", "book", "Homework")}
           {(!viewer || canAccess(viewer, "consultations")) && navLink("/consultations", "consultations", "clock", "Consultation log")}
           {navLink("/faq", "faq", "chat", "FAQ")}

@@ -33,7 +33,7 @@ function groupOf({ activity, task }: Row, now: number): GroupKey {
 }
 
 /**
- * The "what needs me now" list on the Today page: every activity task,
+ * The "what needs me now" list on the dashboard: every activity task,
  * grouped by urgency along a time line (SRS-4, SRS-10 to SRS-13). A TA sees
  * their own tasks first; a lecturer sees everyone's, plus edit/archive/delete.
  */
@@ -57,7 +57,7 @@ export default function ActivityWorkspace({ initialActivities, initialError = ""
   async function activityRequest(activity: CourseActivity, action: "delete" | "archive") {
     if (busyActivity !== null) return;
     if (action === "delete" && !window.confirm("Permanently delete this activity and its tasks? Use Archive instead to keep its history.")) return;
-    if (action === "archive" && !window.confirm("Archive this activity? It will move from Today into Reports.")) return;
+    if (action === "archive" && !window.confirm("Archive this activity? It will move from the dashboard into Reports.")) return;
     setBusyActivity(activity.id);
     setError("");
     setNotice("");
@@ -90,7 +90,7 @@ export default function ActivityWorkspace({ initialActivities, initialError = ""
       setActivities((current) => current.flatMap((item) => {
         if (item.id !== activity.id) return [item];
         const tasks = item.tasks.map((task) => (task.id === taskId ? body : task));
-        // A fully done activity leaves Today and shows in Reports (SRS-4).
+        // A fully done activity leaves the dashboard and shows in Reports (SRS-4).
         return tasks.length > 0 && tasks.every((task) => task.status === "Done") ? [] : [{ ...item, tasks }];
       }));
       setNotice(status === "Done" ? `Marked done: ${activity.title}` : `${activity.title} is now ${status.toLowerCase()}`);

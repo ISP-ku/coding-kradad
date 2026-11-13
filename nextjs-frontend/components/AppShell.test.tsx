@@ -38,9 +38,9 @@ describe("AppShell (signed out)", () => {
     expect(screen.queryByRole("button", { name: /my account/i })).not.toBeInTheDocument();
   });
 
-  it("links the Today nav item to / when there's no viewer", () => {
+  it("links the Dashboard nav item to / when there's no viewer", () => {
     renderShell(null);
-    expect(screen.getByRole("link", { name: /today/i })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: /dashboard/i })).toHaveAttribute("href", "/");
   });
 });
 
@@ -64,7 +64,7 @@ describe("AppShell (signed in)", () => {
   it("marks the current page's nav link as active", () => {
     renderShell({ ...baseUser, role: "ta" }, "faq");
     expect(screen.getByRole("link", { name: /faq/i })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("link", { name: /today/i })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: /dashboard/i })).not.toHaveAttribute("aria-current");
   });
 
   it("shows a Reports nav link only for a Lecturer (SRS-18, SRS-19)", () => {
@@ -84,7 +84,7 @@ describe("AppShell (signed in)", () => {
   it("shows each role only the pages it may use (R-02, SRS-18)", () => {
     const links = (viewer: SessionUser | null) => {
       const { unmount } = renderShell(viewer);
-      const names = ["today", "faq", "homework", "consultation", "reports", "access"].filter(
+      const names = ["dashboard", "faq", "homework", "consultation", "reports", "access"].filter(
         (n) => screen.queryByRole("link", { name: new RegExp(n, "i") }),
       );
       unmount();
@@ -92,8 +92,8 @@ describe("AppShell (signed in)", () => {
     };
     expect(links({ ...baseUser, role: "student" })).toEqual(["faq", "homework"]);
     expect(links(baseUser)).toEqual(["faq", "homework"]); // no role = student
-    expect(links({ ...baseUser, role: "ta" })).toEqual(["today", "faq", "homework", "consultation"]);
-    expect(links({ ...baseUser, role: "lecturer" })).toEqual(["today", "faq", "homework", "reports", "access"]);
+    expect(links({ ...baseUser, role: "ta" })).toEqual(["dashboard", "faq", "homework", "consultation"]);
+    expect(links({ ...baseUser, role: "lecturer" })).toEqual(["dashboard", "faq", "homework", "reports", "access"]);
   });
 
   it("offers the Light / Dark theme switch", () => {
