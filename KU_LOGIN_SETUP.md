@@ -103,7 +103,15 @@ npm run build
 
 Tests simulate Google responses and verify KU allow/deny rules, nonce/state validation, replay attempts with consumed sessions, logout, removed provider routes and frontend cookie forwarding. They do not use real KU credentials. Real Google/KU sign-in must be confirmed with your configured OAuth client.
 
-This authenticates KU accounts but does not prove current course enrollment. Each sign-in is recorded in the `users` table (SQLite `dashboard.db` by default, or `DATABASE_URL`), together with a role: emails in `LECTURER_EMAILS` become lecturers, emails in `TA_EMAILS` become TAs, and everyone else is a student. The role is re-checked on every login and copied into the session. Lecturer-only features such as Reports (`/api/reports/...`) check it. See `source/users.py`.
+A KU account can sign in only if it is a member of at least one course (SRS-23). Anyone else sees "Your KU account is not registered in any course on this dashboard." Each sign-in is recorded in the `users` table (SQLite `dashboard.db` by default, or `DATABASE_URL`) with the account's role.
+
+- **Access page (`/access`, lecturers only).** Create courses, add or remove KU emails, and set each account's role (student, TA or lecturer). The role is per account, not per course. Changes apply on the person's next request; they do not have to sign out first.
+- **`LECTURER_EMAILS`.** Always lecturers and always allowed in, even with no course. They cannot be removed or demoted on the Access page. Set at least one, so someone can open the Access page on a fresh install.
+- **`TA_EMAILS`.** Only the starting role when a lecturer adds an email without choosing a role.
+- **`data/course_roster.json`** (or `COURSE_ROSTER_FILE`). Loaded once, on the first start with no courses. After that the database is the source of truth. A missing or invalid file loads nothing, so only `LECTURER_EMAILS` can sign in until a lecturer adds people.
+- A lecturer cannot remove or demote themselves, so at least one lecturer always keeps access.
+
+See `source/users.py` and `source/access.py`.
 
 `source/test_ui.py` remains a separate fake UI demonstration and must not be used as the real backend. Next.js UI_PREVIEW=1 is available only in development and is disabled in production builds.
 

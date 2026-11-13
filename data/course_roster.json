@@ -1,0 +1,13 @@
+{
+  "courses": [
+    {
+      "code": "DEMO-101",
+      "name": "Demo course (local test accounts)",
+      "members": [
+        {"email": "test.lecturer@ku.th", "role": "lecturer"},
+        {"email": "test.ta@ku.th", "role": "ta"},
+        {"email": "test.student@ku.th", "role": "student"}
+      ]
+    }
+  ]
+}

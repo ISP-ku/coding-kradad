@@ -20,13 +20,14 @@ from google.oauth2 import id_token
 from starlette.middleware.sessions import SessionMiddleware
 
 from activities import router as activities_router
+from access import router as access_router, seed_roster_if_empty
 from consultations import router as consultations_router
 from database import SessionLocal, init_db
 
 from faq import router as faq_router
 from homework import router as homework_router
 from reports import router as reports_router
-from users import sync_user
+from users import resolve_role, sync_user
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -58,6 +59,7 @@ MSG_NOT_WORKSPACE = "Google did not confirm that this account belongs to the KU 
 MSG_UNREACHABLE = "Could not reach Google to complete the sign-in. Please try again in a moment."
 MSG_CODE_REJECTED = "Google rejected the sign-in request. It has probably expired or was already used. Please start again."
 MSG_UNVERIFIABLE = "Google sign-in could not be verified. Please try again."
+MSG_NOT_ENROLLED = "Your KU account is not registered in any course on this dashboard. Ask a lecturer to add you on the Access page."
 APP_ENV = os.getenv("APP_ENV", "development")
 LOCAL_TEST_LOGIN = os.getenv("LOCAL_TEST_LOGIN", "0") == "1"
 TEST_USERS_FILE = BASE_DIR / "data" / "allowed_users.json"
@@ -107,6 +109,8 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 # Users, Activities / Tasks and Consultation tables (see database.py).
 init_db()
+seed_roster_if_empty()  # Courses and members, first start only (SRS-23)
+app.include_router(access_router)  # SRS-23: lecturer Access page
 app.include_router(activities_router)  # SRS-2 to SRS-13
 app.include_router(reports_router)
 app.include_router(consultations_router)  # SRS-14, SRS-15
@@ -120,18 +124,33 @@ def current_user(request):
     # Do not accept old multi-provider sessions or preview cookies.
     if not isinstance(user, dict):
         return None
-    if user.get("auth_method") == "ku_google":
-        return user
-    if user.get("auth_method") == "local_test" and local_login_enabled(request):
-        return user
-    return None
-
-
-def with_role(user, role=None):
-    """Record the signed-in account in the users table (SRS-22) and copy its
-    role into the session user (SRS-18). See users.py for where roles come
-    from."""
+    if user.get("auth_method") == "local_test" and not local_login_enabled(request):
+        return None
+    if user.get("auth_method") not in {"ku_google", "local_test"}:
+        return None
+    # Re-check membership and role on every request (SRS-23), so a lecturer
+    # removing someone or changing their role on the Access page applies now,
+    # not when the 8-hour session runs out.
     with SessionLocal() as db:
+        role = resolve_role(db, user.get("email"), user.get("role"))
+    if role is None:
+        request.session.pop("user", None)
+        return None
+    if role != user.get("role"):
+        user = {**user, "role": role}
+        request.session["user"] = user
+    return user
+
+
+def with_role(user, fallback_role=None):
+    """Record the signed-in account in the users table (SRS-22) and copy its
+    role into the session user (SRS-18). Raises PermissionError when the
+    account is not a member of any course (SRS-23). See users.py for where
+    roles come from."""
+    with SessionLocal() as db:
+        role = resolve_role(db, user.get("email"), fallback_role)
+        if role is None:
+            raise PermissionError(MSG_NOT_ENROLLED)
         row = sync_user(db, provider=user["provider"], provider_user_id=user["id"],
                         email=user.get("email"), display_name=user["username"], role=role)
         return {**user, "role": row.role}
@@ -236,12 +255,15 @@ def local_test_submit(request: Request, email: str = Form(...), csrf: str = Form
     if not selected:
         raise HTTPException(403, "This account is not in data/allowed_users.json")
     request.session.clear()
-    request.session["user"] = with_role({
-        "id": "local:" + selected["email"].lower(), "username": selected["name"],
-        "email": selected["email"].lower(),
-        "provider": "local", "auth_method": "local_test",
-        "avatar_url": None, "classroom_courses": None,
-    }, role=selected["role"])
+    try:
+        request.session["user"] = with_role({
+            "id": "local:" + selected["email"].lower(), "username": selected["name"],
+            "email": selected["email"].lower(),
+            "provider": "local", "auth_method": "local_test",
+            "avatar_url": None, "classroom_courses": None,
+        }, fallback_role=selected["role"])
+    except PermissionError as denied:
+        return login_error(request, str(denied), 403)
     return RedirectResponse(FRONTEND_URL + "/dashboard", status_code=303)
 
 
@@ -298,7 +320,11 @@ def callback(request: Request, provider: str, code: str | None = None,
         logger.warning("KU sign-in failed: token exchange or identity validation failed")
         return login_error(request, MSG_UNVERIFIABLE, 400)
     request.session.clear()
-    request.session["user"] = with_role(user)
+    try:
+        request.session["user"] = with_role(user)
+    except PermissionError as denied:
+        logger.warning("KU sign-in denied: account is not a member of any course")
+        return login_error(request, str(denied), 403)
     return RedirectResponse(FRONTEND_URL + "/dashboard", status_code=303)
 
 
