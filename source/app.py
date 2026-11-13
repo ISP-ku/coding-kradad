@@ -20,7 +20,7 @@ from google.oauth2 import id_token
 from starlette.middleware.sessions import SessionMiddleware
 
 from activities import router as activities_router
-from access import seed_roster_if_empty
+from access import router as access_router, seed_roster_if_empty
 from consultations import router as consultations_router
 from database import SessionLocal, init_db
 
@@ -110,6 +110,7 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 # Users, Activities / Tasks and Consultation tables (see database.py).
 init_db()
 seed_roster_if_empty()  # Courses and members, first start only (SRS-23)
+app.include_router(access_router)  # SRS-23: lecturer Access page
 app.include_router(activities_router)  # SRS-2 to SRS-13
 app.include_router(reports_router)
 app.include_router(consultations_router)  # SRS-14, SRS-15

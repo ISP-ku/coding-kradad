@@ -285,3 +285,140 @@ def test_repo_roster_file_is_valid(tmp_path):
     # Every local test account can still sign in once the gate is on.
     test_users = json.loads((access.DEFAULT_ROSTER_FILE.parent / "allowed_users.json").read_text())
     assert {u["email"].lower() for u in test_users} <= emails
+
+
+# --- Task 4: lecturer Access API ---------------------------------------------
+
+def members_of(code="CS101"):
+    with SessionLocal() as db:
+        cid = db.query(Course).filter_by(code=code).one().id
+        return sorted(m.email for m in db.query(CourseMember).filter_by(course_id=cid))
+
+
+@pytest.mark.parametrize("method,path", [
+    ("get", "/api/access"),
+    ("post", "/api/access/courses"),
+    ("post", "/api/access/courses/1/members"),
+    ("delete", "/api/access/courses/1/members/ta@ku.th"),
+    ("patch", "/api/access/accounts/ta@ku.th"),
+])
+def test_access_api_is_lecturer_only(sign_in, method, path):
+    kwargs = {} if method in ("get", "delete") else {"json": {}}
+    assert getattr(TestClient(backend.app), method)(path, **kwargs).status_code == 401
+    for email in (STUDENT, TA):
+        assert getattr(sign_in(email), method)(path, **kwargs).status_code == 403
+
+
+def test_get_access_lists_courses_and_accounts(sign_in):
+    body = sign_in(LECTURER).get("/api/access").json()
+    assert body["courses"] == [{"id": course_id(), "code": "CS101", "name": "Intro"}]
+    by_email = {a["email"]: a for a in body["accounts"]}
+    assert [a["email"] for a in body["accounts"]] == sorted(by_email)
+    assert by_email[TA] == {"email": TA, "role": "ta", "course_ids": [course_id()], "protected": False, "is_self": False}
+    assert by_email[LECTURER]["is_self"] is True
+
+
+def test_get_access_shows_protected_lecturers(sign_in):
+    body = sign_in(BOSS).get("/api/access").json()
+    boss = next(a for a in body["accounts"] if a["email"] == BOSS)
+    assert boss == {"email": BOSS, "role": "lecturer", "course_ids": [], "protected": True, "is_self": True}
+
+
+def test_create_course(sign_in):
+    client = sign_in(LECTURER)
+    created = client.post("/api/access/courses", json={"code": " CS202 ", "name": "Data"})
+    assert created.status_code == 201
+    assert created.json()["code"] == "CS202" and created.json()["name"] == "Data"
+    assert client.post("/api/access/courses", json={"code": "cs202"}).status_code == 409
+    assert client.post("/api/access/courses", json={"code": "  "}).status_code == 422
+    assert client.post("/api/access/courses", json={"code": "OK"}).json()["name"] == "OK"
+
+
+def test_add_member_normalises_email(sign_in):
+    client = sign_in(LECTURER)
+    added = client.post(f"/api/access/courses/{course_id()}/members", json={"email": "  New.Person@KU.th ", "role": "ta"})
+    assert added.status_code == 201
+    assert added.json()["email"] == "new.person@ku.th" and added.json()["role"] == "ta"
+    assert "new.person@ku.th" in members_of()
+    again = client.post(f"/api/access/courses/{course_id()}/members", json={"email": "NEW.PERSON@ku.th"})
+    assert again.status_code == 409
+
+
+def test_added_member_can_sign_in(sign_in, monkeypatch):
+    sign_in(LECTURER).post(f"/api/access/courses/{course_id()}/members", json={"email": STRANGER})
+    assert sign_in(STRANGER).get("/api/me").json()["role"] == "student"
+
+
+def test_add_member_default_role_uses_ta_allowlist(sign_in, monkeypatch):
+    monkeypatch.setenv("TA_EMAILS", STRANGER)
+    added = sign_in(LECTURER).post(f"/api/access/courses/{course_id()}/members", json={"email": STRANGER})
+    assert added.json()["role"] == "ta"
+
+
+@pytest.mark.parametrize("payload", [{"email": "x@gmail.com"}, {"email": "x@ku.th", "role": "admin"}, {}])
+def test_add_member_rejects_bad_input(sign_in, payload):
+    response = sign_in(LECTURER).post(f"/api/access/courses/{course_id()}/members", json=payload)
+    assert response.status_code == 422
+
+
+def test_add_member_unknown_course(sign_in):
+    assert sign_in(LECTURER).post("/api/access/courses/9999/members", json={"email": STRANGER}).status_code == 404
+
+
+def test_add_existing_account_to_second_course_keeps_one_role(sign_in):
+    client = sign_in(LECTURER)
+    second = client.post("/api/access/courses", json={"code": "CS202"}).json()["id"]
+    added = client.post(f"/api/access/courses/{second}/members", json={"email": TA, "role": "lecturer"})
+    assert added.status_code == 201
+    assert added.json()["role"] == "lecturer"
+    assert sorted(added.json()["course_ids"]) == sorted([course_id(), second])
+
+
+def test_remove_member(sign_in):
+    client = sign_in(LECTURER)
+    assert client.delete(f"/api/access/courses/{course_id()}/members/{STUDENT.upper()}").status_code == 204
+    assert STUDENT not in members_of()
+    with SessionLocal() as db:
+        assert db.get(AccessAccount, STUDENT) is None   # no courses left -> account gone
+    assert client.delete(f"/api/access/courses/{course_id()}/members/{STUDENT}").status_code == 404
+
+
+def test_remove_from_one_course_keeps_account(sign_in):
+    client = sign_in(LECTURER)
+    second = client.post("/api/access/courses", json={"code": "CS202"}).json()["id"]
+    client.post(f"/api/access/courses/{second}/members", json={"email": TA})
+    assert client.delete(f"/api/access/courses/{course_id()}/members/{TA}").status_code == 204
+    with SessionLocal() as db:
+        assert db.get(AccessAccount, TA).role == "ta"
+
+
+def test_cannot_remove_self(sign_in):
+    response = sign_in(LECTURER).delete(f"/api/access/courses/{course_id()}/members/{LECTURER}")
+    assert response.status_code == 400
+    assert LECTURER in members_of()
+
+
+def test_cannot_remove_or_demote_protected_lecturer(sign_in):
+    client = sign_in(LECTURER)
+    client.post(f"/api/access/courses/{course_id()}/members", json={"email": BOSS})
+    assert client.delete(f"/api/access/courses/{course_id()}/members/{BOSS}").status_code == 400
+    assert client.patch(f"/api/access/accounts/{BOSS}", json={"role": "student"}).status_code == 400
+    assert client.post(f"/api/access/courses/{course_id()}/members", json={"email": BOSS, "role": "ta"}).status_code in (400, 409)
+
+
+def test_change_role(sign_in):
+    lecturer, ta = sign_in(LECTURER), sign_in(TA)
+    changed = lecturer.patch(f"/api/access/accounts/{TA.upper()}", json={"role": "student"})
+    assert changed.status_code == 200 and changed.json()["role"] == "student"
+    assert ta.get("/api/me").json()["role"] == "student"
+    with SessionLocal() as db:
+        assert {u.role for u in db.query(User).filter_by(email=TA)} == {"student"}
+    assert lecturer.patch(f"/api/access/accounts/{STRANGER}", json={"role": "ta"}).status_code == 404
+    assert lecturer.patch(f"/api/access/accounts/{TA}", json={"role": "admin"}).status_code == 422
+
+
+def test_cannot_demote_self(sign_in):
+    response = sign_in(LECTURER).patch(f"/api/access/accounts/{LECTURER}", json={"role": "ta"})
+    assert response.status_code == 400
+    with SessionLocal() as db:
+        assert db.get(AccessAccount, LECTURER).role == "lecturer"
