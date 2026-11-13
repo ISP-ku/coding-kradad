@@ -130,3 +130,26 @@ See [LOCAL_TEST_LOGIN.md](LOCAL_TEST_LOGIN.md) for the new backend test login. K
 ## Local verification results
 
 44 backend tests passed; 24 frontend tests passed; Next.js production build passed. Checked using Python 3.12 and Node 24 locally. The GitHub CI workflow retains Python 3.11 from your uploaded project; its hosted run is not yet verified.
+
+## When KU ALL blocks sign-in
+
+KU's Google Workspace sends every @ku.th Google sign-in to KU ALL. If KU ALL cannot verify someone (the Google page says the account "can't be accessed because your identity couldn't be verified"), no app can skip that step: it is a university setting. Two other ways in:
+
+### Email code sign-in
+
+The sign-in page shows **Email me a sign-in code**. The person types their address, gets a 6-digit code by email and types it in at `/sign-in/email`.
+
+- Only addresses that may sign in (course members, or `LECTURER_EMAILS`) get an email. The page answers the same either way, so it never reveals who is registered.
+- Codes work once, expire after 10 minutes, and are cancelled after 5 wrong tries. One code per minute and five per hour per address.
+- Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USERNAME`, `SMTP_PASSWORD` and `SMTP_FROM` in `.env`. For a Gmail sender, use an app password.
+- In local development without SMTP settings, the code is printed in the backend terminal (`DEVELOPMENT ONLY - sign-in code for ...`). This never happens unless `APP_ENV=development`.
+- Note: reading KU mail also goes through KU ALL, so this helps most when the person can open their mailbox on another device or app that is already signed in.
+
+### Personal Google accounts (optional)
+
+Set `ALLOW_PERSONAL_GOOGLE=1`. The Access page then accepts Gmail addresses, and the sign-in page shows **Continue with a personal Google account**, which does not go through KU ALL.
+
+- Only Gmail addresses a lecturer has added to a course can sign in, even if `REQUIRE_COURSE_MEMBERSHIP=0`.
+- The app no longer proves the person is a KU member; it trusts the lecturer who added the address.
+- Someone who signs in with Google one day and with an email code the next is the same person on the Access page (same email), but tasks are assigned per sign-in identity, so a TA should keep using one sign-in method.
+

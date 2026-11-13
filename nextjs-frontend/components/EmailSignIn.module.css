@@ -1,0 +1,6 @@
+.wrap{display:flex;flex-direction:column;gap:16px;width:100%;max-width:440px}
+.code{font-size:28px!important;letter-spacing:.4em;text-align:center;font-variant-numeric:tabular-nums}
+.more{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;font-size:14px}
+.more form{display:inline}
+.linkButton{border:0;padding:0;background:none;color:var(--link);font-size:14px;font-weight:500}
+.linkButton:hover{text-decoration:underline;text-underline-offset:3px}

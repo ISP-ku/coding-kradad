@@ -5,7 +5,7 @@ export type ClassroomCourse = {
 export type SessionUser = {
   id: string;
   username: string;
-  provider: "google" | "local";
+  provider: "google" | "local" | "email";
   role?: "student" | "ta" | "lecturer"; // SRS-18, SRS-22
   auth_method?: "ku_google" | "local_test";
   avatar_url?: string;

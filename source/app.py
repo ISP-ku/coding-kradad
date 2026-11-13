@@ -27,7 +27,8 @@ from database import SessionLocal, init_db
 from faq import router as faq_router
 from homework import router as homework_router
 from reports import router as reports_router
-from users import resolve_role, sync_user
+from email_login import available as email_login_available, router as email_login_router
+from users import PERSONAL_DOMAINS, personal_google_allowed, resolve_role, sync_user
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -111,6 +112,7 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 init_db()
 seed_roster_if_empty()  # Courses and members, first start only (SRS-23)
 app.include_router(access_router)  # SRS-23: lecturer Access page
+app.include_router(email_login_router)  # email code sign-in (no KU ALL)
 app.include_router(activities_router)  # SRS-2 to SRS-13
 app.include_router(reports_router)
 app.include_router(consultations_router)  # SRS-14, SRS-15
@@ -126,7 +128,7 @@ def current_user(request):
         return None
     if user.get("auth_method") == "local_test" and not local_login_enabled(request):
         return None
-    if user.get("auth_method") not in {"ku_google", "local_test"}:
+    if user.get("auth_method") not in {"ku_google", "local_test", "email_code"}:
         return None
     # Re-check membership and role on every request (SRS-23), so a lecturer
     # removing someone or changing their role on the Access page applies now,
@@ -156,8 +158,8 @@ def with_role(user, fallback_role=None):
         return {**user, "role": row.role}
 
 
-def build_authorize_url(state, nonce):
-    return "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode({
+def build_authorize_url(state, nonce, personal=False):
+    params = {
         "client_id": GOOGLE_CLIENT_ID,
         "redirect_uri": GOOGLE_REDIRECT_URI,
         "response_type": "code",
@@ -166,7 +168,10 @@ def build_authorize_url(state, nonce):
         "nonce": nonce,
         "hd": KU_DOMAIN,  # Account-picker hint; the backend enforces it below.
         "prompt": "select_account",
-    })
+    }
+    if personal:
+        del params["hd"]  # a personal Gmail account has no KU hosted domain
+    return "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode(params)
 
 
 def exchange_code_for_token(code):
@@ -191,18 +196,22 @@ def verify_google_token(token):
         return id_token.verify_oauth2_token(token, fetch_with_timeout, GOOGLE_CLIENT_ID)
 
 
-def ku_profile(claims, nonce):
+def ku_profile(claims, nonce, personal=False):
     if not isinstance(claims.get("nonce"), str) or not secrets.compare_digest(claims["nonce"], nonce):
         raise ValueError("Invalid login nonce")
     email = claims.get("email", "")
     # One check per cause, in order, so the message matches the real reason.
     if not isinstance(email, str) or email.count("@") != 1 or not email.split("@")[0]:
         raise PermissionError(MSG_BAD_EMAIL)
-    if email.rsplit("@", 1)[-1].lower() != KU_DOMAIN:
+    domain = email.rsplit("@", 1)[-1].lower()
+    # A personal Gmail account is only accepted from the personal sign-in
+    # button, when it is turned on; membership is still checked afterwards.
+    personal_ok = personal and personal_google_allowed() and domain in PERSONAL_DOMAINS
+    if domain != KU_DOMAIN and not personal_ok:
         raise PermissionError(MSG_NOT_KU)
     if claims.get("email_verified") is not True:
         raise PermissionError(MSG_UNVERIFIED)
-    if claims.get("hd") != KU_DOMAIN:
+    if not personal_ok and claims.get("hd") != KU_DOMAIN:
         raise PermissionError(MSG_NOT_WORKSPACE)
     if not claims.get("sub"):
         raise ValueError("Missing account ID")
@@ -229,8 +238,11 @@ def index(request: Request):
 
 @app.get("/api/auth-options")
 def auth_options(request: Request):
-    return JSONResponse({"local_test_login": local_login_enabled(request)},
-                        headers={"Cache-Control": "no-store"})
+    return JSONResponse({
+        "local_test_login": local_login_enabled(request),
+        "email_code": email_login_available(),
+        "personal_google": personal_google_allowed(),
+    }, headers={"Cache-Control": "no-store"})
 
 
 @app.get("/local-test-login")
@@ -269,14 +281,16 @@ def local_test_submit(request: Request, email: str = Form(...), csrf: str = Form
 
 @app.get("/login/{provider}")
 def login(request: Request, provider: str):
-    if provider != "google":
-        raise HTTPException(404, "Only KU Google login is supported")
+    # "google-personal": a lecturer-added Gmail account, only when turned on.
+    personal = provider == "google-personal"
+    if provider != "google" and not (personal and personal_google_allowed()):
+        raise HTTPException(404, "This sign-in option is not available")
     if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
         return login_error(request, MSG_NOT_CONFIGURED, 503)
     request.session.clear()
     state, nonce = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
-    request.session.update(oauth_state=state, oauth_nonce=nonce, oauth_started=time.time())
-    return RedirectResponse(build_authorize_url(state, nonce))
+    request.session.update(oauth_state=state, oauth_nonce=nonce, oauth_started=time.time(), oauth_personal=personal)
+    return RedirectResponse(build_authorize_url(state, nonce, personal=personal))
 
 
 @app.get("/login")
@@ -292,6 +306,7 @@ def callback(request: Request, provider: str, code: str | None = None,
     expected = request.session.pop("oauth_state", None)
     nonce = request.session.pop("oauth_nonce", None)
     started = request.session.pop("oauth_started", 0)
+    personal = request.session.pop("oauth_personal", False) is True
     request.session.pop("user", None)
     if (not expected or not state or not secrets.compare_digest(state, expected)
             or not nonce or time.time() - started > 600):
@@ -305,7 +320,7 @@ def callback(request: Request, provider: str, code: str | None = None,
         return login_error(request, MSG_NO_CODE, 400)
     try:
         claims = verify_google_token(exchange_code_for_token(code))
-        user = ku_profile(claims, nonce)
+        user = ku_profile(claims, nonce, personal=personal)
     except PermissionError as denied:
         # The message is one of the fixed MSG_* strings raised by ku_profile().
         logger.warning("KU sign-in denied: account does not meet KU domain/verification rules")

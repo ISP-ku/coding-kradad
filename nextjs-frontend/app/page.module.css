@@ -18,6 +18,8 @@
 .quiet{min-height:48px;border:1px solid var(--field);background:var(--surface);color:var(--quiet-ink);font-weight:500;font-size:15px}
 .quiet:hover{background:var(--quiet-h);text-decoration:none}
 .g{width:20px;height:20px;flex:none}
+.or{margin:8px 0 0;font-size:14px;font-weight:600;color:var(--soft)}
+.brand:hover{text-decoration:none}
 .secondary{text-align:center;font-size:14px}
 .help{margin:4px 0 0;font-size:14px;line-height:1.6;color:var(--muted)}
 .footer{margin:0;font-size:13px;color:var(--muted)}

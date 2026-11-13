@@ -59,6 +59,34 @@ def protected_lecturers() -> set[str]:
     return _email_allowlist("LECTURER_EMAILS")
 
 
+# Personal Google accounts a lecturer may add when ALLOW_PERSONAL_GOOGLE=1.
+PERSONAL_DOMAINS = {"gmail.com"}
+
+
+def personal_google_allowed() -> bool:
+    """Optional: let lecturer-added Gmail addresses sign in (off by default)."""
+    return os.environ.get("ALLOW_PERSONAL_GOOGLE", "0").strip() == "1"
+
+
+def is_ku_email(email: str | None) -> bool:
+    return (email or "").strip().lower().rpartition("@")[2] == KU_DOMAIN
+
+
+def normalise_member_email(raw: str) -> str:
+    """An address that may be given access: KU always, Gmail only when
+    personal Google accounts are turned on. Lower-cased, or ValueError."""
+    email = (raw or "").strip().lower()
+    local, at, domain = email.partition("@")
+    if personal_google_allowed() and domain in PERSONAL_DOMAINS and local and "@" not in domain             and not any(c.isspace() for c in email) and len(email) <= 200:
+        return email
+    try:
+        return normalise_ku_email(raw)
+    except ValueError:
+        if personal_google_allowed():
+            raise ValueError("Enter a KU address ending in @ku.th, or a Gmail address.")
+        raise
+
+
 def normalise_ku_email(raw: str) -> str:
     """Lower-cased, trimmed KU email, or ValueError. Sign-in only accepts KU
     Google accounts, so nothing else is worth storing."""
@@ -80,7 +108,9 @@ def resolve_role(db: Session, email: str | None, fallback_role: str | None) -> s
         if account is not None and db.scalar(
                 select(CourseMember.id).where(CourseMember.email == email).limit(1)) is not None:
             return account.role
-    if membership_required():
+    # A non-KU (personal) account is only ever let in because a lecturer
+    # added it, so it needs membership even when the gate is switched off.
+    if membership_required() or (email and not is_ku_email(email)):
         return None
     return fallback_role or role_for_email(email)
 

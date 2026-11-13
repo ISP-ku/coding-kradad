@@ -133,6 +133,23 @@ class CourseMember(Base):
     added_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
+class LoginCode(Base):
+    """A one-time sign-in code emailed to an address (email code sign-in).
+    Only an HMAC of the code is stored. A row is written for every request,
+    even for addresses that may not sign in, so rate limits behave the same
+    for everyone and reveal nothing."""
+
+    __tablename__ = "login_codes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String(200), index=True)
+    code_hash: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: _utcnow().replace(tzinfo=None))
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
 class Activity(Base):
     """A deadline, lab session, consultation slot, or milestone on a
     course's shared schedule (SRS-2, SRS-3, SRS-9)."""
