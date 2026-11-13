@@ -1,0 +1,4 @@
+.toggle{display:inline-flex;gap:3px;padding:3px;border:1px solid var(--field);border-radius:10px;background:var(--surface)}
+.toggle button{border:0;background:transparent;color:var(--soft);border-radius:7px;padding:6px 12px;font-size:13px;font-weight:500;cursor:pointer;min-height:32px}
+.toggle button:hover{color:var(--ink)}
+.toggle button[aria-pressed="true"]{background:var(--nav-cur);color:var(--ink);font-weight:600}

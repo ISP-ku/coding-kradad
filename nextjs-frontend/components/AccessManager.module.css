@@ -1,31 +1,31 @@
 .wrap{display:block}
 .intro{margin:0 0 18px;color:var(--muted);max-width:70ch}
-.panel{background:#fff;border:1px solid #eeebf3;border-radius:16px;box-shadow:0 5px 20px #33264a04;padding:22px 26px;margin-bottom:22px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 5px 20px transparent;padding:22px 26px;margin-bottom:22px}
 .courseBar{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-end;justify-content:space-between}
 .inline{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:18px}
 .courseBar .inline{margin-bottom:0}
 .field{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;min-width:0}
-.field input,.field select{padding:10px 12px;border:1px solid #dce2e5;background:#fff;border-radius:10px;color:var(--ink);font-weight:400;min-width:180px}
-.field input:focus,.field select:focus,.table select:focus{outline:2px solid #7355cf44;border-color:var(--accent)}
-.field [aria-invalid="true"]{border-color:#b63737}
-.fieldError{color:#b63737;font-size:13px;font-weight:400}
-.btn{border:0;border-radius:10px;background:#7355cf;color:#fff;padding:11px 20px;font-weight:600}
+.field input,.field select{padding:10px 12px;border:1px solid var(--field);background:var(--surface);border-radius:10px;color:var(--ink);font-weight:400;min-width:180px}
+.field input:focus,.field select:focus,.table select:focus{outline:2px solid var(--focus);border-color:var(--accent)}
+.field [aria-invalid="true"]{border-color:var(--over)}
+.fieldError{color:var(--over);font-size:13px;font-weight:400}
+.btn{border:0;border-radius:10px;background:var(--primary);color:var(--on-primary);padding:11px 20px;font-weight:600}
 .btn:hover{filter:brightness(.94)}
-.btnGhost{border:1px solid #d5cbe7;border-radius:10px;background:#fff;color:#5b3fb3;padding:10px 18px;font-weight:600}
-.btnGhost:hover{background:#f4f1fb}
+.btnGhost{border:1px solid var(--field);border-radius:10px;background:var(--surface);color:var(--link);padding:10px 18px;font-weight:600}
+.btnGhost:hover{background:var(--quiet-h)}
 .btn:disabled,.btnGhost:disabled,.remove:disabled,.table select:disabled{opacity:.55;cursor:not-allowed}
 .tableWrap{overflow-x:auto}
 .table{width:100%;border-collapse:collapse;font-size:14px}
-.table th{text-align:left;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#7a6e93;padding:8px 10px;border-bottom:1px solid #eeebf3}
-.table td{padding:10px;border-bottom:1px solid #f3f0f8;vertical-align:middle}
-.table select{padding:7px 10px;border:1px solid #dce2e5;border-radius:8px;background:#fff;color:var(--ink)}
+.table th{text-align:left;font-size:12px;letter-spacing:.04em;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line)}
+.table td{padding:10px;border-bottom:1px solid var(--line2);vertical-align:middle}
+.table select{padding:7px 10px;border:1px solid var(--field);border-radius:8px;background:var(--surface);color:var(--ink)}
 .email{overflow-wrap:anywhere}
-.chip{background:#f0f3f5;color:#68747c;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:600;margin-left:8px;white-space:nowrap}
-.remove{border:1px solid #f0d0d0;background:#fff;color:#b63737;border-radius:8px;padding:6px 12px;font-weight:600}
-.remove:hover:not(:disabled){background:#fff5f5}
+.chip{background:var(--chip-bg);color:var(--chip-ink);border-radius:20px;padding:2px 9px;font-size:11px;font-weight:600;margin-left:8px;white-space:nowrap}
+.remove{border:1px solid var(--over-line);background:var(--surface);color:var(--over);border-radius:8px;padding:6px 12px;font-weight:600}
+.remove:hover:not(:disabled){background:var(--over-bg)}
 .alert,.notice{border-radius:10px;padding:10px 14px;font-size:14px;margin:0 0 16px}
-.alert{background:#ffebeb;color:#b63737}
-.notice{background:#e3f6ec;color:#157345}
+.alert{background:var(--over-bg);color:var(--over)}
+.notice{background:var(--done-bg);color:var(--done)}
 .empty,.hint{color:var(--muted);font-size:14px;margin:0}
 .srOnly{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media(max-width:760px){.panel{padding:18px}.field input,.field select{min-width:0;width:100%}.inline,.field{width:100%}}
