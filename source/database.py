@@ -8,9 +8,10 @@ of an Activity to a specific TA (SRS-8); its status, Overdue/At-Risk flags,
 and timestamps (SRS-10 to SRS-13) live on the Task, not the Activity, since
 the same Activity could in principle be assigned to more than one TA.
 
-Activities are scoped to a free-form `course_id` - there is no separate
-Courses table yet, since this iteration doesn't need anything beyond that
-id to filter by course (SRS-19's "selected course"). Google Classroom is no
+Activities are scoped to a free-form `course_id`. The Course table added in
+Iteration 6 decides who may sign in (SRS-23); activities and homework are
+not linked to it yet, so they still filter by that free-form id (SRS-19's
+"selected course"). Google Classroom is no
 longer connected, so the known course ids are simply the distinct values
 already stored here (see reports.py's /api/reports/courses).
 
