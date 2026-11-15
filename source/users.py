@@ -1,36 +1,37 @@
-"""User & Role resolution (SRS-18, SRS-22).
+"""User & Role resolution (SRS-18, SRS-22) and course membership (SRS-23).
 
 Maps an authenticated account (KU Google or local test login) to an
 internal User record with a role (student / ta / lecturer), creating it on
 first login and keeping it in sync on every login after that.
 
-The users table is the single source of truth for roles: whatever role
-`sync_user` stores is the one copied into the session, and that session
-role is what every authorisation check reads (e.g. reports.py's
-require_lecturer). Where the role comes from depends on how the user
-signed in:
+Who may sign in, and with which role (Iteration 6, R-08):
 
-- Local test login: the role listed for that email in
-  data/allowed_users.json (passed in explicitly by app.py).
-- KU Google login: there's no admin UI to manage roles yet, so it's an
-  allowlist - an email in LECTURER_EMAILS (comma-separated) becomes a
-  lecturer, one in TA_EMAILS becomes a TA, and everyone else is a student.
-  Defaulting to student means a KU account never gets staff access just
-  by signing in.
+- An email in LECTURER_EMAILS (comma-separated) is always a lecturer and is
+  always allowed in. This is the safety net that stops the Access page from
+  ever locking every lecturer out.
+- Otherwise the email must be a member of at least one course
+  (course_members). Its role is the one a lecturer set on the Access page
+  (access_accounts.role).
+- Anyone else is refused (SRS-23: "not registered as a member of the
+  selected course").
 
-The role is re-evaluated on every login, so adding or removing someone
-from an allowlist takes effect the next time they sign in.
+REQUIRE_COURSE_MEMBERSHIP=0 switches the membership check off. A non-member
+then falls back to the old behaviour: the role passed in (local test login)
+or the TA_EMAILS allowlist, defaulting to student. TA_EMAILS otherwise only
+gives the starting role when a lecturer adds an email without choosing one.
 
-Known gap: SRS-23's "not registered as a member of the selected
-course" isn't enforced here - there's no Courses/enrollment table yet,
-only a role.
+resolve_role() is called at sign-in and again on every request (app.py's
+current_user), so removing someone or changing their role takes effect
+immediately rather than when their session expires.
 """
 import os
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from database import USER_ROLES, User
+from database import USER_ROLES, AccessAccount, CourseMember, User
+
+KU_DOMAIN = "ku.th"
 
 
 def _email_allowlist(var: str) -> set[str]:
@@ -46,6 +47,42 @@ def role_for_email(email: str | None) -> str:
     if email in _email_allowlist("TA_EMAILS"):
         return "ta"
     return "student"
+
+
+def membership_required() -> bool:
+    """SRS-23 gate. On unless REQUIRE_COURSE_MEMBERSHIP is exactly "0"."""
+    return os.environ.get("REQUIRE_COURSE_MEMBERSHIP", "1").strip() != "0"
+
+
+def protected_lecturers() -> set[str]:
+    """LECTURER_EMAILS: always lecturers, never demoted or removed."""
+    return _email_allowlist("LECTURER_EMAILS")
+
+
+def normalise_ku_email(raw: str) -> str:
+    """Lower-cased, trimmed KU email, or ValueError. Sign-in only accepts KU
+    Google accounts, so nothing else is worth storing."""
+    email = (raw or "").strip().lower()
+    local, at, domain = email.partition("@")
+    if (not at or not local or "@" in domain or domain != KU_DOMAIN
+            or any(c.isspace() for c in email) or len(email) > 200):
+        raise ValueError("Enter a KU email address ending in @ku.th.")
+    return email
+
+
+def resolve_role(db: Session, email: str | None, fallback_role: str | None) -> str | None:
+    """The role this email signs in with, or None if it may not sign in."""
+    email = (email or "").strip().lower()
+    if email and email in protected_lecturers():
+        return "lecturer"
+    if email:
+        account = db.get(AccessAccount, email)
+        if account is not None and db.scalar(
+                select(CourseMember.id).where(CourseMember.email == email).limit(1)) is not None:
+            return account.role
+    if membership_required():
+        return None
+    return fallback_role or role_for_email(email)
 
 
 def sync_user(

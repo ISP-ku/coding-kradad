@@ -16,6 +16,8 @@ const PAGE_ROLES = {
   // Everyone signed in sees Homework, but each role gets its own view
   // (student: to do + submit, TA: grade, lecturer: assign).
   homework: ["student", "ta", "lecturer"],
+  // Course members and roles (SRS-23); the backend also enforces lecturer-only.
+  access: ["lecturer"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type ProtectedPage = keyof typeof PAGE_ROLES;

@@ -8,9 +8,10 @@ of an Activity to a specific TA (SRS-8); its status, Overdue/At-Risk flags,
 and timestamps (SRS-10 to SRS-13) live on the Task, not the Activity, since
 the same Activity could in principle be assigned to more than one TA.
 
-Activities are scoped to a free-form `course_id` - there is no separate
-Courses table yet, since this iteration doesn't need anything beyond that
-id to filter by course (SRS-19's "selected course"). Google Classroom is no
+Activities are scoped to a free-form `course_id`. The Course table added in
+Iteration 6 decides who may sign in (SRS-23); activities and homework are
+not linked to it yet, so they still filter by that free-form id (SRS-19's
+"selected course"). Google Classroom is no
 longer connected, so the known course ids are simply the distinct values
 already stored here (see reports.py's /api/reports/courses).
 
@@ -93,6 +94,43 @@ class User(Base):
     display_name: Mapped[str] = mapped_column(String(200))
     role: Mapped[str] = mapped_column(String(20), default="student")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
+class Course(Base):
+    """A course on the dashboard. Membership (CourseMember) decides who may
+    sign in at all (SRS-23, R-08)."""
+
+    __tablename__ = "courses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(50), unique=True)
+    name: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
+class AccessAccount(Base):
+    """One KU email a lecturer has given access to, with its role. The role
+    is per account, not per course: no feature is scoped by course yet, so a
+    per-course role would have nothing to act on. Kept only while the email
+    belongs to at least one course."""
+
+    __tablename__ = "access_accounts"
+
+    email: Mapped[str] = mapped_column(String(200), primary_key=True)
+    role: Mapped[str] = mapped_column(String(20))
+    added_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
+class CourseMember(Base):
+    """Enrollment of an AccessAccount in a Course."""
+
+    __tablename__ = "course_members"
+    __table_args__ = (UniqueConstraint("course_id", "email", name="uq_course_members_course_email"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"), index=True)
+    email: Mapped[str] = mapped_column(ForeignKey("access_accounts.email"), index=True)
+    added_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
 class Activity(Base):

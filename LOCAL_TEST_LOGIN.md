@@ -29,7 +29,9 @@ Edit **data/allowed_users.json**:
 ]
 ```
 
-These are fake examples, not real mailboxes. The file is read by the backend when you open or submit the test form. Only listed users can use local test login. Editing a role takes effect the next time that user logs in. The role is saved to the `users` table and the session, and role-restricted features use it. For example, sign in as `test.lecturer@ku.th` to see the lecturer-only Reports page.
+These are fake examples, not real mailboxes. The file is read by the backend when you open or submit the test form. Only listed users can use local test login.
+
+A test account must also be a member of a course, like a real account (SRS-23). `data/course_roster.json` puts all three into the course `DEMO-101` the first time the backend starts with no courses. After that, their role comes from the Access page, not from `allowed_users.json`: sign in as `test.lecturer@ku.th` and open `/access` to change roles or remove someone. Role-restricted features, such as the lecturer-only Reports page, use that role. If you already have courses in `dashboard.db` and the test accounts are missing, add them on the Access page or delete the course tables to re-seed.
 
 This file controls local test users only. Real Google login still accepts verified KU Google accounts; it does not use this file as a real-user allowlist.
 
