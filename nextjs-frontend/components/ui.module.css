@@ -1,0 +1,11 @@
+/* Shared pieces for page headers and form pages: the create/assign buttons,
+   the way back, and the confirmation shown after saving. */
+.actionButton{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border:0;border-radius:10px;background:var(--primary);color:var(--on-primary);font-weight:600;white-space:nowrap}
+.actionButton:hover{background:var(--primary-h);color:var(--on-primary);text-decoration:none}
+.actionButton svg{width:18px;height:18px}
+.secondaryButton{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:1px solid var(--field);border-radius:10px;background:var(--surface);color:var(--quiet-ink);font-weight:600;white-space:nowrap}
+.secondaryButton:hover{background:var(--quiet-h);text-decoration:none}
+.secondaryButton svg{width:18px;height:18px}
+.backLink{display:inline-flex;align-items:center;gap:6px;margin:0 0 18px;font-size:14px;font-weight:500}
+.formPage{max-width:760px}
+.notice{margin:0 0 18px;padding:10px 14px;border-radius:10px;background:var(--done-bg);color:var(--done);font-size:14px}

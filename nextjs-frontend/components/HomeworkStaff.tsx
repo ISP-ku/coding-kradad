@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { byDueDate, formatDue } from "@/lib/homework";
 import type { HomeworkItem } from "@/lib/types";
-import HomeworkAssignForm from "./HomeworkAssignForm";
 import HomeworkSubmissions from "./HomeworkSubmissions";
 import styles from "./Homework.module.css";
 
@@ -31,9 +30,6 @@ export default function HomeworkStaff({ initial, role }: { initial: HomeworkItem
 
   return (
     <>
-      {role === "lecturer" && (
-        <HomeworkAssignForm onCreated={(item) => setItems((list) => [...list, item].sort(byDueDate))} />
-      )}
 
       <h2 className={styles.sectionTitle}>Course homework</h2>
       <div className={styles.filters} role="group" aria-label="Filter homework">
@@ -63,7 +59,7 @@ export default function HomeworkStaff({ initial, role }: { initial: HomeworkItem
               </div>
             </div>
             <span className={`${styles.chip} ${waiting(hw) > 0 ? styles.chipSubmitted : styles.chipOk}`}>
-              {hw.submission_count ?? 0} submitted · {hw.graded_count ?? 0} graded
+              {hw.submission_count ?? 0} submitted, {hw.graded_count ?? 0} graded
             </span>
           </div>
           {hw.description && <p className={styles.desc}>{hw.description}</p>}

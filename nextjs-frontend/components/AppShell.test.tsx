@@ -38,29 +38,27 @@ describe("AppShell (signed out)", () => {
     expect(screen.queryByRole("button", { name: /my account/i })).not.toBeInTheDocument();
   });
 
-  it("links the dashboard nav item to / when there's no viewer", () => {
+  it("links the Dashboard nav item to / when there's no viewer", () => {
     renderShell(null);
     expect(screen.getByRole("link", { name: /dashboard/i })).toHaveAttribute("href", "/");
   });
 });
 
 describe("AppShell (signed in)", () => {
-  it("shows the viewer's name and provider in the sidebar and app bar", () => {
+  it("shows the viewer's name in the sidebar", () => {
     renderShell(baseUser);
 
     expect(screen.getAllByText("Alice").length).toBeGreaterThan(0);
-    expect(screen.getByText("Google account")).toBeInTheDocument();
+    expect(screen.getByText("Signed in")).toBeInTheDocument();
   });
 
-  it("labels the app bar workspace by the viewer's actual role, not just 'Student'", () => {
-    renderShell({ ...baseUser, role: "ta" });
-    expect(screen.getByText("TA workspace")).toBeInTheDocument();
+  it("labels the signed-in person by their actual role, not just 'Student'", () => {
+    const { unmount } = renderShell({ ...baseUser, role: "ta" });
+    expect(screen.getByText("Teaching assistant")).toBeInTheDocument();
+    unmount();
 
     renderShell({ ...baseUser, role: "lecturer" });
-    expect(screen.getByText("Lecturer workspace")).toBeInTheDocument();
-
-    renderShell(null);
-    expect(screen.getByText("Workspace")).toBeInTheDocument();
+    expect(screen.getByText("Lecturer")).toBeInTheDocument();
   });
 
   it("marks the current page's nav link as active", () => {
@@ -86,7 +84,7 @@ describe("AppShell (signed in)", () => {
   it("shows each role only the pages it may use (R-02, SRS-18)", () => {
     const links = (viewer: SessionUser | null) => {
       const { unmount } = renderShell(viewer);
-      const names = ["dashboard", "faq", "homework", "consultation", "reports"].filter(
+      const names = ["dashboard", "faq", "homework", "consultation", "reports", "access"].filter(
         (n) => screen.queryByRole("link", { name: new RegExp(n, "i") }),
       );
       unmount();
@@ -95,7 +93,12 @@ describe("AppShell (signed in)", () => {
     expect(links({ ...baseUser, role: "student" })).toEqual(["faq", "homework"]);
     expect(links(baseUser)).toEqual(["faq", "homework"]); // no role = student
     expect(links({ ...baseUser, role: "ta" })).toEqual(["dashboard", "faq", "homework", "consultation"]);
-    expect(links({ ...baseUser, role: "lecturer" })).toEqual(["dashboard", "faq", "homework", "reports"]);
+    expect(links({ ...baseUser, role: "lecturer" })).toEqual(["dashboard", "faq", "homework", "reports", "access"]);
+  });
+
+  it("offers the Light / Dark theme switch", () => {
+    renderShell(baseUser);
+    expect(screen.getByRole("group", { name: "Theme" })).toBeInTheDocument();
   });
 
   it("points the logout link at logoutHref", () => {

@@ -1,0 +1,56 @@
+.card{display:flex;flex-direction:column;gap:22px;padding:28px clamp(18px,4vw,32px);border:1px solid var(--line);border-radius:18px;background:var(--surface)}
+
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.labelRow{display:flex;align-items:baseline;gap:8px}
+.labelRow label,.choices legend{font-size:15px;font-weight:600;color:var(--ink)}
+.optional{font-size:12px;font-weight:500;padding:1px 8px;border-radius:999px;background:var(--chip-bg);color:var(--chip-ink)}
+.count{margin-left:auto;font-size:12px;color:var(--muted)}
+.hint{margin:-2px 0 2px;font-size:13px;color:var(--muted)}
+
+.field input,.field select,.field textarea{width:100%;min-height:46px;padding:11px 14px;border:1px solid var(--field);border-radius:12px;background:var(--surface);color:var(--ink);font-size:15px;transition:border-color .15s,box-shadow .15s}
+.field textarea{min-height:120px;resize:vertical;line-height:1.55}
+.field input::placeholder,.field textarea::placeholder{color:var(--muted);opacity:.8}
+.field input:hover,.field select:hover,.field textarea:hover{border-color:var(--dot)}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 22%,transparent)}
+.field [aria-invalid="true"]{border-color:var(--over)}
+.error{display:flex;align-items:center;gap:6px;margin:2px 0 0;font-size:13px;font-weight:500;color:var(--over)}
+.error::before{content:"!";display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--over);color:var(--surface);font-size:11px;font-weight:700;flex:none}
+
+.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 18px}
+
+.choices{margin:0;padding:0;border:0;min-width:0}
+.choices legend{padding:0;margin-bottom:8px}
+.choiceGrid{display:grid;gap:10px}
+.cols2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.cols3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cols4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.choice{position:relative;display:flex;align-items:flex-start;gap:10px;min-height:48px;padding:12px 14px;border:1px solid var(--field);border-radius:12px;background:var(--surface);cursor:pointer}
+.choice:hover{border-color:var(--dot);background:var(--raised)}
+.choice input{margin:3px 0 0;accent-color:var(--primary);width:16px;height:16px;flex:none}
+.choice:has(input:checked){border-color:var(--primary);background:var(--nav-cur);box-shadow:inset 0 0 0 1px var(--primary)}
+.choice:has(input:focus-visible){outline:3px solid var(--focus);outline-offset:2px}
+.choiceText{display:flex;flex-direction:column;min-width:0}
+.choiceLabel{font-weight:600;font-size:14px}
+.choiceHint{font-size:13px;color:var(--muted);line-height:1.4}
+
+.picks{display:flex;flex-wrap:wrap;gap:6px}
+.pick{min-height:32px;padding:4px 12px;border:1px solid var(--field);border-radius:999px;background:var(--surface);color:var(--quiet-ink);font-size:13px;font-weight:500}
+.pick:hover{background:var(--quiet-h)}
+.pick[aria-pressed="true"]{border-color:var(--primary);background:var(--nav-cur);color:var(--ink);font-weight:600}
+
+.formError,.formNotice{padding:12px 14px;border-radius:12px;font-size:14px}
+.formError{background:var(--over-bg);color:var(--over)}
+.formNotice{background:var(--done-bg);color:var(--done)}
+
+.actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding-top:18px;border-top:1px solid var(--line2)}
+.submit{min-height:48px;padding:0 24px;border:0;border-radius:12px;background:var(--primary);color:var(--on-primary);font-size:15px;font-weight:600}
+.submit:hover:not(:disabled){background:var(--primary-h)}
+.submit:disabled{opacity:.6;cursor:not-allowed}
+.cancel{display:inline-flex;align-items:center;min-height:48px;padding:0 16px;border:0;border-radius:12px;background:transparent;color:var(--soft);font-weight:500;font-size:15px}
+.cancel:hover{background:var(--quiet-h);color:var(--ink);text-decoration:none}
+
+@media(max-width:620px){
+  .row,.cols2,.cols3,.cols4{grid-template-columns:1fr}
+  .cols4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .submit{flex:1}
+}
