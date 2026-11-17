@@ -314,14 +314,14 @@ def test_get_access_lists_courses_and_accounts(sign_in):
     assert body["courses"] == [{"id": course_id(), "code": "CS101", "name": "Intro"}]
     by_email = {a["email"]: a for a in body["accounts"]}
     assert [a["email"] for a in body["accounts"]] == sorted(by_email)
-    assert by_email[TA] == {"email": TA, "role": "ta", "course_ids": [course_id()], "protected": False, "is_self": False}
+    assert by_email[TA] == {"email": TA, "role": "ta", "course_ids": [course_id()], "protected": False, "is_self": False, "has_password": False}
     assert by_email[LECTURER]["is_self"] is True
 
 
 def test_get_access_shows_protected_lecturers(sign_in):
     body = sign_in(BOSS).get("/api/access").json()
     boss = next(a for a in body["accounts"] if a["email"] == BOSS)
-    assert boss == {"email": BOSS, "role": "lecturer", "course_ids": [], "protected": True, "is_self": True}
+    assert boss == {"email": BOSS, "role": "lecturer", "course_ids": [], "protected": True, "is_self": True, "has_password": False}
 
 
 def test_create_course(sign_in):

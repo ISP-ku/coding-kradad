@@ -22,8 +22,10 @@ async function post<T>(url: string, body: unknown, fallback: string): Promise<{ 
 }
 
 /** Add a KU account to a course with a role (SRS-23). Its own page: /access/members/new. */
-export function AccessMemberForm({ courses, defaultCourseId, onDone }: {
+export function AccessMemberForm({ courses, defaultCourseId, onDone, allowPersonal = false }: {
   courses: AccessCourse[];
+  /** Personal Gmail accounts are turned on (ALLOW_PERSONAL_GOOGLE). */
+  allowPersonal?: boolean;
   defaultCourseId?: number;
   /** Called with the course and email after adding; without it the page returns to Access. */
   onDone?: (courseId: number, email: string) => void;
@@ -40,8 +42,10 @@ export function AccessMemberForm({ courses, defaultCourseId, onDone }: {
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
-    const clean = normaliseKuEmail(email);
-    setEmailError(clean ? "" : "Enter a KU email address ending in @ku.th.");
+    const clean = normaliseKuEmail(email, allowPersonal);
+    setEmailError(clean ? "" : allowPersonal
+      ? "Enter a KU address ending in @ku.th, or a Gmail address."
+      : "Enter a KU email address ending in @ku.th.");
     if (!clean) return;
     setBusy(true);
     const { error: failed } = await post(`/api/access/courses/${courseId}/members`, { email: clean, role }, "Could not add this account.");
@@ -62,7 +66,8 @@ export function AccessMemberForm({ courses, defaultCourseId, onDone }: {
             {courses.map((c) => <option key={c.id} value={c.id}>{c.code}{c.name && c.name !== c.code ? `, ${c.name}` : ""}</option>)}
           </select>
         </Field>
-        <Field id="member-email" label="KU email" hint="They sign in with this Google account." error={emailError}>
+        <Field id="member-email" label={allowPersonal ? "Email" : "KU email"} error={emailError}
+          hint={allowPersonal ? "A KU address, or a personal Gmail address for someone who cannot use KU sign-in." : "They sign in with this address."}>
           <input id="member-email" type="email" value={email} autoComplete="off" placeholder="name.s@ku.th"
             onChange={(e) => setEmail(e.target.value)} {...fieldAria("member-email", emailError, true)} />
         </Field>

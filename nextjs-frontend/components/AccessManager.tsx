@@ -30,6 +30,9 @@ export default function AccessManager({ initial, initialCourseId, initialNotice 
   const [error, setError] = useState("");
   const [notice, setNotice] = useState(initialNotice);
   const [busy, setBusy] = useState(false);
+  /** A password just created: shown once, here only, until dismissed. */
+  const [fresh, setFresh] = useState<{ email: string; password: string } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const course = courses.find((c) => c.id === courseId) ?? null;
   const codeOf = (id: number) => courses.find((c) => c.id === id)?.code ?? String(id);
@@ -43,6 +46,7 @@ export default function AccessManager({ initial, initialCourseId, initialNotice 
   async function send<T>(url: string, init: RequestInit, fallback: string): Promise<T | null | undefined> {
     setError("");
     setNotice("");
+    setFresh(null);
     setBusy(true);
     try {
       const res = await fetch(url, {
@@ -90,7 +94,42 @@ export default function AccessManager({ initial, initialCourseId, initialNotice 
     setNotice(`${account.email} was removed from ${course.code}.`);
   }
 
+  async function makePassword(account: AccessAccount) {
+    if (account.has_password && !window.confirm(
+      `Create a new password for ${account.email}? Their current password will stop working.`)) return;
+    const made = await send<{ password: string; account: AccessAccount }>(
+      `/api/access/accounts/${encodeURIComponent(account.email)}/password`,
+      { method: "POST" },
+      "Could not create a password.",
+    );
+    if (!made) return;
+    upsert(made.account);
+    setCopied(false);
+    setFresh({ email: made.account.email, password: made.password });
+  }
+
+  async function removePassword(account: AccessAccount) {
+    const updated = await send<AccessAccount>(
+      `/api/access/accounts/${encodeURIComponent(account.email)}/password`,
+      { method: "DELETE" },
+      "Could not remove the password.",
+    );
+    if (!updated) return;
+    upsert(updated);
+    setNotice(`${updated.email} can no longer sign in with a password.`);
+  }
+
+  async function copyPassword() {
+    if (!fresh) return;
+    try {
+      await navigator.clipboard.writeText(fresh.password);
+      setCopied(true);
+    } catch { /* the password stays on screen to copy by hand */ }
+  }
+
   const locked = (a: AccessAccount) => a.protected || a.is_self;
+  // Only the server-configured lecturer may create their own password.
+  const passwordLocked = (a: AccessAccount) => a.protected && !a.is_self;
   const lockReason = (a: AccessAccount) =>
     a.protected ? "Set in server configuration" : a.is_self ? "You" : "";
 
@@ -98,11 +137,25 @@ export default function AccessManager({ initial, initialCourseId, initialNotice 
     <div className={styles.wrap}>
       <p className={styles.intro}>
         Only people in at least one course can sign in. Removing someone or changing their role
-        takes effect on their next click, without waiting for them to sign out.
+        takes effect on their next click, without waiting for them to sign out. If KU ALL will not
+        let someone through, create a password for them and they can sign in with it instead.
       </p>
 
       {error && <p className={styles.alert} role="alert">{error}</p>}
       {notice && <p className={styles.notice} role="status">{notice}</p>}
+      {fresh && (
+        <div className={styles.secret} role="status" aria-label="New password">
+          <p>
+            Password for <strong>{fresh.email}</strong>. Give it to them now: it is shown only once.
+            They sign in with &ldquo;Sign in with a password from your lecturer&rdquo; on the sign-in page.
+          </p>
+          <div className={styles.secretRow}>
+            <code className={styles.secretValue}>{fresh.password}</code>
+            <button type="button" className={styles.btnGhost} onClick={copyPassword}>{copied ? "Copied" : "Copy"}</button>
+            <button type="button" className={styles.btnGhost} onClick={() => setFresh(null)}>Done</button>
+          </div>
+        </div>
+      )}
 
       <section className={styles.panel} aria-label="Courses">
         <div className={styles.courseBar}>
@@ -131,7 +184,7 @@ export default function AccessManager({ initial, initialCourseId, initialNotice 
             <div className={styles.tableWrap}>
               <table className={styles.table} aria-label={`Members of ${course.code}`}>
                 <thead>
-                  <tr><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Courses</th><th scope="col"><span className={styles.srOnly}>Actions</span></th></tr>
+                  <tr><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Courses</th><th scope="col">Password</th><th scope="col"><span className={styles.srOnly}>Actions</span></th></tr>
                 </thead>
                 <tbody>
                   {members.map((a) => (
@@ -151,6 +204,30 @@ export default function AccessManager({ initial, initialCourseId, initialNotice 
                         </select>
                       </td>
                       <td>{a.course_ids.map(codeOf).join(", ")}</td>
+                      <td>
+                        <div className={styles.passwordCell}>
+                          <button
+                            type="button"
+                            className={styles.small}
+                            aria-label={`${a.has_password ? "New password" : "Create password"} for ${a.email}`}
+                            disabled={busy || passwordLocked(a)}
+                            onClick={() => makePassword(a)}
+                          >
+                            {a.has_password ? "New password" : "Create password"}
+                          </button>
+                          {a.has_password && (
+                            <button
+                              type="button"
+                              className={styles.linkish}
+                              aria-label={`Remove password for ${a.email}`}
+                              disabled={busy || passwordLocked(a)}
+                              onClick={() => removePassword(a)}
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </td>
                       <td>
                         <button
                           type="button"
