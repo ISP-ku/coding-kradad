@@ -72,7 +72,7 @@ export default async function LoginPage() {
               )}
               <h1>Welcome back, {user.username}</h1>
               <p className={styles.lead}>
-                You are signed in with {user.provider === "local" ? "a local test account" : user.provider === "email" ? "an email code" : "your Google account"}.
+                You are signed in with {user.provider === "local" ? "a local test account" : user.provider === "password" ? "a password from your lecturer" : "your Google account"}.
               </p>
               <Link className={styles.primary} href={homePathFor(user)}>Open my course</Link>
               <a className={styles.secondary} href={logoutUrl}>Log out and use another account</a>
@@ -91,8 +91,8 @@ export default async function LoginPage() {
                 </svg>
                 Continue with KU Google
               </a>
-              {(options.email_code || options.personal_google) && <p className={styles.or}>Can&apos;t get through KU ALL?</p>}
-              {options.email_code && <a className={styles.quiet} href="/sign-in/email">Email me a sign-in code</a>}
+              {(options.password || options.personal_google) && <p className={styles.or}>Can&apos;t get through KU ALL?</p>}
+              {options.password && <a className={styles.quiet} href="/sign-in/password">Sign in with a password from your lecturer</a>}
               {options.personal_google && (
                 <a className={styles.quiet} href={loginUrl("google-personal")}>Continue with a personal Google account</a>
               )}

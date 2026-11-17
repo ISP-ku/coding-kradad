@@ -135,15 +135,15 @@ See [LOCAL_TEST_LOGIN.md](LOCAL_TEST_LOGIN.md) for the new backend test login. K
 
 KU's Google Workspace sends every @ku.th Google sign-in to KU ALL. If KU ALL cannot verify someone (the Google page says the account "can't be accessed because your identity couldn't be verified"), no app can skip that step: it is a university setting. Two other ways in:
 
-### Email code sign-in
+### Password sign-in
 
-The sign-in page shows **Email me a sign-in code**. The person types their address, gets a 6-digit code by email and types it in at `/sign-in/email`.
+On the Access page, a lecturer clicks **Create password** next to the person. The server makes a random 14-character password and shows it once; the lecturer passes it on. The person chooses **Sign in with a password from your lecturer** on the sign-in page (`/sign-in/password`) and types their @ku.th address and that password. No Google, KU ALL or email is involved, and nothing needs to be configured.
 
-- Only addresses that may sign in (course members, or `LECTURER_EMAILS`) get an email. The page answers the same either way, so it never reveals who is registered.
-- Codes work once, expire after 10 minutes, and are cancelled after 5 wrong tries. One code per minute and five per hour per address.
-- Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USERNAME`, `SMTP_PASSWORD` and `SMTP_FROM` in `.env`. For a Gmail sender, use an app password.
-- In local development without SMTP settings, the code is printed in the backend terminal (`DEVELOPMENT ONLY - sign-in code for ...`). This never happens unless `APP_ENV=development`.
-- Note: reading KU mail also goes through KU ALL, so this helps most when the person can open their mailbox on another device or app that is already signed in.
+- Only a scrypt hash is stored. **New password** replaces it (the old one stops working); **Remove** turns password sign-in off for that person. Removing someone from their last course also deletes their password.
+- 5 wrong tries lock the password for 15 minutes (a new password unlocks it). A wrong address and a wrong password get the same answer.
+- Course membership and the Access page role still apply, exactly as with Google sign-in.
+- A `LECTURER_EMAILS` lecturer's password can only be created by that lecturer.
+- Someone who signs in with Google one day and with a password the next stays the same user: their homework, tasks and posts follow them.
 
 ### Personal Google accounts (optional)
 
@@ -151,5 +151,5 @@ Set `ALLOW_PERSONAL_GOOGLE=1`. The Access page then accepts Gmail addresses, and
 
 - Only Gmail addresses a lecturer has added to a course can sign in, even if `REQUIRE_COURSE_MEMBERSHIP=0`.
 - The app no longer proves the person is a KU member; it trusts the lecturer who added the address.
-- Someone who signs in with Google one day and with an email code the next is the same person on the Access page (same email), but tasks are assigned per sign-in identity, so a TA should keep using one sign-in method.
+- Two different Google accounts are never merged into one user.
 

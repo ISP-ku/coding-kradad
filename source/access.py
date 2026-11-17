@@ -105,7 +105,8 @@ def seed_roster_if_empty() -> int:
 # hiding the page (Iteration 5 lesson). Safeguards:
 #   - nobody can remove or change the role of a LECTURER_EMAILS account;
 #   - a lecturer cannot remove or demote themselves, which also guarantees
-#     at least one lecturer (the one acting) always keeps access.
+#     at least one lecturer (the one acting) always keeps access;
+#   - only the LECTURER_EMAILS account itself can create its own password.
 
 from typing import Annotated, Literal, Optional  # noqa: E402
 
@@ -114,7 +115,8 @@ from pydantic import BaseModel, Field, StringConstraints, field_validator  # noq
 from sqlalchemy import func  # noqa: E402
 
 from activities import require_lecturer  # noqa: E402
-from database import User, get_db  # noqa: E402
+from database import SignInPassword, User, get_db  # noqa: E402
+from password_login import set_password as create_password  # noqa: E402
 from users import protected_lecturers  # noqa: E402
 
 router = APIRouter(prefix="/api/access", tags=["access"])
@@ -153,6 +155,14 @@ class AccountOut(BaseModel):
     course_ids: list[int]
     protected: bool
     is_self: bool
+    # A lecturer-made password exists (password_login.py). Never the password.
+    has_password: bool
+
+
+class PasswordOut(BaseModel):
+    # Shown to the lecturer once, to pass on; only its hash is stored.
+    password: str
+    account: AccountOut
 
 
 class AccessOut(BaseModel):
@@ -178,6 +188,7 @@ def _account_out(db: Session, email: str, viewer: str) -> AccountOut:
     return AccountOut(
         email=email, role="lecturer" if protected else account.role, course_ids=course_ids,
         protected=protected, is_self=email == viewer,
+        has_password=db.get(SignInPassword, email) is not None,
     )
 
 
@@ -253,6 +264,9 @@ def remove_member(course_id: int, email: str, user: dict = Depends(require_lectu
     db.flush()
     if db.scalar(select(CourseMember.id).where(CourseMember.email == email).limit(1)) is None:
         db.delete(db.get(AccessAccount, email))
+        password = db.get(SignInPassword, email)
+        if password is not None:
+            db.delete(password)
     db.commit()
     return Response(status_code=204)
 
@@ -267,4 +281,38 @@ def change_role(email: str, data: RoleIn, user: dict = Depends(require_lecturer)
         raise HTTPException(404, "No such account.")
     _set_role(db, account, data.role, viewer)
     db.commit()
+    return _account_out(db, email, viewer)
+
+
+def _password_account(db: Session, raw: str, viewer: str) -> str:
+    """The address whose password may be changed by this lecturer."""
+    email = _path_email(raw)
+    if email in protected_lecturers():
+        if email != viewer:
+            raise HTTPException(400, f"{email} is a lecturer set in the server configuration (LECTURER_EMAILS). Only they can create their own password.")
+        return email
+    if db.get(AccessAccount, email) is None:
+        raise HTTPException(404, "No such account.")
+    return email
+
+
+@router.post("/accounts/{email}/password", response_model=PasswordOut)
+def make_password(email: str, user: dict = Depends(require_lecturer), db: Session = Depends(get_db)):
+    """Create (or replace) a sign-in password for someone KU ALL will not let
+    through. The response is the only time the password is shown."""
+    viewer = _viewer_email(user)
+    email = _password_account(db, email, viewer)
+    password = create_password(db, email, set_by=viewer)
+    db.commit()
+    return PasswordOut(password=password, account=_account_out(db, email, viewer))
+
+
+@router.delete("/accounts/{email}/password", response_model=AccountOut)
+def remove_password(email: str, user: dict = Depends(require_lecturer), db: Session = Depends(get_db)):
+    viewer = _viewer_email(user)
+    email = _password_account(db, email, viewer)
+    row = db.get(SignInPassword, email)
+    if row is not None:
+        db.delete(row)
+        db.commit()
     return _account_out(db, email, viewer)

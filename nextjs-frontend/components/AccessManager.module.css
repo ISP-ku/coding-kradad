@@ -32,3 +32,12 @@
 .stack{display:flex;flex-direction:column;gap:16px;max-width:460px}
 .stack .field input,.stack .field select{width:100%}
 .hint{margin:0;font-size:14px;color:var(--muted)}
+.passwordCell{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.small{border:1px solid var(--field);border-radius:8px;background:var(--surface);color:var(--link);padding:6px 12px;font-weight:600;white-space:nowrap}
+.small:hover:not(:disabled){background:var(--quiet-h)}
+.linkish{border:0;padding:0;background:none;color:var(--muted);font-size:13px;text-decoration:underline;text-underline-offset:3px}
+.small:disabled,.linkish:disabled{opacity:.55;cursor:not-allowed}
+.secret{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:14px 16px;margin:0 0 16px;font-size:14px}
+.secret p{margin:0 0 10px}
+.secretRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.secretValue{font-size:18px;letter-spacing:.06em;padding:6px 12px;border-radius:8px;background:var(--chip-bg);color:var(--ink);overflow-wrap:anywhere;user-select:all}

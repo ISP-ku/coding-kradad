@@ -133,21 +133,19 @@ class CourseMember(Base):
     added_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
-class LoginCode(Base):
-    """A one-time sign-in code emailed to an address (email code sign-in).
-    Only an HMAC of the code is stored. A row is written for every request,
-    even for addresses that may not sign in, so rate limits behave the same
-    for everyone and reveal nothing."""
+class SignInPassword(Base):
+    """A password a lecturer created for someone KU ALL will not let through
+    (password_login.py). Only a scrypt hash is stored. Its own table, so
+    existing databases get it from create_all without a migration."""
 
-    __tablename__ = "login_codes"
+    __tablename__ = "sign_in_passwords"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    email: Mapped[str] = mapped_column(String(200), index=True)
-    code_hash: Mapped[str] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: _utcnow().replace(tzinfo=None))
-    expires_at: Mapped[datetime] = mapped_column(DateTime)
-    attempts: Mapped[int] = mapped_column(Integer, default=0)
-    used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    email: Mapped[str] = mapped_column(String(200), primary_key=True)
+    password_hash: Mapped[str] = mapped_column(String(300))
+    set_by: Mapped[str] = mapped_column(String(200))
+    set_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: _utcnow().replace(tzinfo=None))
+    failed_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    locked_until: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
 
 class Activity(Base):
