@@ -28,7 +28,7 @@ from faq import router as faq_router
 from homework import router as homework_router
 from reports import router as reports_router
 from email_login import available as email_login_available, router as email_login_router
-from users import PERSONAL_DOMAINS, personal_google_allowed, resolve_role, sync_user
+from users import PERSONAL_DOMAINS, personal_google_allowed, resolve_role, shared_identity, sync_user
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -153,9 +153,11 @@ def with_role(user, fallback_role=None):
         role = resolve_role(db, user.get("email"), fallback_role)
         if role is None:
             raise PermissionError(MSG_NOT_ENROLLED)
-        row = sync_user(db, provider=user["provider"], provider_user_id=user["id"],
+        # Keep one identity per person across sign-in methods (see users.py).
+        provider, provider_user_id = shared_identity(db, user["provider"], user["id"], user.get("email"))
+        row = sync_user(db, provider=provider, provider_user_id=provider_user_id,
                         email=user.get("email"), display_name=user["username"], role=role)
-        return {**user, "role": row.role}
+        return {**user, "provider": provider, "id": provider_user_id, "role": row.role}
 
 
 def build_authorize_url(state, nonce, personal=False):

@@ -26,7 +26,7 @@ immediately rather than when their session expires.
 """
 import os
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from database import USER_ROLES, AccessAccount, CourseMember, User
@@ -77,7 +77,8 @@ def normalise_member_email(raw: str) -> str:
     personal Google accounts are turned on. Lower-cased, or ValueError."""
     email = (raw or "").strip().lower()
     local, at, domain = email.partition("@")
-    if personal_google_allowed() and domain in PERSONAL_DOMAINS and local and "@" not in domain             and not any(c.isspace() for c in email) and len(email) <= 200:
+    if (personal_google_allowed() and domain in PERSONAL_DOMAINS and local and "@" not in domain
+            and not any(c.isspace() for c in email) and len(email) <= 200):
         return email
     try:
         return normalise_ku_email(raw)
@@ -113,6 +114,36 @@ def resolve_role(db: Session, email: str | None, fallback_role: str | None) -> s
     if membership_required() or (email and not is_ku_email(email)):
         return None
     return fallback_role or role_for_email(email)
+
+
+# Which existing identity a sign-in may take over when it has no row of its
+# own yet. Email code sign-in may use any account with the same address;
+# Google may only take over an email-code account (two Google accounts with
+# the same address are never merged).
+_REUSABLE_PROVIDERS = {"email": ("google", "local"), "google": ("email",)}
+_PROVIDER_PREFERENCE = {"google": 0, "local": 1, "email": 2}
+
+
+def shared_identity(db: Session, provider: str, provider_user_id: str,
+                    email: str | None) -> tuple[str, str]:
+    """The (provider, provider_user_id) to record this sign-in under.
+
+    Homework, tasks, FAQs and consultations key off "provider:id", so the
+    same person signing in by Google one day and by email code the next
+    must keep one identity. The first identity an address used wins."""
+    email = (email or "").strip().lower()
+    reusable = _REUSABLE_PROVIDERS.get(provider)
+    if not email or not reusable:
+        return provider, provider_user_id
+    if db.scalar(select(User.id).where(User.provider == provider,
+                                       User.provider_user_id == provider_user_id)) is not None:
+        return provider, provider_user_id
+    rows = db.scalars(select(User).where(func.lower(User.email) == email,
+                                         User.provider.in_(reusable))).all()
+    if not rows:
+        return provider, provider_user_id
+    best = min(rows, key=lambda r: (_PROVIDER_PREFERENCE.get(r.provider, 9), r.created_at, r.id))
+    return best.provider, best.provider_user_id
 
 
 def sync_user(

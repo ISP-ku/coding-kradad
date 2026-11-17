@@ -326,3 +326,86 @@ def test_email_code_works_for_a_member_gmail_when_enabled(setup, monkeypatch):
 def test_auth_options_shows_personal_google_when_enabled(monkeypatch):
     monkeypatch.setenv("ALLOW_PERSONAL_GOOGLE", "1")
     assert client().get("/api/auth-options").json()["personal_google"] is True
+
+
+# --- review fixes (PR #19) ---------------------------------------------------
+
+def wrong_code(real):
+    return "000000" if real != "000000" else "111111"
+
+
+def google_sign_in(email, sub):
+    return backend.with_role({
+        "id": sub, "username": "Google Name", "email": email,
+        "provider": "google", "auth_method": "ku_google",
+        "avatar_url": None, "classroom_courses": None,
+    })
+
+
+def test_email_code_reuses_the_google_identity(setup):
+    first = google_sign_in(MEMBER, "google-sub-1")
+    c = client()
+    ask(c, MEMBER)
+    verify(c, MEMBER, setup[0][1])
+    me = c.get("/api/me").json()
+    assert (me["provider"], me["id"]) == (first["provider"], first["id"])
+    assert me["auth_method"] == "email_code"
+    with SessionLocal() as db:
+        assert db.query(User).filter_by(email=MEMBER).count() == 1
+
+
+def test_google_after_email_code_reuses_the_email_identity(setup):
+    c = client()
+    ask(c, MEMBER)
+    verify(c, MEMBER, setup[0][1])
+    by_code = c.get("/api/me").json()
+    by_google = google_sign_in(MEMBER, "google-sub-1")
+    assert (by_google["provider"], by_google["id"]) == (by_code["provider"], by_code["id"])
+    assert by_google["auth_method"] == "ku_google"
+    with SessionLocal() as db:
+        assert db.query(User).filter_by(email=MEMBER).count() == 1
+
+
+def test_two_google_accounts_are_never_merged(setup):
+    google_sign_in(MEMBER, "google-sub-1")
+    second = google_sign_in(MEMBER, "google-sub-2")
+    assert second["id"] == "google-sub-2"
+
+
+def test_parallel_wrong_guesses_cannot_beat_the_attempt_limit(setup):
+    from concurrent.futures import ThreadPoolExecutor
+    ask(client(), MEMBER)
+    wrong = wrong_code(setup[0][1])
+    with ThreadPoolExecutor(max_workers=15) as pool:
+        errors = list(pool.map(lambda _: query(verify(client(), MEMBER, wrong))["error"], range(30)))
+    assert errors.count("wrong") <= email_login.MAX_ATTEMPTS - 1
+    with SessionLocal() as db:
+        assert db.query(LoginCode).one().attempts <= email_login.MAX_ATTEMPTS
+
+
+def test_a_code_signs_in_only_once_even_in_parallel(setup):
+    from concurrent.futures import ThreadPoolExecutor
+    ask(client(), MEMBER)
+    code = setup[0][1]
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        responses = list(pool.map(lambda _: verify(client(), MEMBER, code), range(10)))
+    signed_in = [r for r in responses if r.headers["location"] == FRONT + "/homework"]
+    assert len(signed_in) == 1
+
+
+def test_mail_failure_looks_like_success(setup, monkeypatch):
+    def broken(email, code):
+        raise OSError("smtp down")
+    monkeypatch.setattr(email_login, "send_code", broken)
+    assert query(ask(client(), MEMBER)) == query(ask(client(), "other@ku.th")) | {"email": MEMBER}
+    assert query(ask(client(), "third@ku.th")) == {"email": "third@ku.th", "sent": "1"}
+
+
+def test_old_login_codes_are_cleaned_up(setup):
+    with SessionLocal() as db:
+        old = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=2)
+        db.add(LoginCode(email="old@ku.th", code_hash="x", created_at=old, expires_at=old))
+        db.commit()
+    ask(client(), MEMBER)
+    with SessionLocal() as db:
+        assert db.query(LoginCode).filter_by(email="old@ku.th").count() == 0
