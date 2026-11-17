@@ -117,11 +117,11 @@ def resolve_role(db: Session, email: str | None, fallback_role: str | None) -> s
 
 
 # Which existing identity a sign-in may take over when it has no row of its
-# own yet. Email code sign-in may use any account with the same address;
-# Google may only take over an email-code account (two Google accounts with
+# own yet. Password sign-in may use any account with the same address;
+# Google may only take over a password account (two Google accounts with
 # the same address are never merged).
-_REUSABLE_PROVIDERS = {"email": ("google", "local"), "google": ("email",)}
-_PROVIDER_PREFERENCE = {"google": 0, "local": 1, "email": 2}
+_REUSABLE_PROVIDERS = {"password": ("google", "local"), "google": ("password",)}
+_PROVIDER_PREFERENCE = {"google": 0, "local": 1, "password": 2}
 
 
 def shared_identity(db: Session, provider: str, provider_user_id: str,
@@ -129,7 +129,7 @@ def shared_identity(db: Session, provider: str, provider_user_id: str,
     """The (provider, provider_user_id) to record this sign-in under.
 
     Homework, tasks, FAQs and consultations key off "provider:id", so the
-    same person signing in by Google one day and by email code the next
+    same person signing in by Google one day and by password the next
     must keep one identity. The first identity an address used wins."""
     email = (email or "").strip().lower()
     reusable = _REUSABLE_PROVIDERS.get(provider)

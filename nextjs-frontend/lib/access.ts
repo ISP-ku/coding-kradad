@@ -11,6 +11,8 @@ export type AccessAccount = {
   protected: boolean;
   /** The signed-in lecturer: cannot remove or demote themselves. */
   is_self: boolean;
+  /** A lecturer-made sign-in password exists (for people KU ALL blocks). */
+  has_password: boolean;
 };
 
 export type AccessData = { courses: AccessCourse[]; accounts: AccessAccount[] };

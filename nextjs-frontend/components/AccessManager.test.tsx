@@ -9,11 +9,11 @@ const DATA: AccessData = {
     { id: 2, code: "CS202", name: "Data" },
   ],
   accounts: [
-    { email: "boss@ku.th", role: "lecturer", course_ids: [], protected: true, is_self: false },
-    { email: "me@ku.th", role: "lecturer", course_ids: [1], protected: false, is_self: true },
-    { email: "nida@ku.th", role: "ta", course_ids: [1, 2], protected: false, is_self: false },
-    { email: "somchai@ku.th", role: "student", course_ids: [1], protected: false, is_self: false },
-    { email: "only202@ku.th", role: "student", course_ids: [2], protected: false, is_self: false },
+    { email: "boss@ku.th", role: "lecturer", course_ids: [], protected: true, is_self: false, has_password: false },
+    { email: "me@ku.th", role: "lecturer", course_ids: [1], protected: false, is_self: true, has_password: false },
+    { email: "nida@ku.th", role: "ta", course_ids: [1, 2], protected: false, is_self: false, has_password: false },
+    { email: "somchai@ku.th", role: "student", course_ids: [1], protected: false, is_self: false, has_password: false },
+    { email: "only202@ku.th", role: "student", course_ids: [2], protected: false, is_self: false, has_password: false },
   ],
 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
@@ -49,7 +49,7 @@ describe("AccessManager", () => {
 
   it("changes a role", async () => {
     const fetcher = vi.fn().mockResolvedValue(json(
-      { email: "somchai@ku.th", role: "ta", course_ids: [1], protected: false, is_self: false }));
+      { email: "somchai@ku.th", role: "ta", course_ids: [1], protected: false, is_self: false, has_password: false }));
     vi.stubGlobal("fetch", fetcher);
     render(<AccessManager initial={DATA} />);
     fireEvent.change(within(rowFor("somchai@ku.th")).getByLabelText("Role for somchai@ku.th"), { target: { value: "ta" } });
@@ -89,5 +89,48 @@ describe("AccessManager", () => {
     render(<AccessManager initial={DATA} />);
     fireEvent.change(within(rowFor("somchai@ku.th")).getByLabelText("Role for somchai@ku.th"), { target: { value: "ta" } });
     expect(await screen.findByRole("alert")).toHaveTextContent("Ask another lecturer");
+  });
+
+  it("creates a password and shows it once", async () => {
+    const fetcher = vi.fn().mockResolvedValue(json({
+      password: "Abc23defGhk456",
+      account: { email: "somchai@ku.th", role: "student", course_ids: [1], protected: false, is_self: false, has_password: true },
+    }));
+    vi.stubGlobal("fetch", fetcher);
+    render(<AccessManager initial={DATA} />);
+    fireEvent.click(within(rowFor("somchai@ku.th")).getByRole("button", { name: "Create password for somchai@ku.th" }));
+    const shown = await screen.findByRole("status", { name: "New password" });
+    expect(shown).toHaveTextContent("Abc23defGhk456");
+    expect(shown).toHaveTextContent("shown only once");
+    expect(fetcher).toHaveBeenCalledWith("/api/access/accounts/somchai%40ku.th/password", expect.objectContaining({ method: "POST" }));
+    expect(within(rowFor("somchai@ku.th")).getByRole("button", { name: "New password for somchai@ku.th" })).toBeInTheDocument();
+    fireEvent.click(within(shown).getByRole("button", { name: "Done" }));
+    expect(screen.queryByText("Abc23defGhk456")).not.toBeInTheDocument();
+  });
+
+  it("asks before replacing an existing password", () => {
+    const fetcher = vi.fn();
+    vi.stubGlobal("fetch", fetcher);
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(false));
+    const data = { ...DATA, accounts: DATA.accounts.map((a) => a.email === "nida@ku.th" ? { ...a, has_password: true } : a) };
+    render(<AccessManager initial={data} />);
+    fireEvent.click(within(rowFor("nida@ku.th")).getByRole("button", { name: "New password for nida@ku.th" }));
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("removes a password", async () => {
+    const fetcher = vi.fn().mockResolvedValue(json(
+      { email: "nida@ku.th", role: "ta", course_ids: [1, 2], protected: false, is_self: false, has_password: false }));
+    vi.stubGlobal("fetch", fetcher);
+    const data = { ...DATA, accounts: DATA.accounts.map((a) => a.email === "nida@ku.th" ? { ...a, has_password: true } : a) };
+    render(<AccessManager initial={data} />);
+    fireEvent.click(within(rowFor("nida@ku.th")).getByRole("button", { name: "Remove password for nida@ku.th" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("nida@ku.th can no longer sign in with a password.");
+    expect(fetcher).toHaveBeenCalledWith("/api/access/accounts/nida%40ku.th/password", expect.objectContaining({ method: "DELETE" }));
+  });
+
+  it("lets you create your own password", () => {
+    render(<AccessManager initial={DATA} />);
+    expect(within(rowFor("me@ku.th")).getByRole("button", { name: "Create password for me@ku.th" })).toBeEnabled();
   });
 });

@@ -27,7 +27,7 @@ from database import SessionLocal, init_db
 from faq import router as faq_router
 from homework import router as homework_router
 from reports import router as reports_router
-from email_login import available as email_login_available, router as email_login_router
+from password_login import router as password_login_router
 from users import PERSONAL_DOMAINS, personal_google_allowed, resolve_role, shared_identity, sync_user
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -112,7 +112,7 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 init_db()
 seed_roster_if_empty()  # Courses and members, first start only (SRS-23)
 app.include_router(access_router)  # SRS-23: lecturer Access page
-app.include_router(email_login_router)  # email code sign-in (no KU ALL)
+app.include_router(password_login_router)  # lecturer-set passwords (no KU ALL)
 app.include_router(activities_router)  # SRS-2 to SRS-13
 app.include_router(reports_router)
 app.include_router(consultations_router)  # SRS-14, SRS-15
@@ -128,7 +128,7 @@ def current_user(request):
         return None
     if user.get("auth_method") == "local_test" and not local_login_enabled(request):
         return None
-    if user.get("auth_method") not in {"ku_google", "local_test", "email_code"}:
+    if user.get("auth_method") not in {"ku_google", "local_test", "password"}:
         return None
     # Re-check membership and role on every request (SRS-23), so a lecturer
     # removing someone or changing their role on the Access page applies now,
@@ -242,7 +242,7 @@ def index(request: Request):
 def auth_options(request: Request):
     return JSONResponse({
         "local_test_login": local_login_enabled(request),
-        "email_code": email_login_available(),
+        "password": True,
         "personal_google": personal_google_allowed(),
     }, headers={"Cache-Control": "no-store"})
 

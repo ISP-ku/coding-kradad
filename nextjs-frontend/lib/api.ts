@@ -8,8 +8,8 @@ export const loginUrl = (provider: "google" | "google-personal" = "google") =>
 
 export const logoutUrl = PREVIEW ? "/preview-logout" : `${API_BASE}/logout`;
 
-export type AuthOptions = { local_test_login: boolean; email_code: boolean; personal_google: boolean };
-const NO_OPTIONS: AuthOptions = { local_test_login: false, email_code: false, personal_google: false };
+export type AuthOptions = { local_test_login: boolean; password: boolean; personal_google: boolean };
+const NO_OPTIONS: AuthOptions = { local_test_login: false, password: false, personal_google: false };
 
 /** Which sign-in options the backend offers. Only the backend decides. */
 export async function authOptions(): Promise<AuthOptions> {
@@ -20,7 +20,7 @@ export async function authOptions(): Promise<AuthOptions> {
     const body = await response.json();
     return {
       local_test_login: process.env.NODE_ENV !== "production" && body.local_test_login === true,
-      email_code: body.email_code === true,
+      password: body.password === true,
       personal_google: body.personal_google === true,
     };
   } catch { return NO_OPTIONS; }

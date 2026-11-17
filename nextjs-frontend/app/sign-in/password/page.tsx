@@ -1,20 +1,19 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import EmailSignIn from "@/components/EmailSignIn";
+import PasswordSignIn from "@/components/PasswordSignIn";
 import ThemeToggle from "@/components/ThemeToggle";
 import { API_BASE, authOptions } from "@/lib/api";
 import { homePathFor } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
 
-export const metadata: Metadata = { title: "Sign in with an email code · Course Support" };
+export const metadata: Metadata = { title: "Sign in with a password · Course Support" };
 
-type Search = { email?: string; sent?: string; error?: string };
+type Search = { email?: string; error?: string };
 
-export default async function EmailSignInPage({ searchParams }: { searchParams?: Search }) {
+export default async function PasswordSignInPage({ searchParams }: { searchParams?: Search }) {
   const [user, options] = await Promise.all([getSessionUser(), authOptions()]);
   if (user) redirect(homePathFor(user));
-  const sent = searchParams?.sent === "1";
 
   return (
     <div className={styles.layout}>
@@ -30,16 +29,11 @@ export default async function EmailSignInPage({ searchParams }: { searchParams?:
           <ThemeToggle />
         </div>
         <div className={styles.card}>
-          <h1>{sent ? "Check your email" : "Sign in with an email code"}</h1>
-          <p className={styles.lead}>
-            {sent
-              ? "Type the code from the email to finish signing in."
-              : "No Google or KU ALL needed. We email you a code, you type it in."}
-          </p>
-          <EmailSignIn
+          <h1>Sign in with a password</h1>
+          <p className={styles.lead}>For when KU ALL will not let you through. No Google or KU ALL needed.</p>
+          <PasswordSignIn
             apiBase={API_BASE}
             email={searchParams?.email}
-            sent={sent}
             error={searchParams?.error}
             allowPersonal={options.personal_google}
           />
