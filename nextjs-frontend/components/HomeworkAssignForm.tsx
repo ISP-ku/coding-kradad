@@ -3,12 +3,25 @@
 import { useState } from "react";
 import { errorMessage, localInputToIso } from "@/lib/homework";
 import type { HomeworkItem } from "@/lib/types";
-import styles from "./Homework.module.css";
+import {
+  Field, FieldRow, FormActions, FormCard, FormMessage, QuickPicks, daysFromNow, fieldAria, localDate,
+} from "./form/FormKit";
 
 type Errors = Partial<Record<"course_id" | "title" | "due_at" | "max_score", string>>;
 
-/** Lecturer-only form that assigns a new homework to the whole course. */
-export default function HomeworkAssignForm({ onCreated }: { onCreated: (item: HomeworkItem) => void }) {
+const POINTS = [10, 20, 50, 100];
+const dueIn = (days: number) => `${localDate(daysFromNow(days))}T23:59`;
+
+/**
+ * Lecturer-only form that assigns a new homework to the whole course. It has
+ * its own page (/homework/new); after assigning it returns to the homework list
+ * unless a caller handles the new item itself.
+ */
+export default function HomeworkAssignForm({ onCreated, courses = [] }: {
+  onCreated?: (item: HomeworkItem) => void;
+  /** Course codes to suggest while typing. */
+  courses?: string[];
+}) {
   const [course, setCourse] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -19,7 +32,7 @@ export default function HomeworkAssignForm({ onCreated }: { onCreated: (item: Ho
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setNotice("");
     setFormError("");
@@ -47,7 +60,12 @@ export default function HomeworkAssignForm({ onCreated }: { onCreated: (item: Ho
         setFormError(await errorMessage(res, "Could not assign the homework. Please check every field."));
         return;
       }
-      onCreated((await res.json()) as HomeworkItem);
+      const created = (await res.json()) as HomeworkItem;
+      if (!onCreated) {
+        window.location.assign("/homework?assigned=1");
+        return;
+      }
+      onCreated(created);
       setCourse(""); setTitle(""); setDescription(""); setDue(""); setMax("100");
       setNotice("Homework assigned. Students can see it now.");
     } catch {
@@ -57,52 +75,48 @@ export default function HomeworkAssignForm({ onCreated }: { onCreated: (item: Ho
     }
   }
 
-  const err = (id: keyof Errors) => errors[id] && <span className={styles.fieldError} id={`${id}-error`}>{errors[id]}</span>;
-  const aria = (id: keyof Errors) => ({
-    "aria-invalid": errors[id] ? true : undefined,
-    "aria-describedby": errors[id] ? `${id}-error` : undefined,
-  });
-
   return (
-    <form className={`${styles.panel} ${styles.form}`} onSubmit={submit} noValidate aria-label="Assign homework">
-      <h3>Assign homework</h3>
-      <p className={styles.hint}>Everyone in the course sees it as soon as you assign it.</p>
-      <div className={styles.grid}>
-        <div>
-          <label htmlFor="hw-course">Course</label>
-          <input id="hw-course" value={course} maxLength={100} placeholder="e.g. 01219245"
-            onChange={(e) => setCourse(e.target.value)} {...aria("course_id")} />
-          {err("course_id")}
-        </div>
-        <div>
-          <label htmlFor="hw-title">Title</label>
-          <input id="hw-title" value={title} maxLength={200} placeholder="e.g. HW1 - ER Diagram"
-            onChange={(e) => setTitle(e.target.value)} {...aria("title")} />
-          {err("title")}
-        </div>
-        <div className={styles.full}>
-          <label htmlFor="hw-desc">Instructions (optional)</label>
-          <textarea id="hw-desc" value={description} maxLength={2000}
-            onChange={(e) => setDescription(e.target.value)} />
-        </div>
-        <div>
-          <label htmlFor="hw-due">Due date and time</label>
+    <FormCard label="Assign homework" onSubmit={submit}>
+      <FieldRow>
+        <Field id="hw-course" label="Course" hint="Everyone in this course gets it." error={errors.course_id}>
+          <input id="hw-course" value={course} maxLength={100} placeholder="e.g. 01219245" autoComplete="off"
+            list={courses.length ? "homework-courses" : undefined}
+            onChange={(e) => setCourse(e.target.value)} {...fieldAria("hw-course", errors.course_id, true)} />
+          {courses.length > 0 && <datalist id="homework-courses">{courses.map((c) => <option key={c} value={c} />)}</datalist>}
+        </Field>
+        <Field id="hw-title" label="Title" hint="Students see this in their list." error={errors.title} count={{ value: title, max: 200 }}>
+          <input id="hw-title" value={title} maxLength={200} placeholder="e.g. HW3: SQL joins"
+            onChange={(e) => setTitle(e.target.value)} {...fieldAria("hw-title", errors.title, true)} />
+        </Field>
+      </FieldRow>
+
+      <Field id="hw-desc" label="Instructions" optional hint="What to do and how to hand it in." count={{ value: description, max: 2000 }}>
+        <textarea id="hw-desc" value={description} maxLength={2000} placeholder="e.g. Answer questions 1 to 5 and paste a link to your notebook."
+          onChange={(e) => setDescription(e.target.value)} {...fieldAria("hw-desc", undefined, true)} />
+      </Field>
+
+      <FieldRow>
+        <Field id="hw-due" label="Due date and time" error={errors.due_at}>
           <input id="hw-due" type="datetime-local" value={due}
-            onChange={(e) => setDue(e.target.value)} {...aria("due_at")} />
-          {err("due_at")}
-        </div>
-        <div>
-          <label htmlFor="hw-max">Maximum score</label>
+            onChange={(e) => setDue(e.target.value)} {...fieldAria("hw-due", errors.due_at)} />
+          <QuickPicks label="Quick due dates" picks={[
+            { label: "Tomorrow", onPick: () => setDue(dueIn(1)) },
+            { label: "In a week", onPick: () => setDue(dueIn(7)) },
+            { label: "In 2 weeks", onPick: () => setDue(dueIn(14)) },
+          ]} />
+        </Field>
+        <Field id="hw-max" label="Maximum score" error={errors.max_score}>
           <input id="hw-max" type="number" inputMode="numeric" min={1} max={1000} step={1} value={max}
-            onChange={(e) => setMax(e.target.value)} {...aria("max_score")} />
-          {err("max_score")}
-        </div>
-      </div>
-      {formError && <div className={styles.alert} role="alert">{formError}</div>}
-      {notice && <div className={styles.notice} role="status">{notice}</div>}
-      <div className={styles.actions}>
-        <button type="submit" className={styles.btn} disabled={busy}>{busy ? "Assigning..." : "Assign homework"}</button>
-      </div>
-    </form>
+            onChange={(e) => setMax(e.target.value)} {...fieldAria("hw-max", errors.max_score)} />
+          <QuickPicks label="Common scores" picks={POINTS.map((n) => ({
+            label: `${n} points`, onPick: () => setMax(String(n)), active: max === String(n),
+          }))} />
+        </Field>
+      </FieldRow>
+
+      {formError && <FormMessage kind="error">{formError}</FormMessage>}
+      {notice && <FormMessage kind="notice">{notice}</FormMessage>}
+      <FormActions submitLabel="Assign homework" busyLabel="Assigning..." busy={busy} cancelHref="/homework" />
+    </FormCard>
   );
 }

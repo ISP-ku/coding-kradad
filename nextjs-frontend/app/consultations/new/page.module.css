@@ -1,2 +1,2 @@
 .page{padding-top:20px}
-.backLink{display:inline-block;margin:0 0 16px;color:#6948bd;font-size:14px;font-weight:650}
+.backLink{display:inline-block;margin:0 0 16px;color:var(--link);font-size:14px;font-weight:650}

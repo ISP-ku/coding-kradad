@@ -25,7 +25,7 @@ describe("Record-consultation route guard (SRS-14)", () => {
     await expect(open(null)).rejects.toThrow("REDIRECT:/consultations");
   });
   it("keeps students out", async () => {
-    await expect(open(account("student"))).rejects.toThrow("REDIRECT:/faq");
+    await expect(open(account("student"))).rejects.toThrow("REDIRECT:/homework");
   });
   it("keeps lecturers out - only TAs record consultations", async () => {
     await expect(open(account("lecturer"))).rejects.toThrow("REDIRECT:/dashboard");

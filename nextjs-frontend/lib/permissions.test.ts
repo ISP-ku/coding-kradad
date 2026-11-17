@@ -34,9 +34,9 @@ describe("page permissions", () => {
     expect(canAccess({ role: "admin" as Role }, "reports")).toBe(false);
   });
 
-  it("sends students to the public FAQ and staff to the dashboard", () => {
-    expect(homePathFor(user("student"))).toBe("/faq");
-    expect(homePathFor(user(undefined))).toBe("/faq");
+  it("sends students to their homework and staff to the dashboard", () => {
+    expect(homePathFor(user("student"))).toBe("/homework");
+    expect(homePathFor(user(undefined))).toBe("/homework");
     expect(homePathFor(user("ta"))).toBe("/dashboard");
     expect(homePathFor(user("lecturer"))).toBe("/dashboard");
   });

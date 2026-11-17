@@ -21,4 +21,14 @@ describe("ConsultationForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save consultation" }));
     expect(screen.getByRole("status")).toHaveTextContent(/not saved/);
   });
+  it("starts on today and fills common values with one click", () => {
+    render(<ConsultationForm preview />);
+    expect(screen.getByLabelText("Date")).toHaveValue(new Date().toLocaleDateString("en-CA"));
+    fireEvent.click(screen.getByRole("button", { name: "Yesterday" }));
+    const y = new Date();
+    y.setDate(y.getDate() - 1);
+    expect(screen.getByLabelText("Date")).toHaveValue(y.toLocaleDateString("en-CA"));
+    fireEvent.click(screen.getByRole("button", { name: "45 min" }));
+    expect(screen.getByLabelText("Duration (minutes)")).toHaveValue(45);
+  });
 });

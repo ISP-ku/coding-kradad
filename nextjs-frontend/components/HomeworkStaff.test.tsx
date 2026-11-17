@@ -53,7 +53,7 @@ describe("HomeworkStaff as a TA", () => {
     expect(await within(alice).findByRole("status")).toHaveTextContent("Grade saved");
     expect(fetcher).toHaveBeenLastCalledWith("/api/homework/1/submissions/7", expect.objectContaining({ method: "PATCH" }));
     expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({ score: 17, feedback: "Good" });
-    expect(screen.getByText("2 submitted · 2 graded")).toBeInTheDocument();   // Alice newly graded
+    expect(screen.getByText("2 submitted, 2 graded")).toBeInTheDocument();   // Alice newly graded
   });
 
   it("keeps the homework on screen after its last submission is graded, until it is closed", async () => {
@@ -84,7 +84,7 @@ describe("HomeworkStaff as a TA", () => {
     fireEvent.change(within(bob).getByLabelText("Score (max 20)"), { target: { value: "15" } });
     fireEvent.click(within(bob).getByRole("button", { name: "Update grade" }));
     await within(bob).findByRole("status");
-    expect(screen.getByText("2 submitted · 1 graded")).toBeInTheDocument();
+    expect(screen.getByText("2 submitted, 1 graded")).toBeInTheDocument();
   });
 
   it.each(["", "21", "-1", "7.5"])("rejects the score %j without calling the server", async (value) => {
@@ -153,45 +153,4 @@ describe("HomeworkStaff as a lecturer", () => {
     expect(screen.getAllByRole("article")).toHaveLength(3);
   });
 
-  it("validates the assign form before sending", () => {
-    const fetcher = vi.fn();
-    vi.stubGlobal("fetch", fetcher);
-    render(<HomeworkStaff initial={[]} role="lecturer" />);
-    fireEvent.change(screen.getByLabelText("Maximum score"), { target: { value: "0" } });
-    fireEvent.click(screen.getByRole("button", { name: "Assign homework" }));
-    expect(screen.getByText("Please enter the course code.")).toBeInTheDocument();
-    expect(screen.getByText("Please enter a title.")).toBeInTheDocument();
-    expect(screen.getByText("Please pick the due date and time.")).toBeInTheDocument();
-    expect(screen.getByText("Enter a whole number from 1 to 1000.")).toBeInTheDocument();
-    expect(fetcher).not.toHaveBeenCalled();
-  });
-
-  it("assigns homework and shows it in the list straight away", async () => {
-    const created = hw({ id: 9, title: "HW9 New", submission_count: 0, graded_count: 0, max_score: 50 });
-    const fetcher = vi.fn().mockResolvedValue(json(created, 201));
-    vi.stubGlobal("fetch", fetcher);
-    render(<HomeworkStaff initial={[]} role="lecturer" />);
-    fireEvent.change(screen.getByLabelText("Course"), { target: { value: " 01219245 " } });
-    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "HW9 New" } });
-    fireEvent.change(screen.getByLabelText("Due date and time"), { target: { value: "2099-03-01T09:30" } });
-    fireEvent.change(screen.getByLabelText("Maximum score"), { target: { value: "50" } });
-    fireEvent.click(screen.getByRole("button", { name: "Assign homework" }));
-
-    expect(await screen.findByRole("status")).toHaveTextContent("Homework assigned");
-    const body = JSON.parse(fetcher.mock.calls[0][1].body);
-    expect(body).toMatchObject({ course_id: "01219245", title: "HW9 New", max_score: 50 });
-    expect(body.due_at).toBe(new Date("2099-03-01T09:30").toISOString());   // local time -> UTC instant
-    expect(screen.getByText("HW9 New")).toBeInTheDocument();
-    expect(screen.getByLabelText("Title")).toHaveValue("");                   // form cleared
-  });
-
-  it("shows the server's reason when assigning is refused", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ detail: "Lecturer access required." }, 403)));
-    render(<HomeworkStaff initial={[]} role="lecturer" />);
-    fireEvent.change(screen.getByLabelText("Course"), { target: { value: "C" } });
-    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "T" } });
-    fireEvent.change(screen.getByLabelText("Due date and time"), { target: { value: "2099-03-01T09:30" } });
-    fireEvent.click(screen.getByRole("button", { name: "Assign homework" }));
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("not allowed"));
-  });
 });

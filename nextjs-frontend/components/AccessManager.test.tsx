@@ -47,32 +47,6 @@ describe("AccessManager", () => {
     expect(screen.getByText(/boss@ku\.th/)).toBeInTheDocument();
   });
 
-  it("adds a member and shows them in the table", async () => {
-    const fetcher = vi.fn().mockResolvedValue(json(
-      { email: "new@ku.th", role: "ta", course_ids: [1], protected: false, is_self: false }, 201));
-    vi.stubGlobal("fetch", fetcher);
-    render(<AccessManager initial={DATA} />);
-    fireEvent.change(screen.getByLabelText("KU email"), { target: { value: " New@KU.th " } });
-    fireEvent.change(screen.getByLabelText("Role"), { target: { value: "ta" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add to CS101" }));
-
-    expect(await screen.findByRole("status")).toHaveTextContent("new@ku.th now has access to CS101");
-    expect(fetcher).toHaveBeenCalledWith("/api/access/courses/1/members", expect.objectContaining({ method: "POST" }));
-    expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual({ email: "new@ku.th", role: "ta" });
-    expect(rowFor("new@ku.th")).toBeInTheDocument();
-    expect(screen.getByLabelText("KU email")).toHaveValue("");
-  });
-
-  it("checks the email before sending", () => {
-    const fetcher = vi.fn();
-    vi.stubGlobal("fetch", fetcher);
-    render(<AccessManager initial={DATA} />);
-    fireEvent.change(screen.getByLabelText("KU email"), { target: { value: "someone@gmail.com" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add to CS101" }));
-    expect(screen.getByText("Enter a KU email address ending in @ku.th.")).toBeInTheDocument();
-    expect(fetcher).not.toHaveBeenCalled();
-  });
-
   it("changes a role", async () => {
     const fetcher = vi.fn().mockResolvedValue(json(
       { email: "somchai@ku.th", role: "ta", course_ids: [1], protected: false, is_self: false }));
@@ -93,29 +67,27 @@ describe("AccessManager", () => {
     expect(fetcher).toHaveBeenCalledWith("/api/access/courses/1/members/somchai%40ku.th", expect.objectContaining({ method: "DELETE" }));
   });
 
-  it("shows the server's error message", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ detail: "nida@ku.th is already in this course." }, 409)));
-    render(<AccessManager initial={DATA} />);
-    fireEvent.change(screen.getByLabelText("KU email"), { target: { value: "nida@ku.th" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add to CS101" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("nida@ku.th is already in this course.");
-  });
-
-  it("creates a course and selects it", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ id: 3, code: "CS303", name: "Systems" }, 201)));
-    render(<AccessManager initial={DATA} />);
-    fireEvent.change(screen.getByLabelText("New course code"), { target: { value: "CS303" } });
-    fireEvent.change(screen.getByLabelText("Course name (optional)"), { target: { value: "Systems" } });
-    fireEvent.click(screen.getByRole("button", { name: "Create course" }));
-    expect(await screen.findByRole("region", { name: "Manage CS303" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Course")).toHaveValue("3");
-    expect(screen.getByRole("button", { name: "Add to CS303" })).toBeInTheDocument();
-    expect(screen.getByText("No one is in this course yet.")).toBeInTheDocument();
-  });
-
-  it("asks for a first course when there are none", () => {
+  it("points to New course when there are no courses", () => {
     render(<AccessManager initial={{ courses: [], accounts: [] }} />);
-    expect(screen.getByText(/Create a course first/)).toBeInTheDocument();
+    expect(screen.getByText(/Use New course to create one/)).toBeInTheDocument();
+  });
+
+  it("has no inline forms: creating and adding live on their own pages", () => {
+    render(<AccessManager initial={DATA} />);
     expect(screen.queryByLabelText("KU email")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create course" })).not.toBeInTheDocument();
+  });
+
+  it("opens on the course and confirmation it was sent back with", () => {
+    render(<AccessManager initial={DATA} initialCourseId={2} initialNotice="new@ku.th now has access." />);
+    expect(screen.getByRole("table", { name: "Members of CS202" })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("new@ku.th now has access.");
+  });
+
+  it("shows the server's reason when a role change is refused", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ detail: "You cannot change your own access. Ask another lecturer." }, 400)));
+    render(<AccessManager initial={DATA} />);
+    fireEvent.change(within(rowFor("somchai@ku.th")).getByLabelText("Role for somchai@ku.th"), { target: { value: "ta" } });
+    expect(await screen.findByRole("alert")).toHaveTextContent("Ask another lecturer");
   });
 });
