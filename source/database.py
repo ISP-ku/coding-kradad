@@ -133,6 +133,21 @@ class CourseMember(Base):
     added_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
+class SignInPassword(Base):
+    """A password a lecturer created for someone KU ALL will not let through
+    (password_login.py). Only a scrypt hash is stored. Its own table, so
+    existing databases get it from create_all without a migration."""
+
+    __tablename__ = "sign_in_passwords"
+
+    email: Mapped[str] = mapped_column(String(200), primary_key=True)
+    password_hash: Mapped[str] = mapped_column(String(300))
+    set_by: Mapped[str] = mapped_column(String(200))
+    set_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: _utcnow().replace(tzinfo=None))
+    failed_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    locked_until: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
 class Activity(Base):
     """A deadline, lab session, consultation slot, or milestone on a
     course's shared schedule (SRS-2, SRS-3, SRS-9)."""

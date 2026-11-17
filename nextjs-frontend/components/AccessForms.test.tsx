@@ -26,7 +26,7 @@ describe("AccessMemberForm", () => {
   });
 
   it("adds the person to the chosen course with the chosen role", async () => {
-    const fetcher = vi.fn().mockResolvedValue(json({ email: "new@ku.th", role: "ta", course_ids: [2], protected: false, is_self: false }, 201));
+    const fetcher = vi.fn().mockResolvedValue(json({ email: "new@ku.th", role: "ta", course_ids: [2], protected: false, is_self: false, has_password: false }, 201));
     vi.stubGlobal("fetch", fetcher);
     render(<AccessMemberForm courses={COURSES} onDone={onDone} />);
     fireEvent.change(screen.getByLabelText("Course"), { target: { value: "2" } });

@@ -130,3 +130,26 @@ See [LOCAL_TEST_LOGIN.md](LOCAL_TEST_LOGIN.md) for the new backend test login. K
 ## Local verification results
 
 44 backend tests passed; 24 frontend tests passed; Next.js production build passed. Checked using Python 3.12 and Node 24 locally. The GitHub CI workflow retains Python 3.11 from your uploaded project; its hosted run is not yet verified.
+
+## When KU ALL blocks sign-in
+
+KU's Google Workspace sends every @ku.th Google sign-in to KU ALL. If KU ALL cannot verify someone (the Google page says the account "can't be accessed because your identity couldn't be verified"), no app can skip that step: it is a university setting. Two other ways in:
+
+### Password sign-in
+
+On the Access page, a lecturer clicks **Create password** next to the person. The server makes a random 14-character password and shows it once; the lecturer passes it on. The person chooses **Sign in with a password from your lecturer** on the sign-in page (`/sign-in/password`) and types their @ku.th address and that password. No Google, KU ALL or email is involved, and nothing needs to be configured.
+
+- Only a scrypt hash is stored. **New password** replaces it (the old one stops working); **Remove** turns password sign-in off for that person. Removing someone from their last course also deletes their password.
+- 5 wrong tries lock the password for 15 minutes (a new password unlocks it). A wrong address and a wrong password get the same answer.
+- Course membership and the Access page role still apply, exactly as with Google sign-in.
+- A `LECTURER_EMAILS` lecturer's password can only be created by that lecturer.
+- Someone who signs in with Google one day and with a password the next stays the same user: their homework, tasks and posts follow them.
+
+### Personal Google accounts (optional)
+
+Set `ALLOW_PERSONAL_GOOGLE=1`. The Access page then accepts Gmail addresses, and the sign-in page shows **Continue with a personal Google account**, which does not go through KU ALL.
+
+- Only Gmail addresses a lecturer has added to a course can sign in, even if `REQUIRE_COURSE_MEMBERSHIP=0`.
+- The app no longer proves the person is a KU member; it trusts the lecturer who added the address.
+- Two different Google accounts are never merged into one user.
+
