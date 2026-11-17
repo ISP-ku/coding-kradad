@@ -16,6 +16,12 @@ Safety:
 - At most 1 code a minute and 5 an hour per address.
 - The answer to a request is the same whether or not the address may sign
   in, and a row is stored either way, so nothing reveals who is registered.
+  Mail goes out in the background after the answer, so neither its timing
+  nor an SMTP failure (which is only logged) gives that away either.
+- Each try uses up one of the 5 attempts before the code is compared, with
+  an atomic UPDATE, so parallel requests cannot get more guesses, and a
+  code is marked used atomically, so it signs in only once.
+- Rows older than a day are deleted on each request.
 - Forms must come from our own frontend (Origin/Referer check).
 - Signing in still goes through course membership (SRS-23) and takes the
   role from the Access page (users.resolve_role via app.with_role).
@@ -34,9 +40,9 @@ from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from urllib.parse import urlencode, urlparse
 
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select, update
 
 from database import LoginCode, SessionLocal, User
 from users import normalise_member_email, resolve_role
@@ -48,6 +54,7 @@ CODE_TTL = timedelta(minutes=10)
 MAX_ATTEMPTS = 5
 MIN_GAP = timedelta(minutes=1)
 HOURLY_LIMIT = 5
+KEEP_ROWS = timedelta(days=1)  # longer than CODE_TTL and the hourly limit
 
 
 def _now() -> datetime:
@@ -116,6 +123,17 @@ def send_code_or_log(email: str, code: str) -> None:
     send_code(email, code)
 
 
+def _deliver(email: str, code: str) -> None:
+    """Runs after the response is sent; failures are only logged."""
+    try:
+        if email_sending_available():
+            send_code(email, code)
+        else:
+            send_code_or_log(email, code)
+    except Exception:  # noqa: BLE001 - never reveal a failure to the person
+        logger.exception("Could not email a sign-in code")
+
+
 def available() -> bool:
     """Whether the sign-in page should offer email codes."""
     return email_sending_available() or _app().APP_ENV == "development"
@@ -147,7 +165,7 @@ def _back(**params) -> RedirectResponse:
 # ---- routes ------------------------------------------------------------------
 
 @router.post("/email-login/request")
-def request_code(request: Request, email: str = Form("")):
+def request_code(request: Request, background: BackgroundTasks, email: str = Form("")):
     _check_origin(request)
     try:
         address = normalise_member_email(email)
@@ -158,6 +176,8 @@ def request_code(request: Request, email: str = Form("")):
 
     now = _now()
     with SessionLocal() as db:
+        db.execute(delete(LoginCode).where(LoginCode.created_at < now - KEEP_ROWS))
+        db.commit()
         recent = db.scalars(select(LoginCode).where(LoginCode.email == address,
                                                     LoginCode.created_at > now - timedelta(hours=1))).all()
         if any(r.created_at > now - MIN_GAP for r in recent) or len(recent) >= HOURLY_LIMIT:
@@ -171,14 +191,7 @@ def request_code(request: Request, email: str = Form("")):
         allowed = resolve_role(db, address, None) is not None
 
     if allowed:
-        try:
-            if email_sending_available():
-                send_code(address, code)
-            else:
-                send_code_or_log(address, code)
-        except Exception:  # noqa: BLE001 - any mail failure looks the same to the person
-            logger.exception("Could not email a sign-in code")
-            return _back(email=address, error="send_failed")
+        background.add_task(_deliver, address, code)
     return _back(email=address, sent="1")
 
 
@@ -197,15 +210,31 @@ def verify_code(request: Request, email: str = Form(""), code: str = Form("")):
                          .order_by(LoginCode.created_at.desc()).limit(1)).first()
         if row is None or row.expires_at <= now:
             return _back(email=address, sent="1", error="expired")
-        if len(code) != 6 or not hmac.compare_digest(row.code_hash, _hash(address, code)):
-            row.attempts += 1
-            locked = row.attempts >= MAX_ATTEMPTS
+        row_id, code_hash = row.id, row.code_hash
+        # Use up one attempt before comparing. The UPDATE is atomic, so
+        # parallel requests cannot get more than MAX_ATTEMPTS guesses.
+        claimed = db.execute(
+            update(LoginCode)
+            .where(LoginCode.id == row_id, LoginCode.used_at.is_(None), LoginCode.attempts < MAX_ATTEMPTS)
+            .values(attempts=LoginCode.attempts + 1)
+        ).rowcount
+        if not claimed:
+            db.commit()
+            return _back(email=address, sent="1", error="locked")
+        if len(code) != 6 or not hmac.compare_digest(code_hash, _hash(address, code)):
+            attempts = db.scalar(select(LoginCode.attempts).where(LoginCode.id == row_id))
+            locked = attempts >= MAX_ATTEMPTS
             if locked:
-                row.used_at = now
+                db.execute(update(LoginCode).where(LoginCode.id == row_id).values(used_at=now))
             db.commit()
             return _back(email=address, sent="1", error="locked" if locked else "wrong")
-        row.used_at = now
+        # Only one request may use the code, however many arrive at once.
+        used = db.execute(
+            update(LoginCode).where(LoginCode.id == row_id, LoginCode.used_at.is_(None)).values(used_at=now)
+        ).rowcount
         db.commit()
+        if not used:
+            return _back(email=address, sent="1", error="expired")
         known = db.scalar(select(User.display_name).where(func.lower(User.email) == address).limit(1))
 
     app = _app()
