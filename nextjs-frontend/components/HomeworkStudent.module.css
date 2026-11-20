@@ -57,7 +57,7 @@
 .feedback{margin:8px 0 0;font-size:14px}
 
 .btn{border:0;border-radius:10px;background:var(--primary);color:var(--on-primary);padding:0 18px;min-height:40px;font-weight:600;white-space:nowrap}
-.btn:hover{background:var(--primary-h)}
+.btn:hover:not(:disabled){background:var(--primary-h)}
 .btn:disabled{opacity:.6;cursor:wait}
 .quiet{border:1px solid var(--field);border-radius:10px;background:var(--surface);color:var(--quiet-ink);padding:0 14px;min-height:40px;font-weight:500;white-space:nowrap}
 .quiet:hover{background:var(--quiet-h)}

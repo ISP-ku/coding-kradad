@@ -1,5 +1,5 @@
 .btn{border:0;border-radius:10px;background:var(--primary);color:var(--on-primary);padding:10px 20px;font-weight:600;display:inline-block}
-.btn:hover{filter:brightness(.94)}
+.btn:hover:not(:disabled){background:var(--primary-h)}
 .btn:disabled{opacity:.6;cursor:not-allowed}
 .btnGhost{border:1px solid var(--field);border-radius:10px;background:var(--surface);color:var(--link);padding:9px 18px;font-weight:600}
 .btnGhost:hover{background:var(--quiet-h)}
@@ -7,13 +7,13 @@
 .filter{border:1px solid var(--field);background:var(--surface);color:var(--link);border-radius:999px;padding:8px 16px;font-weight:600;font-size:14px}
 .filter:hover{background:var(--quiet-h)}
 .filter[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
-.card,.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 5px 20px transparent}
+.card,.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-sm)}
 .card{padding:20px 24px;margin-bottom:14px}
 .panel{padding:26px 28px;margin-bottom:28px}
 .panel h3{margin:0 0 4px;font-size:20px;font-weight:500}
 .hint{font-size:13px;color:var(--muted);margin:0 0 4px}
 .head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
-.title{font-weight:650;font-size:17px;margin:0}
+.title{font-weight:600;font-size:17px;margin:0}
 .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:6px}
 .desc{margin:12px 0 0;white-space:pre-wrap}
 .chip{background:var(--chip-bg);color:var(--chip-ink);border-radius:20px;padding:3px 11px;font-size:12px;font-weight:600;display:inline-block}
@@ -23,7 +23,7 @@
 .chipGraded,.chipOk{background:var(--done-bg);color:var(--done)}
 .chipLate{background:var(--soon-bg);color:var(--soon)}
 .answer{background:var(--quiet-h);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:14px;white-space:pre-wrap;overflow-wrap:anywhere}
-.answerLabel{display:block;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--muted);margin:14px 0 0}
+.answerLabel{display:block;font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--muted);margin:14px 0 0}
 .feedback{margin-top:10px;font-size:14px}
 .actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}
 .form label{display:block;font-size:14px;font-weight:600;margin:14px 0 6px}
