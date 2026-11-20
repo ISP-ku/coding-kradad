@@ -9,3 +9,7 @@
 .backLink{display:inline-flex;align-items:center;gap:6px;margin:0 0 18px;font-size:14px;font-weight:500}
 .formPage{max-width:760px}
 .notice{margin:0 0 18px;padding:10px 14px;border-radius:10px;background:var(--done-bg);color:var(--done);font-size:14px}
+
+.actionButton,.secondaryButton{transition:background var(--t-fast) var(--ease-out),transform var(--t-press) var(--ease-out)}
+.actionButton:active,.secondaryButton:active{transform:scale(.97)}
+.notice{animation:rise var(--t-base) var(--ease-out) backwards}

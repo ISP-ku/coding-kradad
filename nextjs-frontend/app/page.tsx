@@ -3,6 +3,7 @@ import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
 import { API_BASE, authOptions, loginUrl, logoutUrl } from "@/lib/api";
 import { homePathFor } from "@/lib/permissions";
+import { PREVIEW } from "@/lib/preview";
 import { getSessionUser } from "@/lib/session";
 import styles from "./page.module.css";
 
@@ -74,7 +75,7 @@ export default async function LoginPage() {
               <p className={styles.lead}>
                 You are signed in with {user.provider === "local" ? "a local test account" : user.provider === "password" ? "a password from your lecturer" : "your Google account"}.
               </p>
-              <Link className={styles.primary} href={homePathFor(user)}>Open my course</Link>
+              <Link className={styles.primary} href={PREVIEW ? "/faq" : homePathFor(user)}>Open my course</Link>
               <a className={styles.secondary} href={logoutUrl}>Log out and use another account</a>
             </>
           ) : (

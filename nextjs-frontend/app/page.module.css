@@ -7,12 +7,14 @@
 .logo rect{fill:var(--primary)}
 .logo path{stroke:var(--on-primary);stroke-width:2;stroke-linecap:round}
 
-.card{width:100%;max-width:400px;display:flex;flex-direction:column;gap:14px}
+.card{width:100%;max-width:400px;display:flex;flex-direction:column;gap:14px;animation:rise .45s var(--ease-out) backwards}
 .card h1{margin:0;font-size:34px;line-height:1.2;font-weight:600;letter-spacing:-.01em;overflow-wrap:anywhere}
 .lead{margin:0 0 10px;font-size:16px;line-height:1.65;color:var(--soft)}
 .avatar{width:60px;height:60px;border-radius:50%;object-fit:cover}
 
 .primary,.quiet{display:flex;align-items:center;justify-content:center;gap:12px;min-height:52px;padding:0 20px;border-radius:12px;font-weight:600;font-size:16px;text-decoration:none}
+.primary,.quiet{transition:background var(--t-fast) var(--ease-out),transform var(--t-press) var(--ease-out)}
+.primary:active,.quiet:active{transform:scale(.97)}
 .primary{background:var(--primary);color:var(--on-primary)}
 .primary:hover{background:var(--primary-h);color:var(--on-primary);text-decoration:none}
 .quiet{min-height:48px;border:1px solid var(--field);background:var(--surface);color:var(--quiet-ink);font-weight:500;font-size:15px}
@@ -28,12 +30,12 @@
 .sideInner{width:100%;max-width:520px;display:flex;flex-direction:column;gap:18px}
 .sideText{margin:0;font-size:15px;line-height:1.6;color:var(--soft);max-width:44ch}
 
-.preview{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px 24px 10px;box-shadow:var(--shadow)}
+.preview{animation:rise .6s .12s var(--ease-out) backwards;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px 24px 10px;box-shadow:var(--shadow)}
 .previewHead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px}
 .previewHead strong{font-size:17px;font-weight:600}
 .previewHead span{font-size:13px;color:var(--muted)}
 .previewGroup{margin:12px 0 4px;font-size:13px;font-weight:600}
-.previewRow{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 0;border-top:1px solid var(--line2)}
+.previewRow{animation:fade .5s var(--ease-out) backwards;display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 0;border-top:1px solid var(--line2)}
 .previewDay{font-size:20px;font-weight:600;text-align:center;color:var(--muted)}
 .previewText{display:flex;flex-direction:column;min-width:0}
 .previewText span{font-weight:500}
@@ -44,3 +46,7 @@
 .soon{color:var(--soon)}
 
 @media(max-width:860px){.side{display:none}.signIn{padding:24px}.card h1{font-size:29px}}
+
+.preview>div:nth-child(2) .previewRow{animation-delay:.25s}
+.preview>div:nth-child(3) .previewRow{animation-delay:.32s}
+.preview>.previewRow{animation-delay:.4s}
