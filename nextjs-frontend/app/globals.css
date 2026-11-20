@@ -15,6 +15,11 @@
   --c1:#6A4BC4;--c2:#0E7C76;--c3:#2F64C8;--c4:#A04A8C;
   /* names older modules still use */
   --accent:var(--primary);--dark:var(--ink);
+  /* Motion: one curve and three speeds, so every screen moves the same way. */
+  --ease-out:cubic-bezier(.2,.8,.2,1);
+  
+  --t-press:100ms;--t-fast:160ms;--t-base:260ms;
+  --shadow-sm:0 2px 10px rgba(43,35,71,.06);
   color-scheme:light;
 }
 :root[data-theme="dark"]{
@@ -27,7 +32,7 @@
   --soon:#F2B661;--soon-bg:#3A2D17;--soon-line:#5A4422;
   --done:#6FD39F;--done-bg:#173226;
   --chip-bg:#2A2340;--chip-ink:#D5CBF7;--dot:#4A4062;--focus:#B7A6EC;
-  --shadow:0 10px 30px rgba(0,0,0,.45);
+  --shadow:0 10px 30px rgba(0,0,0,.45);--shadow-sm:0 2px 10px rgba(0,0,0,.28);
   --c1:#A48DF0;--c2:#4CC3B8;--c3:#82A8F2;--c4:#E08CCB;
   color-scheme:dark;
 }
@@ -42,7 +47,7 @@
     --soon:#F2B661;--soon-bg:#3A2D17;--soon-line:#5A4422;
     --done:#6FD39F;--done-bg:#173226;
     --chip-bg:#2A2340;--chip-ink:#D5CBF7;--dot:#4A4062;--focus:#B7A6EC;
-    --shadow:0 10px 30px rgba(0,0,0,.45);
+    --shadow:0 10px 30px rgba(0,0,0,.45);--shadow-sm:0 2px 10px rgba(0,0,0,.28);
     --c1:#A48DF0;--c2:#4CC3B8;--c3:#82A8F2;--c4:#E08CCB;
     color-scheme:dark;
   }
@@ -56,4 +61,9 @@ button,input,select,textarea{font:inherit}
 button{cursor:pointer}
 input,select,textarea{background:var(--surface);color:var(--ink)}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+/* Shared entrances. The hidden state lives only in from{}, so content is
+   always visible if an animation never runs (reduced motion, print). */
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
+@keyframes fade{from{opacity:0}}
+@keyframes pop{from{opacity:0;transform:scale(.96)}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
