@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { ActivityAssignee, CourseActivity } from "@/lib/types";
 import {
   ChoiceGroup, Field, FieldRow, FormActions, FormCard, FormMessage, QuickPicks,
-  FormNote, fieldAria, type Choice,
+  FormNote, PicksRow, fieldAria, type Choice,
 } from "./form/FormKit";
 import { daysFromNow, localDate, localTime } from "@/lib/dates";
 
@@ -130,14 +130,14 @@ export default function ActivityForm(props: Props) {
               {...fieldAria("act-time", errors.time)} />
           </Field>
         </FieldRow>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 18px", marginTop: 10 }}>
+        <PicksRow>
           <QuickPicks label="Quick dates" picks={[
             { label: "Today", onPick: () => set("date", localDate(new Date())) },
             { label: "Tomorrow", onPick: () => set("date", localDate(daysFromNow(1))) },
             { label: "In a week", onPick: () => set("date", localDate(daysFromNow(7))) },
           ]} />
           <QuickPicks label="Quick times" picks={TIMES.map((t) => ({ label: t, onPick: () => set("time", t), active: values.time === t }))} />
-        </div>
+        </PicksRow>
       </div>
 
       <Field id="act-location" label="Location or meeting link" error={errors.location}>

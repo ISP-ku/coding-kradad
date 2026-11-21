@@ -97,6 +97,11 @@ export function QuickPicks({ label, picks }: { label: string; picks: { label: st
   );
 }
 
+/** Several QuickPicks groups side by side under a field row. */
+export function PicksRow({ children }: { children: React.ReactNode }) {
+  return <div className={styles.picksRow}>{children}</div>;
+}
+
 export function FormMessage({ kind, children }: { kind: "error" | "notice"; children: React.ReactNode }) {
   return kind === "error"
     ? <div className={styles.formError} role="alert">{children}</div>
