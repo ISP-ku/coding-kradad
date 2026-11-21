@@ -33,7 +33,7 @@ describe("commentCountLabel", () => {
 
 describe("postComment", () => {
   it("returns the saved comment", async () => {
-    const saved = { id: 2, author: "google:1", body: "Hi", created_at: "2026-11-03T09:00:00Z" };
+    const saved = { id: 2, author: "google:1", author_name: "Somchai", body: "Hi", created_at: "2026-11-03T09:00:00Z" };
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 201, json: async () => saved });
     vi.stubGlobal("fetch", fetchMock);
 

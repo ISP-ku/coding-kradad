@@ -17,11 +17,11 @@ export function makePreviewUser(): SessionUser {
 
 const previewComments: Record<number, Comment[]> = {
   1: [
-    { id: 1, author: "google:ta-1", body: "It's due Friday of Week 8, 23:59 - no extensions.", created_at: "2026-09-02T10:15:00Z" },
-    { id: 2, author: "google:student-9", body: "Does that include the report or just the code?", created_at: "2026-09-02T11:02:00Z" },
+    { id: 1, author: "google:ta-1", author_name: "Preview TA", body: "It's due Friday of Week 8, 23:59 - no extensions.", created_at: "2026-09-02T10:15:00Z" },
+    { id: 2, author: "google:student-9", author_name: "Preview Student", body: "Does that include the report or just the code?", created_at: "2026-09-02T11:02:00Z" },
   ],
   2: [
-    { id: 3, author: "google:lecturer-1", body: "Ask me before switching - most alternatives are fine.", created_at: "2026-09-05T09:40:00Z" },
+    { id: 3, author: "google:lecturer-1", author_name: "Preview Lecturer", body: "Ask me before switching - most alternatives are fine.", created_at: "2026-09-05T09:40:00Z" },
   ],
 };
 

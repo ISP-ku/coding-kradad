@@ -44,7 +44,10 @@ export default function TopicThread({ topic, viewer, preview }: Props) {
     if (preview) {
       setComments((list) => [
         ...list,
-        { id: list.length + 1, author: viewer ? viewer.username : "You", body: text, created_at: new Date().toISOString() },
+        {
+          id: list.length + 1, author: viewer ? `${viewer.provider}:${viewer.id}` : "preview",
+          author_name: viewer ? viewer.username : "You", body: text, created_at: new Date().toISOString(),
+        },
       ]);
       setBody("");
       return;
@@ -86,7 +89,7 @@ export default function TopicThread({ topic, viewer, preview }: Props) {
         comments.map((comment) => (
           <div className={styles.comment} key={comment.id}>
             <div className={styles.commentMeta}>
-              <span>{comment.author}</span>
+              <span>{comment.author_name}</span>
               <span>{formatDate(comment.created_at)}</span>
             </div>
             <p>{comment.body}</p>

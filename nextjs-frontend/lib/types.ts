@@ -16,7 +16,8 @@ export type SessionUser = {
 
 export type Comment = {
   id: number;
-  author: string;
+  author: string; // "provider:id" - for code, never shown
+  author_name: string; // the name shown in the thread
   body: string;
   created_at: string;
 };
