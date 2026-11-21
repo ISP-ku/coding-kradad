@@ -50,7 +50,7 @@ from datetime import datetime, timezone
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, ConfigDict, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -71,6 +71,12 @@ router = APIRouter(prefix="/api/faq", tags=["faq"])
 # Non-blank after trimming (SRS-17).
 RequiredText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
+# Same limits as the database columns (database.py) and the form fields
+# (TopicForm.tsx, TopicThread.tsx), so an over-long request is a clear
+# 422 instead of being stored, or failing as a 500 on a stricter database.
+MAX_TITLE = 300
+MAX_TEXT = 2000
+
 
 def _optional_user(request: Request) -> Optional[dict]:
     """Who is logged in, or None - the topic list/detail is public."""
@@ -82,7 +88,7 @@ def _optional_user(request: Request) -> Optional[dict]:
 
 
 class CommentIn(BaseModel):
-    body: RequiredText
+    body: RequiredText = Field(max_length=MAX_TEXT)
 
 
 class CommentOut(BaseModel):
@@ -95,8 +101,8 @@ class CommentOut(BaseModel):
 
 
 class TopicIn(BaseModel):
-    title: RequiredText
-    description: RequiredText
+    title: RequiredText = Field(max_length=MAX_TITLE)
+    description: RequiredText = Field(max_length=MAX_TEXT)
 
 
 class TopicOut(BaseModel):

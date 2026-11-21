@@ -148,6 +148,22 @@ def test_submit_rejects_blank_description():
     assert resp.status_code == 422
 
 
+@pytest.mark.parametrize("field, limit", [("title", 300), ("description", 2000)])
+def test_submit_enforces_length_limits(field, limit):
+    login_as("111")
+    at_limit = client.post(BOARD_URL, json={**VALID_SUBMISSION, field: "x" * limit})
+    over_limit = client.post(BOARD_URL, json={**VALID_SUBMISSION, field: "x" * (limit + 1)})
+    assert at_limit.status_code == 201
+    assert over_limit.status_code == 422
+
+
+def test_length_limit_counts_text_after_trimming():
+    login_as("111")
+    resp = client.post(BOARD_URL, json={**VALID_SUBMISSION, "title": "  " + "x" * 300 + "  "})
+    assert resp.status_code == 201
+    assert resp.json()["title"] == "x" * 300
+
+
 def test_submit_saves_as_pending():
     login_as("111")
     resp = client.post(BOARD_URL, json=VALID_SUBMISSION)
@@ -218,6 +234,16 @@ def test_comment_rejects_blank_body():
     login_as("111")
     resp = client.post(f"{BOARD_URL}/{topic_id}/comments", json={"body": "   "})
     assert resp.status_code == 422
+
+
+def test_comment_enforces_length_limit():
+    topic_id = _seed_topic(status=TOPIC_STATUS_PUBLISHED)
+    login_as("111")
+    url = f"{BOARD_URL}/{topic_id}/comments"
+    assert client.post(url, json={"body": "x" * 2000}).status_code == 201
+    assert client.post(url, json={"body": "x" * 2001}).status_code == 422
+    with SessionLocal() as db:
+        assert db.query(Comment).filter_by(topic_id=topic_id).count() == 1
 
 
 def test_comment_is_saved_and_returned():
