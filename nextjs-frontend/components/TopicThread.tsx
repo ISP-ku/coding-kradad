@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { commentCountLabel, postComment, setTopicSaved } from "@/lib/faq-client";
 import type { Comment, SessionUser, TopicDetail } from "@/lib/types";
 import styles from "./TopicThread.module.css";
 
@@ -28,52 +29,36 @@ export default function TopicThread({ topic, viewer, preview }: Props) {
     setSaved(next); // optimistic
 
     if (preview) return;
-    try {
-      const res = await fetch(`/api/faq/${topic.id}/save`, { method: next ? "POST" : "DELETE" });
-      if (!res.ok) setSaved(!next);
-    } catch {
-      setSaved(!next);
-    }
+    if (!(await setTopicSaved(topic.id, next))) setSaved(!next); // revert on failure
   }
 
   async function onSubmitComment(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
-    if (!body.trim()) {
+    const text = body.trim();
+    if (!text) {
       setError("Please write a comment first.");
       return;
     }
 
-    setSubmitting(true);
-    try {
-      if (preview) {
-        setComments((list) => [
-          ...list,
-          { id: list.length + 1, author: viewer ? viewer.username : "You", body: body.trim(), created_at: new Date().toISOString() },
-        ]);
-      } else {
-        const res = await fetch(`/api/faq/${topic.id}/comments`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ body: body.trim() }),
-        });
-        if (res.status === 401) {
-          setError("Please sign in to comment.");
-          return;
-        }
-        if (!res.ok) {
-          setError("Could not post your comment. Please try again.");
-          return;
-        }
-        const saved_comment = (await res.json()) as Comment;
-        setComments((list) => [...list, saved_comment]);
-      }
+    if (preview) {
+      setComments((list) => [
+        ...list,
+        { id: list.length + 1, author: viewer ? viewer.username : "You", body: text, created_at: new Date().toISOString() },
+      ]);
       setBody("");
-    } catch {
-      setError("Could not reach the server. Please try again.");
-    } finally {
-      setSubmitting(false);
+      return;
     }
+
+    setSubmitting(true);
+    const result = await postComment(topic.id, text);
+    setSubmitting(false);
+    if ("error" in result) {
+      setError(result.error);
+      return;
+    }
+    setComments((list) => [...list, result.comment]);
+    setBody("");
   }
 
   return (
@@ -92,7 +77,7 @@ export default function TopicThread({ topic, viewer, preview }: Props) {
         <p className={styles.description}>{topic.description}</p>
         <div className={styles.meta}>
           <span>{formatDate(topic.created_at)}</span>
-          <span className={styles.chip}>{comments.length} {comments.length === 1 ? "comment" : "comments"}</span>
+          <span className={styles.chip}>{commentCountLabel(comments.length)}</span>
         </div>
       </div>
 

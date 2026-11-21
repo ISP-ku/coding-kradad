@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { commentCountLabel, setTopicSaved } from "@/lib/faq-client";
 import type { SessionUser, Topic } from "@/lib/types";
 import styles from "./TopicBoard.module.css";
 
@@ -14,9 +15,64 @@ type Props = {
 };
 
 type View = "all" | "saved";
+type ReviewAction = "approve" | "reject";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function withSaved(list: Topic[], id: number, saved: boolean): Topic[] {
+  return list.map((t) => (t.id === id ? { ...t, saved } : t));
+}
+
+/** One topic in the list: title link, description, date, comment count and the Save star. */
+function TopicCard({ topic, canSave, onToggleSave }: { topic: Topic; canSave: boolean; onToggleSave: () => void }) {
+  return (
+    <div className={styles.topicCard}>
+      <Link href={`/faq/${topic.id}`} className={styles.topicTitle}>
+        {topic.title}
+      </Link>
+      <p className={styles.topicDescription}>{topic.description}</p>
+      <div className={styles.topicMeta}>
+        <span>{formatDate(topic.created_at)}</span>
+        <span className={styles.chip}>{commentCountLabel(topic.comment_count)}</span>
+        {canSave && (
+          <button
+            type="button"
+            className={topic.saved ? styles.saveBtnActive : styles.saveBtn}
+            onClick={onToggleSave}
+            aria-pressed={topic.saved}
+          >
+            {topic.saved ? "★ Saved" : "☆ Save"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** The lecturer's queue of new submissions (SRS-18). */
+function PendingReview({ pending, onReview }: { pending: Topic[]; onReview: (id: number, action: ReviewAction) => void }) {
+  return (
+    <div className={styles.submitPanel}>
+      <h3>Pending review</h3>
+      <p className={styles.hint}>New submissions stay hidden from everyone else until you approve or reject them.</p>
+      {pending.length > 0 ? (
+        pending.map((topic) => (
+          <div className={styles.topicCard} key={topic.id}>
+            <div className={styles.topicTitle}>{topic.title}</div>
+            <p className={styles.topicDescription}>{topic.description}</p>
+            <div className={styles.reviewActions}>
+              <button type="button" className={styles.btn} onClick={() => onReview(topic.id, "approve")}>Approve</button>
+              <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={() => onReview(topic.id, "reject")}>Reject</button>
+            </div>
+          </div>
+        ))
+      ) : (
+        <p>Nothing waiting on review.</p>
+      )}
+    </div>
+  );
 }
 
 export default function TopicBoard({ initialTopics, initialPending, viewer, preview, query }: Props) {
@@ -26,10 +82,9 @@ export default function TopicBoard({ initialTopics, initialPending, viewer, prev
   const [savedLoading, setSavedLoading] = useState(false);
   const [pending, setPending] = useState<Topic[]>(initialPending);
 
-
   function markSaved(id: number, saved: boolean) {
-    setTopics((list) => list.map((t) => (t.id === id ? { ...t, saved } : t)));
-    setSavedTopics((list) => (list ? list.map((t) => (t.id === id ? { ...t, saved } : t)) : list));
+    setTopics((list) => withSaved(list, id, saved));
+    setSavedTopics((list) => (list ? withSaved(list, id, saved) : list));
   }
 
   async function toggleSave(topic: Topic) {
@@ -38,12 +93,7 @@ export default function TopicBoard({ initialTopics, initialPending, viewer, prev
     markSaved(topic.id, nextSaved); // optimistic
 
     if (preview) return;
-    try {
-      const res = await fetch(`/api/faq/${topic.id}/save`, { method: nextSaved ? "POST" : "DELETE" });
-      if (!res.ok) markSaved(topic.id, topic.saved); // revert on failure
-    } catch {
-      markSaved(topic.id, topic.saved);
-    }
+    if (!(await setTopicSaved(topic.id, nextSaved))) markSaved(topic.id, topic.saved); // revert on failure
   }
 
   async function showSaved() {
@@ -60,7 +110,7 @@ export default function TopicBoard({ initialTopics, initialPending, viewer, prev
     }
   }
 
-  async function review(topicId: number, action: "approve" | "reject") {
+  async function review(topicId: number, action: ReviewAction) {
     if (preview) {
       setPending((list) => list.filter((t) => t.id !== topicId));
       return;
@@ -96,52 +146,13 @@ export default function TopicBoard({ initialTopics, initialPending, viewer, prev
         <p>Loading your saved topics...</p>
       ) : shown.length > 0 ? (
         shown.map((topic) => (
-          <div className={styles.topicCard} key={topic.id}>
-            <Link href={`/faq/${topic.id}`} className={styles.topicTitle}>
-              {topic.title}
-            </Link>
-            <p className={styles.topicDescription}>{topic.description}</p>
-            <div className={styles.topicMeta}>
-              <span>{formatDate(topic.created_at)}</span>
-              <span className={styles.chip}>{topic.comment_count} {topic.comment_count === 1 ? "comment" : "comments"}</span>
-              {viewer && (
-                <button
-                  type="button"
-                  className={topic.saved ? styles.saveBtnActive : styles.saveBtn}
-                  onClick={() => toggleSave(topic)}
-                  aria-pressed={topic.saved}
-                >
-                  {topic.saved ? "★ Saved" : "☆ Save"}
-                </button>
-              )}
-            </div>
-          </div>
+          <TopicCard key={topic.id} topic={topic} canSave={!!viewer} onToggleSave={() => toggleSave(topic)} />
         ))
       ) : (
         <p>{view === "saved" ? "You haven't saved any topics yet." : "No matching topics found."}</p>
       )}
 
-
-      {viewer?.role === "lecturer" && (
-        <div className={styles.submitPanel}>
-          <h3>Pending review</h3>
-          <p className={styles.hint}>New submissions stay hidden from everyone else until you approve or reject them.</p>
-          {pending.length > 0 ? (
-            pending.map((topic) => (
-              <div className={styles.topicCard} key={topic.id}>
-                <div className={styles.topicTitle}>{topic.title}</div>
-                <p className={styles.topicDescription}>{topic.description}</p>
-                <div className={styles.reviewActions}>
-                  <button type="button" className={styles.btn} onClick={() => review(topic.id, "approve")}>Approve</button>
-                  <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={() => review(topic.id, "reject")}>Reject</button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p>Nothing waiting on review.</p>
-          )}
-        </div>
-      )}
+      {viewer?.role === "lecturer" && <PendingReview pending={pending} onReview={review} />}
     </>
   );
 }

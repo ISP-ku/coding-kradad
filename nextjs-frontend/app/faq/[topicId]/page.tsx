@@ -1,29 +1,13 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import TopicThread from "@/components/TopicThread";
-import { API_BASE, logoutUrl } from "@/lib/api";
-import { PREVIEW, previewTopicDetail } from "@/lib/preview";
+import { logoutUrl } from "@/lib/api";
+import { getTopicDetail } from "@/lib/faq";
+import { PREVIEW } from "@/lib/preview";
 import { getSessionUser } from "@/lib/session";
-import type { TopicDetail } from "@/lib/types";
 
 type Props = { params: { topicId: string } };
-
-async function getTopicDetail(id: string): Promise<TopicDetail | null> {
-  if (PREVIEW) return previewTopicDetail(Number(id));
-
-  try {
-    const res = await fetch(`${API_BASE}/api/faq/${id}`, {
-      headers: { cookie: cookies().getAll().map(({ name, value }) => `${name}=${value}`).join("; ") },
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as TopicDetail;
-  } catch {
-    return null;
-  }
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const topic = await getTopicDetail(params.topicId);
