@@ -4,8 +4,9 @@ import { useState } from "react";
 import type { ActivityAssignee, CourseActivity } from "@/lib/types";
 import {
   ChoiceGroup, Field, FieldRow, FormActions, FormCard, FormMessage, QuickPicks,
-  daysFromNow, fieldAria, localDate, type Choice,
+  FormNote, PicksRow, fieldAria, type Choice,
 } from "./form/FormKit";
+import { daysFromNow, localDate, localTime } from "@/lib/dates";
 
 type Type = CourseActivity["type"];
 type Values = { course_id: string; title: string; type: Type | ""; date: string; time: string; location: string; assignee_id: string };
@@ -21,8 +22,7 @@ const TIMES = ["09:00", "13:00", "17:00", "23:59"];
 
 function splitLocal(iso: string) {
   const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return { date: localDate(d), time: `${pad(d.getHours())}:${pad(d.getMinutes())}` };
+  return { date: localDate(d), time: localTime(d) };
 }
 
 function validate(v: Values, mode: "create" | "edit"): Errors {
@@ -130,14 +130,14 @@ export default function ActivityForm(props: Props) {
               {...fieldAria("act-time", errors.time)} />
           </Field>
         </FieldRow>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 18px", marginTop: 10 }}>
+        <PicksRow>
           <QuickPicks label="Quick dates" picks={[
             { label: "Today", onPick: () => set("date", localDate(new Date())) },
             { label: "Tomorrow", onPick: () => set("date", localDate(daysFromNow(1))) },
             { label: "In a week", onPick: () => set("date", localDate(daysFromNow(7))) },
           ]} />
           <QuickPicks label="Quick times" picks={TIMES.map((t) => ({ label: t, onPick: () => set("time", t), active: values.time === t }))} />
-        </div>
+        </PicksRow>
       </div>
 
       <Field id="act-location" label="Location or meeting link" error={errors.location}>
@@ -160,7 +160,7 @@ export default function ActivityForm(props: Props) {
           No TA accounts yet. A TA appears here after they have signed in once; add them on the Access page first.
         </FormMessage>
       )}
-      {mode === "edit" && <p style={{ margin: 0, fontSize: 14, color: "var(--muted)" }}>The assigned TA and their task status stay as they are.</p>}
+      {mode === "edit" && <FormNote>The assigned TA and their task status stay as they are.</FormNote>}
       {formError && <FormMessage kind="error">{formError}</FormMessage>}
 
       <FormActions

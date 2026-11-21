@@ -97,10 +97,20 @@ export function QuickPicks({ label, picks }: { label: string; picks: { label: st
   );
 }
 
+/** Several QuickPicks groups side by side under a field row. */
+export function PicksRow({ children }: { children: React.ReactNode }) {
+  return <div className={styles.picksRow}>{children}</div>;
+}
+
 export function FormMessage({ kind, children }: { kind: "error" | "notice"; children: React.ReactNode }) {
   return kind === "error"
     ? <div className={styles.formError} role="alert">{children}</div>
     : <div className={styles.formNotice} role="status">{children}</div>;
+}
+
+/** A short line of extra context in a form; `boxed` gives it a soft panel. */
+export function FormNote({ boxed, children }: { boxed?: boolean; children: React.ReactNode }) {
+  return <p className={boxed ? styles.infoBox : styles.note}>{children}</p>;
 }
 
 export function FormActions({ submitLabel, busyLabel, busy, disabled, cancelHref, onCancel }: {
@@ -119,16 +129,3 @@ export function FormActions({ submitLabel, busyLabel, busy, disabled, cancelHref
     </div>
   );
 }
-
-// ---- date helpers shared by the forms ------------------------------------
-
-const pad = (n: number) => String(n).padStart(2, "0");
-/** YYYY-MM-DD in local time. */
-export const localDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-/** YYYY-MM-DDTHH:MM in local time, for datetime-local inputs. */
-export const localDateTime = (d: Date) => `${localDate(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-export const daysFromNow = (n: number, from = new Date()) => {
-  const d = new Date(from);
-  d.setDate(d.getDate() + n);
-  return d;
-};

@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import {
-  Field, FieldRow, FormActions, FormCard, FormMessage, QuickPicks, daysFromNow, fieldAria, localDate,
+  Field, FieldRow, FormActions, FormCard, FormMessage, QuickPicks, fieldAria,
 } from "./form/FormKit";
+import { daysFromNow, localDate } from "@/lib/dates";
 
 type Props = {
   /** Preview mode has no backend, so nothing is saved. */

@@ -34,10 +34,14 @@
 .choiceLabel{font-weight:600;font-size:14px}
 .choiceHint{font-size:13px;color:var(--muted);line-height:1.4}
 
+.picksRow{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:10px}
 .picks{display:flex;flex-wrap:wrap;gap:6px}
 .pick{min-height:32px;padding:4px 12px;border:1px solid var(--field);border-radius:999px;background:var(--surface);color:var(--quiet-ink);font-size:13px;font-weight:500}
 .pick:hover{background:var(--quiet-h)}
 .pick[aria-pressed="true"]{border-color:var(--primary);background:var(--nav-cur);color:var(--ink);font-weight:600}
+
+.note{margin:0;font-size:14px;color:var(--muted)}
+.infoBox{margin:0;padding:12px 14px;border-radius:12px;background:var(--raised);color:var(--soft);font-size:14px}
 
 .formError,.formNotice{padding:12px 14px;border-radius:12px;font-size:14px}
 .formError{background:var(--over-bg);color:var(--over)}
