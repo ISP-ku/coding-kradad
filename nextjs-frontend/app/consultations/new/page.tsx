@@ -6,7 +6,7 @@ import { logoutUrl } from "@/lib/api";
 import { canAccess, homePathFor } from "@/lib/permissions";
 import { PREVIEW } from "@/lib/preview";
 import { getSessionUser } from "@/lib/session";
-import styles from "./page.module.css";
+import ui from "@/components/ui.module.css";
 
 export const metadata: Metadata = { title: "Record consultation · Course Support" };
 
@@ -26,8 +26,8 @@ export default async function NewConsultationPage() {
       viewer={viewer}
       logoutHref={logoutUrl}
     >
-      <div className={styles.page}>
-        <a className={styles.backLink} href="/consultations">← Back to consultation history</a>
+      <div className={ui.formPage}>
+        <a className={ui.backLink} href="/consultations">← Back to consultation history</a>
         <ConsultationForm preview={PREVIEW} />
       </div>
     </AppShell>
