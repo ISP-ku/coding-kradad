@@ -6,7 +6,7 @@ import {
   ChoiceGroup, Field, FieldRow, FormActions, FormCard, FormMessage, QuickPicks,
   fieldAria, type Choice,
 } from "./form/FormKit";
-import { daysFromNow, localDate } from "@/lib/dates";
+import { daysFromNow, localDate, localTime } from "@/lib/dates";
 
 type Type = CourseActivity["type"];
 type Values = { course_id: string; title: string; type: Type | ""; date: string; time: string; location: string; assignee_id: string };
@@ -22,8 +22,7 @@ const TIMES = ["09:00", "13:00", "17:00", "23:59"];
 
 function splitLocal(iso: string) {
   const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return { date: localDate(d), time: `${pad(d.getHours())}:${pad(d.getMinutes())}` };
+  return { date: localDate(d), time: localTime(d) };
 }
 
 function validate(v: Values, mode: "create" | "edit"): Errors {

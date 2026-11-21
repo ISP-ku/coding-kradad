@@ -6,8 +6,11 @@ const pad = (n: number) => String(n).padStart(2, "0");
 /** YYYY-MM-DD in local time. */
 export const localDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
+/** HH:MM in local time, for time inputs. */
+export const localTime = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
 /** YYYY-MM-DDTHH:MM in local time, for datetime-local inputs. */
-export const localDateTime = (d: Date) => `${localDate(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+export const localDateTime = (d: Date) => `${localDate(d)}T${localTime(d)}`;
 
 /** The date `n` days after `from` (negative for days before). */
 export const daysFromNow = (n: number, from = new Date()) => {
