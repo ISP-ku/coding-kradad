@@ -52,7 +52,7 @@ function getGroupKey(row: WorkspaceRow, now: number): GroupKey {
 }
 
 function buildRows(activities: CourseActivity[]): WorkspaceRow[] {
-  return activities.flatMap((activity) =>
+  return activities.flatMap((activity): WorkspaceRow[] =>
     activity.tasks.length
       ? activity.tasks.map((task) => ({ activity, task }))
       : [{ activity, task: null }],
