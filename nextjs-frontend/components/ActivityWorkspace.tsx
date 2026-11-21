@@ -312,7 +312,7 @@ export default function ActivityWorkspace({
           <span className={styles.dot} aria-hidden="true" />
           <h2 id={"group-" + group.key} className={styles.groupLabel}>
             {group.label}
-            <span className={styles.groupCount}>{group.rows.length}</span>
+            <span className={styles.groupCount} aria-hidden="true">{group.rows.length}</span>
           </h2>
 
           {group.rows.map(({ activity, task }) => (
