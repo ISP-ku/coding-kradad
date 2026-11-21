@@ -394,3 +394,34 @@ def test_reject_keeps_topic_hidden_from_search():
 def test_approve_unknown_topic_is_404():
     login_as_lecturer()
     assert client.post(f"{BOARD_URL}/999999/approve").status_code == 404
+
+
+@pytest.mark.parametrize("status", [TOPIC_STATUS_PUBLISHED, TOPIC_STATUS_REJECTED])
+@pytest.mark.parametrize("action", ["approve", "reject"])
+def test_already_reviewed_topic_cannot_be_reviewed_again(status, action):
+    topic_id = _seed_topic(status=status)
+    with SessionLocal() as db:
+        topic = db.get(Topic, topic_id)
+        topic.reviewed_by = "google:first-lecturer"
+        db.commit()
+
+    login_as_lecturer("second-lecturer")
+    resp = client.post(f"{BOARD_URL}/{topic_id}/{action}")
+    assert resp.status_code == 409
+    assert resp.json()["detail"] == "This topic has already been reviewed."
+
+    with SessionLocal() as db:
+        topic = db.get(Topic, topic_id)
+        assert topic.status == status
+        assert topic.reviewed_by == "google:first-lecturer"
+
+
+def test_second_lecturer_cannot_undo_an_approval():
+    topic_id = _seed_topic(title="Can I resubmit?", status=TOPIC_STATUS_PENDING)
+
+    login_as_lecturer("lect-1")
+    assert client.post(f"{BOARD_URL}/{topic_id}/approve").status_code == 200
+    login_as_lecturer("lect-2")
+    assert client.post(f"{BOARD_URL}/{topic_id}/reject").status_code == 409
+
+    assert [t["title"] for t in client.get(BOARD_URL).json()] == ["Can I resubmit?"]

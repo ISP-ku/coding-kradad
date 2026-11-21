@@ -33,7 +33,8 @@ POST /api/faq/{id}/approve
 POST /api/faq/{id}/reject
     Lecturer-only review actions (SRS-18). Approving publishes the topic
     (visible in the search/detail above); rejecting keeps it hidden. Both
-    record who reviewed it and when.
+    record who reviewed it and when. Only a Pending topic can be reviewed;
+    a second review is 409.
 
 POST /api/faq/{id}/comments
     A signed-in user adds a comment to a Published topic's discussion.
@@ -238,7 +239,12 @@ def submit_topic(
 
 
 def _review(db: Session, topic_id: int, reviewer: dict, status: str) -> Topic:
+    """Approve or reject a Pending topic. A topic that was already reviewed
+    is a 409, so a second lecturer working from an old page cannot undo the
+    first decision without noticing (e.g. un-publish an approved topic)."""
     topic = _get_topic(db, topic_id, published_only=False)
+    if topic.status != TOPIC_STATUS_PENDING:
+        raise HTTPException(status_code=409, detail="This topic has already been reviewed.")
     topic.status = status
     topic.reviewed_by = identity(reviewer)
     topic.reviewed_at = datetime.now(timezone.utc)
