@@ -4,8 +4,9 @@ import { useState } from "react";
 import { errorMessage, localInputToIso } from "@/lib/homework";
 import type { HomeworkItem } from "@/lib/types";
 import {
-  Field, FieldRow, FormActions, FormCard, FormMessage, QuickPicks, daysFromNow, fieldAria, localDate,
+  Field, FieldRow, FormActions, FormCard, FormMessage, QuickPicks, fieldAria,
 } from "./form/FormKit";
+import { daysFromNow, localDate } from "@/lib/dates";
 
 type Errors = Partial<Record<"course_id" | "title" | "due_at" | "max_score", string>>;
 

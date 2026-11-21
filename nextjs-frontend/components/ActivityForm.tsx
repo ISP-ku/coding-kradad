@@ -4,8 +4,9 @@ import { useState } from "react";
 import type { ActivityAssignee, CourseActivity } from "@/lib/types";
 import {
   ChoiceGroup, Field, FieldRow, FormActions, FormCard, FormMessage, QuickPicks,
-  daysFromNow, fieldAria, localDate, type Choice,
+  fieldAria, type Choice,
 } from "./form/FormKit";
+import { daysFromNow, localDate } from "@/lib/dates";
 
 type Type = CourseActivity["type"];
 type Values = { course_id: string; title: string; type: Type | ""; date: string; time: string; location: string; assignee_id: string };
