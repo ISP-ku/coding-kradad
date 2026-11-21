@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { commentCountLabel, setTopicSaved } from "@/lib/faq-client";
 import type { SessionUser, Topic } from "@/lib/types";
 import styles from "./TopicBoard.module.css";
 
@@ -26,7 +27,6 @@ export default function TopicBoard({ initialTopics, initialPending, viewer, prev
   const [savedLoading, setSavedLoading] = useState(false);
   const [pending, setPending] = useState<Topic[]>(initialPending);
 
-
   function markSaved(id: number, saved: boolean) {
     setTopics((list) => list.map((t) => (t.id === id ? { ...t, saved } : t)));
     setSavedTopics((list) => (list ? list.map((t) => (t.id === id ? { ...t, saved } : t)) : list));
@@ -38,12 +38,7 @@ export default function TopicBoard({ initialTopics, initialPending, viewer, prev
     markSaved(topic.id, nextSaved); // optimistic
 
     if (preview) return;
-    try {
-      const res = await fetch(`/api/faq/${topic.id}/save`, { method: nextSaved ? "POST" : "DELETE" });
-      if (!res.ok) markSaved(topic.id, topic.saved); // revert on failure
-    } catch {
-      markSaved(topic.id, topic.saved);
-    }
+    if (!(await setTopicSaved(topic.id, nextSaved))) markSaved(topic.id, topic.saved); // revert on failure
   }
 
   async function showSaved() {
@@ -103,7 +98,7 @@ export default function TopicBoard({ initialTopics, initialPending, viewer, prev
             <p className={styles.topicDescription}>{topic.description}</p>
             <div className={styles.topicMeta}>
               <span>{formatDate(topic.created_at)}</span>
-              <span className={styles.chip}>{topic.comment_count} {topic.comment_count === 1 ? "comment" : "comments"}</span>
+              <span className={styles.chip}>{commentCountLabel(topic.comment_count)}</span>
               {viewer && (
                 <button
                   type="button"
