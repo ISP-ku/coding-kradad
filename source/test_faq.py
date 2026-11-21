@@ -23,6 +23,7 @@ from database import (
     SavedTopic,
     SessionLocal,
     Topic,
+    User,
 )
 from activities import authenticated_user, require_lecturer
 from faq import _optional_user
@@ -230,6 +231,55 @@ def test_comment_is_saved_and_returned():
 
     with SessionLocal() as db:
         assert db.query(Comment).filter_by(topic_id=topic_id).count() == 1
+
+
+@pytest.fixture
+def named_users():
+    """Users rows as sign-in records them, removed again after the test."""
+    def add(*accounts):
+        with SessionLocal() as db:
+            for provider, user_id, name in accounts:
+                db.add(User(provider=provider, provider_user_id=user_id, display_name=name))
+            db.commit()
+    yield add
+    with SessionLocal() as db:
+        db.query(User).delete()
+        db.commit()
+
+
+def test_comment_shows_the_authors_name_not_their_id(named_users):
+    named_users(("google", "111", "Somchai J."))
+    topic_id = _seed_topic(status=TOPIC_STATUS_PUBLISHED)
+    login_as("111")
+
+    posted = client.post(f"{BOARD_URL}/{topic_id}/comments", json={"body": "Week 8."}).json()
+    assert posted["author_name"] == "Somchai J."
+    assert posted["author"] == "google:111"
+
+    [comment] = client.get(f"{BOARD_URL}/{topic_id}").json()["comments"]
+    assert comment["author_name"] == "Somchai J."
+
+
+def test_thread_names_each_author_and_keeps_providers_apart(named_users):
+    named_users(("google", "111", "Somchai J."), ("password", "111", "Malee K."))
+    topic_id = _seed_topic(status=TOPIC_STATUS_PUBLISHED)
+    with SessionLocal() as db:
+        db.add_all([Comment(topic_id=topic_id, author="google:111", body="First"),
+                    Comment(topic_id=topic_id, author="password:111", body="Second")])
+        db.commit()
+
+    names = [c["author_name"] for c in client.get(f"{BOARD_URL}/{topic_id}").json()["comments"]]
+    assert names == ["Somchai J.", "Malee K."]
+
+
+def test_comment_by_an_account_with_no_users_row_shows_unknown_user():
+    topic_id = _seed_topic(status=TOPIC_STATUS_PUBLISHED)
+    with SessionLocal() as db:
+        db.add(Comment(topic_id=topic_id, author="google:gone", body="Old comment"))
+        db.commit()
+
+    [comment] = client.get(f"{BOARD_URL}/{topic_id}").json()["comments"]
+    assert comment["author_name"] == "Unknown user"
 
 
 def test_comment_on_pending_topic_is_404():
