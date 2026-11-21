@@ -24,7 +24,8 @@ from database import (
     SessionLocal,
     Topic,
 )
-from faq import _optional_user, _signed_in_user, require_lecturer
+from activities import authenticated_user, require_lecturer
+from faq import _optional_user
 
 client = TestClient(app)
 
@@ -41,7 +42,7 @@ VALID_SUBMISSION = {
 def login_as(user_id, role="ta"):
     """Pretend a signed-in user is acting (skips real OAuth login)."""
     user = {"id": user_id, "provider": "google", "role": role}
-    app.dependency_overrides[_signed_in_user] = lambda: user
+    app.dependency_overrides[authenticated_user] = lambda: user
     app.dependency_overrides[_optional_user] = lambda: user
 
 

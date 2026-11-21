@@ -42,9 +42,9 @@ POST   /api/faq/{id}/save
 DELETE /api/faq/{id}/save
     Bookmark / unbookmark a Published topic for the signed-in user.
 
-Role enforcement follows reports.py's require_lecturer pattern: go
-through app.py's current_user() (the same session check /api/me uses),
-then check the role users.py copied into the session at login.
+Sign-in and role checks are the shared dependencies from activities.py
+(authenticated_user, require_lecturer), the same ones homework.py uses.
+They go through app.py's current_user(), the session check /api/me uses.
 """
 from datetime import datetime, timezone
 from typing import Annotated, Optional
@@ -54,6 +54,7 @@ from pydantic import BaseModel, ConfigDict, StringConstraints
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from activities import authenticated_user, identity, require_lecturer
 from database import (
     TOPIC_STATUS_PENDING,
     TOPIC_STATUS_PUBLISHED,
@@ -71,36 +72,13 @@ router = APIRouter(prefix="/api/faq", tags=["faq"])
 RequiredText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
-def _signed_in_user(request: Request) -> dict:
-    """Who is logged in. Raises 401 if nobody is (SRS-17 submissions)."""
+def _optional_user(request: Request) -> Optional[dict]:
+    """Who is logged in, or None - the topic list/detail is public."""
     # Imported here, not at module level: app.py imports this module to
     # register the router, so a top-level import would be circular.
     from app import current_user
 
-    user = current_user(request)
-    if not user:
-        raise HTTPException(status_code=401, detail="Please sign in first.")
-    return user
-
-
-def _optional_user(request: Request) -> Optional[dict]:
-    """Who is logged in, or None - the topic list/detail is public."""
-    from app import current_user
-
     return current_user(request)
-
-
-def require_lecturer(request: Request) -> dict:
-    """Signed in AND a Lecturer (SRS-18). 401 if nobody is signed in, 403
-    if they're signed in but not a Lecturer."""
-    user = _signed_in_user(request)
-    if user.get("role") != "lecturer":
-        raise HTTPException(status_code=403, detail="Lecturer access required.")
-    return user
-
-
-def _identity(user: dict) -> str:
-    return f"{user['provider']}:{user['id']}"
 
 
 class CommentIn(BaseModel):
@@ -168,7 +146,7 @@ class TopicDetailOut(TopicOut):
 def _saved_ids(db: Session, user: Optional[dict]) -> set[int]:
     if not user:
         return set()
-    rows = db.scalars(select(SavedTopic.topic_id).where(SavedTopic.user_id == _identity(user))).all()
+    rows = db.scalars(select(SavedTopic.topic_id).where(SavedTopic.user_id == identity(user))).all()
     return set(rows)
 
 
@@ -192,7 +170,7 @@ def list_pending_topics(
 
 @router.get("/saved", response_model=list[TopicOut])
 def list_saved_topics(
-    user: dict = Depends(_signed_in_user),
+    user: dict = Depends(authenticated_user),
     db: Session = Depends(get_db),
 ):
     saved_ids = _saved_ids(db, user)
@@ -241,14 +219,14 @@ def get_topic(
 @router.post("", response_model=TopicOut, status_code=201)
 def submit_topic(
     data: TopicIn,
-    user: dict = Depends(_signed_in_user),
+    user: dict = Depends(authenticated_user),
     db: Session = Depends(get_db),
 ):
     topic = Topic(
         title=data.title,
         description=data.description,
         status=TOPIC_STATUS_PENDING,
-        submitted_by=_identity(user),
+        submitted_by=identity(user),
     )
     db.add(topic)
     db.commit()
@@ -261,7 +239,7 @@ def _review(db: Session, topic_id: int, reviewer: dict, status: str) -> Topic:
     if topic is None:
         raise HTTPException(status_code=404, detail="Topic not found.")
     topic.status = status
-    topic.reviewed_by = _identity(reviewer)
+    topic.reviewed_by = identity(reviewer)
     topic.reviewed_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(topic)
@@ -292,11 +270,11 @@ def reject_topic(
 def add_comment(
     topic_id: int,
     data: CommentIn,
-    user: dict = Depends(_signed_in_user),
+    user: dict = Depends(authenticated_user),
     db: Session = Depends(get_db),
 ):
     topic = _get_published_topic(db, topic_id)
-    comment = Comment(topic_id=topic.id, author=_identity(user), body=data.body)
+    comment = Comment(topic_id=topic.id, author=identity(user), body=data.body)
     db.add(comment)
     db.commit()
     db.refresh(comment)
@@ -306,26 +284,26 @@ def add_comment(
 @router.post("/{topic_id}/save", status_code=204)
 def save_topic(
     topic_id: int,
-    user: dict = Depends(_signed_in_user),
+    user: dict = Depends(authenticated_user),
     db: Session = Depends(get_db),
 ):
     _get_published_topic(db, topic_id)
     exists = db.scalar(
-        select(SavedTopic).where(SavedTopic.user_id == _identity(user), SavedTopic.topic_id == topic_id)
+        select(SavedTopic).where(SavedTopic.user_id == identity(user), SavedTopic.topic_id == topic_id)
     )
     if not exists:
-        db.add(SavedTopic(user_id=_identity(user), topic_id=topic_id))
+        db.add(SavedTopic(user_id=identity(user), topic_id=topic_id))
         db.commit()
 
 
 @router.delete("/{topic_id}/save", status_code=204)
 def unsave_topic(
     topic_id: int,
-    user: dict = Depends(_signed_in_user),
+    user: dict = Depends(authenticated_user),
     db: Session = Depends(get_db),
 ):
     row = db.scalar(
-        select(SavedTopic).where(SavedTopic.user_id == _identity(user), SavedTopic.topic_id == topic_id)
+        select(SavedTopic).where(SavedTopic.user_id == identity(user), SavedTopic.topic_id == topic_id)
     )
     if row:
         db.delete(row)
