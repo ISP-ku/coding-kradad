@@ -112,7 +112,8 @@ class TopicOut(BaseModel):
     saved: bool
 
     @classmethod
-    def from_topic(cls, topic: Topic, saved_ids: set[int]) -> "TopicOut":
+    def from_topic(cls, topic: Topic, saved_ids: set[int], **extra):
+        """`extra` fills fields a subclass adds, e.g. TopicDetailOut.comments."""
         return cls(
             id=topic.id,
             title=topic.title,
@@ -122,25 +123,12 @@ class TopicOut(BaseModel):
             created_at=topic.created_at,
             comment_count=len(topic.comments),
             saved=topic.id in saved_ids,
+            **extra,
         )
 
 
 class TopicDetailOut(TopicOut):
     comments: list[CommentOut]
-
-    @classmethod
-    def from_topic_detail(cls, topic: Topic, saved_ids: set[int]) -> "TopicDetailOut":
-        return cls(
-            id=topic.id,
-            title=topic.title,
-            description=topic.description,
-            status=topic.status,
-            submitted_by=topic.submitted_by,
-            created_at=topic.created_at,
-            comment_count=len(topic.comments),
-            saved=topic.id in saved_ids,
-            comments=[CommentOut.model_validate(c) for c in topic.comments],
-        )
 
 
 def _saved_ids(db: Session, user: Optional[dict]) -> set[int]:
@@ -150,9 +138,17 @@ def _saved_ids(db: Session, user: Optional[dict]) -> set[int]:
     return set(rows)
 
 
-def _get_published_topic(db: Session, topic_id: int) -> Topic:
+def _saved_row(db: Session, user: dict, topic_id: int) -> Optional[SavedTopic]:
+    return db.scalar(
+        select(SavedTopic).where(SavedTopic.user_id == identity(user), SavedTopic.topic_id == topic_id)
+    )
+
+
+def _get_topic(db: Session, topic_id: int, *, published_only: bool = True) -> Topic:
+    """The topic, or 404. Pending and Rejected topics count as missing
+    unless published_only is False (the lecturer's review actions)."""
     topic = db.get(Topic, topic_id)
-    if topic is None or topic.status != TOPIC_STATUS_PUBLISHED:
+    if topic is None or (published_only and topic.status != TOPIC_STATUS_PUBLISHED):
         raise HTTPException(status_code=404, detail="Topic not found.")
     return topic
 
@@ -211,9 +207,10 @@ def get_topic(
     viewer: Optional[dict] = Depends(_optional_user),
     db: Session = Depends(get_db),
 ):
-    topic = _get_published_topic(db, topic_id)
+    topic = _get_topic(db, topic_id)
     saved_ids = _saved_ids(db, viewer)
-    return TopicDetailOut.from_topic_detail(topic, saved_ids)
+    comments = [CommentOut.model_validate(c) for c in topic.comments]
+    return TopicDetailOut.from_topic(topic, saved_ids, comments=comments)
 
 
 @router.post("", response_model=TopicOut, status_code=201)
@@ -235,9 +232,7 @@ def submit_topic(
 
 
 def _review(db: Session, topic_id: int, reviewer: dict, status: str) -> Topic:
-    topic = db.get(Topic, topic_id)
-    if topic is None:
-        raise HTTPException(status_code=404, detail="Topic not found.")
+    topic = _get_topic(db, topic_id, published_only=False)
     topic.status = status
     topic.reviewed_by = identity(reviewer)
     topic.reviewed_at = datetime.now(timezone.utc)
@@ -273,7 +268,7 @@ def add_comment(
     user: dict = Depends(authenticated_user),
     db: Session = Depends(get_db),
 ):
-    topic = _get_published_topic(db, topic_id)
+    topic = _get_topic(db, topic_id)
     comment = Comment(topic_id=topic.id, author=identity(user), body=data.body)
     db.add(comment)
     db.commit()
@@ -287,11 +282,8 @@ def save_topic(
     user: dict = Depends(authenticated_user),
     db: Session = Depends(get_db),
 ):
-    _get_published_topic(db, topic_id)
-    exists = db.scalar(
-        select(SavedTopic).where(SavedTopic.user_id == identity(user), SavedTopic.topic_id == topic_id)
-    )
-    if not exists:
+    _get_topic(db, topic_id)
+    if not _saved_row(db, user, topic_id):
         db.add(SavedTopic(user_id=identity(user), topic_id=topic_id))
         db.commit()
 
@@ -302,9 +294,7 @@ def unsave_topic(
     user: dict = Depends(authenticated_user),
     db: Session = Depends(get_db),
 ):
-    row = db.scalar(
-        select(SavedTopic).where(SavedTopic.user_id == identity(user), SavedTopic.topic_id == topic_id)
-    )
+    row = _saved_row(db, user, topic_id)
     if row:
         db.delete(row)
         db.commit()
