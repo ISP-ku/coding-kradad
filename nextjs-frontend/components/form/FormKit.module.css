@@ -8,6 +8,7 @@
 .hint{margin:-2px 0 2px;font-size:13px;color:var(--muted)}
 
 .field input,.field select,.field textarea{width:100%;min-height:46px;padding:11px 14px;border:1px solid var(--field);border-radius:12px;background:var(--surface);color:var(--ink);font-size:15px;transition:border-color .15s,box-shadow .15s}
+.field input:not([type=checkbox]):not([type=radio]),.field select{height:48px}
 .field textarea{min-height:120px;resize:vertical;line-height:1.55}
 .field input::placeholder,.field textarea::placeholder{color:var(--muted);opacity:.8}
 .field input:hover,.field select:hover,.field textarea:hover{border-color:var(--dot)}
