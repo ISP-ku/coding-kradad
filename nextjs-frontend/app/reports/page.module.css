@@ -30,6 +30,6 @@
 .statusInProgress{background:var(--soon-bg);color:var(--soon)}
 .statusNotStarted{background:var(--chip-bg);color:var(--chip-ink)}
 
-@media(max-width:760px){.filterForm{padding:16px}}
+@media(max-width:760px){.filterForm{padding:16px}.field{flex:1 1 100%}.btn{width:100%}}
 .btn:active{transform:scale(.97)}
 .tableWrap{animation:rise .4s var(--ease-out) backwards}
