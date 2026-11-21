@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { commentCountLabel, setTopicSaved } from "@/lib/faq-client";
+import { commentCountLabel, reviewTopic, setTopicSaved, type ReviewAction } from "@/lib/faq-client";
 import type { SessionUser, Topic } from "@/lib/types";
 import styles from "./TopicBoard.module.css";
 
@@ -15,7 +15,6 @@ type Props = {
 };
 
 type View = "all" | "saved";
-type ReviewAction = "approve" | "reject";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -52,11 +51,16 @@ function TopicCard({ topic, canSave, onToggleSave }: { topic: Topic; canSave: bo
 }
 
 /** The lecturer's queue of new submissions (SRS-18). */
-function PendingReview({ pending, onReview }: { pending: Topic[]; onReview: (id: number, action: ReviewAction) => void }) {
+function PendingReview({ pending, error, onReview }: {
+  pending: Topic[];
+  error: string;
+  onReview: (id: number, action: ReviewAction) => void;
+}) {
   return (
     <div className={styles.submitPanel}>
       <h3>Pending review</h3>
       <p className={styles.hint}>New submissions stay hidden from everyone else until you approve or reject them.</p>
+      {error && <p className={styles.alert} role="alert">{error}</p>}
       {pending.length > 0 ? (
         pending.map((topic) => (
           <div className={styles.topicCard} key={topic.id}>
@@ -81,6 +85,7 @@ export default function TopicBoard({ initialTopics, initialPending, viewer, prev
   const [savedTopics, setSavedTopics] = useState<Topic[] | null>(null);
   const [savedLoading, setSavedLoading] = useState(false);
   const [pending, setPending] = useState<Topic[]>(initialPending);
+  const [reviewError, setReviewError] = useState("");
 
   function markSaved(id: number, saved: boolean) {
     setTopics((list) => withSaved(list, id, saved));
@@ -111,15 +116,20 @@ export default function TopicBoard({ initialTopics, initialPending, viewer, prev
   }
 
   async function review(topicId: number, action: ReviewAction) {
+    const removeFromQueue = () => setPending((list) => list.filter((t) => t.id !== topicId));
+    setReviewError("");
     if (preview) {
-      setPending((list) => list.filter((t) => t.id !== topicId));
+      removeFromQueue();
       return;
     }
-    const res = await fetch(`/api/faq/${topicId}/${action}`, { method: "POST" });
-    if (!res.ok) return;
-    const updated = (await res.json()) as Topic;
-    setPending((list) => list.filter((t) => t.id !== topicId));
-    if (action === "approve") setTopics((list) => [updated, ...list]);
+    const result = await reviewTopic(topicId, action);
+    if ("error" in result) {
+      setReviewError(result.error);
+      if (result.alreadyReviewed) removeFromQueue(); // it is no longer waiting for anyone
+      return;
+    }
+    removeFromQueue();
+    if (action === "approve") setTopics((list) => [result.topic, ...list]);
   }
 
   const shown = view === "all" ? topics : savedTopics ?? [];
@@ -152,7 +162,7 @@ export default function TopicBoard({ initialTopics, initialPending, viewer, prev
         <p>{view === "saved" ? "You haven't saved any topics yet." : "No matching topics found."}</p>
       )}
 
-      {viewer?.role === "lecturer" && <PendingReview pending={pending} onReview={review} />}
+      {viewer?.role === "lecturer" && <PendingReview pending={pending} error={reviewError} onReview={review} />}
     </>
   );
 }

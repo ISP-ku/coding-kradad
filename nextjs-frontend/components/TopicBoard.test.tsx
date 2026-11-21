@@ -81,4 +81,44 @@ describe("TopicBoard", () => {
     expect(await screen.findByText("Nothing waiting on review.")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Spam" })).not.toBeInTheDocument();
   });
+
+  it("keeps the topic in the queue and explains when the server refuses", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+    board({ viewer: lecturer, initialPending: [topic(5, { title: "Question", status: "Pending" })] });
+
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not approve this topic. Please try again.");
+    expect(screen.getByRole("button", { name: "Approve" })).toBeInTheDocument();
+  });
+
+  it("explains when the server cannot be reached instead of failing silently", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    board({ viewer: lecturer, initialPending: [topic(5, { status: "Pending" })] });
+
+    fireEvent.click(screen.getByRole("button", { name: "Reject" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not reach the server. Please try again.");
+  });
+
+  it("removes a topic another lecturer already reviewed and says so", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 409 }));
+    board({ viewer: lecturer, initialPending: [topic(5, { title: "Question", status: "Pending" })] });
+
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Another lecturer has already reviewed this topic.");
+    expect(screen.getByText("Nothing waiting on review.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Question" })).not.toBeInTheDocument();
+  });
+
+  it("clears the old message on the next successful review", async () => {
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 500 })
+      .mockResolvedValueOnce({ ok: true, json: async () => topic(5) });
+    vi.stubGlobal("fetch", fetcher);
+    board({ viewer: lecturer, initialPending: [topic(5, { status: "Pending" })] });
+
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    await screen.findByRole("alert");
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+  });
 });
