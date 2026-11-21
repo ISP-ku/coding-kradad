@@ -103,6 +103,11 @@ export function FormMessage({ kind, children }: { kind: "error" | "notice"; chil
     : <div className={styles.formNotice} role="status">{children}</div>;
 }
 
+/** A short line of extra context in a form; `boxed` gives it a soft panel. */
+export function FormNote({ boxed, children }: { boxed?: boolean; children: React.ReactNode }) {
+  return <p className={boxed ? styles.infoBox : styles.note}>{children}</p>;
+}
+
 export function FormActions({ submitLabel, busyLabel, busy, disabled, cancelHref, onCancel }: {
   submitLabel: string;
   busyLabel: string;

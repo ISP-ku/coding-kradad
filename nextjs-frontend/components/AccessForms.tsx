@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { errorMessage } from "@/lib/homework";
 import { normaliseKuEmail, type AccessCourse, type AccessRole } from "@/lib/access";
-import { ChoiceGroup, Field, FieldRow, FormActions, FormCard, FormMessage, fieldAria, type Choice } from "./form/FormKit";
+import { ChoiceGroup, Field, FieldRow, FormActions, FormCard, FormMessage, FormNote, fieldAria, type Choice } from "./form/FormKit";
 
 const ROLES: Choice<AccessRole>[] = [
   { value: "student", label: "Student", hint: "Sees homework and the FAQ" },
@@ -73,9 +73,9 @@ export function AccessMemberForm({ courses, defaultCourseId, onDone, allowPerson
         </Field>
       </FieldRow>
       <ChoiceGroup legend="Role" name="member-role" options={ROLES} value={role} onChange={setRole} columns={3} />
-      <p style={{ margin: 0, fontSize: 14, color: "var(--muted)" }}>
+      <FormNote>
         The role applies to every course this person is in. They can sign in as soon as you add them.
-      </p>
+      </FormNote>
       {error && <FormMessage kind="error">{error}</FormMessage>}
       <FormActions submitLabel="Add to course" busyLabel="Adding..." busy={busy} cancelHref={`/access?course=${courseId}`} />
     </FormCard>

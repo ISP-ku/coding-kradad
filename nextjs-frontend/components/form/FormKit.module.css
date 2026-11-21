@@ -38,6 +38,9 @@
 .pick:hover{background:var(--quiet-h)}
 .pick[aria-pressed="true"]{border-color:var(--primary);background:var(--nav-cur);color:var(--ink);font-weight:600}
 
+.note{margin:0;font-size:14px;color:var(--muted)}
+.infoBox{margin:0;padding:12px 14px;border-radius:12px;background:var(--raised);color:var(--soft);font-size:14px}
+
 .formError,.formNotice{padding:12px 14px;border-radius:12px;font-size:14px}
 .formError{background:var(--over-bg);color:var(--over)}
 .formNotice{background:var(--done-bg);color:var(--done)}

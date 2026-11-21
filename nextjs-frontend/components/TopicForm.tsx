@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Field, FormActions, FormCard, FormMessage, fieldAria } from "./form/FormKit";
+import { Field, FormActions, FormCard, FormMessage, FormNote, fieldAria } from "./form/FormKit";
 
 type Props = {
   preview?: boolean;
@@ -62,9 +62,9 @@ export default function TopicForm({ preview = false, onSubmitted }: Props) {
 
   return (
     <FormCard label="New topic" onSubmit={submit}>
-      <p style={{ margin: 0, padding: "12px 14px", borderRadius: 12, background: "var(--raised)", color: "var(--soft)", fontSize: 14 }}>
+      <FormNote boxed>
         New topics are saved as Pending and only appear on the board after a lecturer approves them.
-      </p>
+      </FormNote>
       <Field id="topic-title" label="Title" hint="Ask it the way you would search for it." error={errors.title} count={{ value: title, max: 300 }}>
         <input id="topic-title" value={title} maxLength={300} placeholder="e.g. When is the midterm project due?"
           onChange={(e) => setTitle(e.target.value)} {...fieldAria("topic-title", errors.title, true)} />

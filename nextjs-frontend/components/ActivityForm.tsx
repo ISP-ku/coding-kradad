@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { ActivityAssignee, CourseActivity } from "@/lib/types";
 import {
   ChoiceGroup, Field, FieldRow, FormActions, FormCard, FormMessage, QuickPicks,
-  fieldAria, type Choice,
+  FormNote, fieldAria, type Choice,
 } from "./form/FormKit";
 import { daysFromNow, localDate, localTime } from "@/lib/dates";
 
@@ -160,7 +160,7 @@ export default function ActivityForm(props: Props) {
           No TA accounts yet. A TA appears here after they have signed in once; add them on the Access page first.
         </FormMessage>
       )}
-      {mode === "edit" && <p style={{ margin: 0, fontSize: 14, color: "var(--muted)" }}>The assigned TA and their task status stay as they are.</p>}
+      {mode === "edit" && <FormNote>The assigned TA and their task status stay as they are.</FormNote>}
       {formError && <FormMessage kind="error">{formError}</FormMessage>}
 
       <FormActions
