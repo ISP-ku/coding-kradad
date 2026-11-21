@@ -1,39 +1,68 @@
 .workspace{min-width:0}
-.scope{display:inline-flex;gap:3px;padding:3px;margin:0 0 22px;border:1px solid var(--field);border-radius:12px;background:var(--surface)}
-.scope button{border:0;background:transparent;color:var(--soft);border-radius:9px;padding:8px 14px;font-size:14px;font-weight:500;min-height:38px}
+.scope{display:inline-flex;gap:4px;padding:4px;margin:0 0 24px;border:1px solid var(--field);border-radius:12px;background:var(--surface)}
+.scope button{border:0;background:transparent;color:var(--soft);border-radius:9px;padding:8px 15px;font-size:14px;font-weight:500;min-height:38px;transition:background var(--t-fast) var(--ease-out),color var(--t-fast) var(--ease-out)}
 .scope button[aria-pressed="true"]{background:var(--primary);color:var(--on-primary);font-weight:600}
+.scope button:focus-visible{outline-offset:3px}
 
-/* The time line: one spine per group, coloured only where something is urgent. */
-.group{position:relative;padding:0 0 10px 30px}
-.group::before{content:"";position:absolute;left:6px;top:16px;bottom:0;width:2px;background:var(--line)}
-.dot{position:absolute;left:0;top:8px;width:14px;height:14px;border-radius:50%;background:var(--surface);border:2px solid var(--dot)}
-.groupLabel{margin:0 0 2px;font-size:15px;font-weight:600;color:var(--soft)}
+/* Timeline groups keep urgency visible without making the page feel crowded. */
+.group{position:relative;padding:0 0 22px 30px}
+.group::before{content:"";position:absolute;left:6px;top:17px;bottom:0;width:2px;background:var(--line)}
+.dot{position:absolute;left:0;top:8px;width:14px;height:14px;border-radius:50%;background:var(--surface);border:2px solid var(--dot);z-index:1}
+.groupLabel{display:flex;align-items:center;gap:9px;margin:0 0 2px;font-size:15px;font-weight:650;color:var(--soft)}
+.groupCount{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--chip-bg);color:var(--chip-ink);font-size:12px;font-weight:600}
 .overdue::before{background:var(--over-line)}
 .overdue .dot{background:var(--over);border-color:var(--over)}
-.overdue .groupLabel,.overdue .day{color:var(--over)}
+.overdue .groupLabel{color:var(--over)}
+.overdue .groupCount{background:var(--over-bg);color:var(--over)}
 .soon::before{background:var(--soon-line)}
 .soon .dot{border-color:var(--soon)}
-.soon .groupLabel,.soon .day{color:var(--soon)}
+.soon .groupLabel{color:var(--soon)}
+.soon .groupCount{background:var(--soon-bg);color:var(--soon)}
 
-.row{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line2)}
-.day{font-size:24px;font-weight:600;line-height:1;text-align:center;color:var(--muted)}
-.day span{display:block;margin-top:5px;font-size:12px;font-weight:500;color:var(--muted)}
+.row{display:grid;grid-template-columns:58px minmax(0,1fr) auto;gap:15px;align-items:center;margin-top:11px;padding:14px 15px;border:1px solid var(--line2);border-radius:14px;background:var(--surface);box-shadow:var(--shadow-sm);transition:border-color var(--t-fast) var(--ease-out),box-shadow var(--t-fast) var(--ease-out),transform var(--t-fast) var(--ease-out)}
+.row:hover{border-color:var(--field);box-shadow:var(--shadow);transform:translateY(-1px)}
+.day{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:52px;padding:5px 3px;border:1px solid var(--line2);border-radius:10px;background:var(--raised);font-size:23px;font-weight:650;line-height:1.1;text-align:center;color:var(--muted)}
+.day span{display:block;margin-top:5px;font-size:11px;font-weight:550;line-height:1.2;color:var(--muted);white-space:nowrap}
+.overdue .day{color:var(--over);border-color:var(--over-line);background:var(--over-bg)}
+.soon .day{color:var(--soon);border-color:var(--soon-line);background:var(--soon-bg)}
 .info{min-width:0}
-.title{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0;font-size:16px;font-weight:500}
-.flag{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--soon-bg);color:var(--soon)}
-.meta{display:flex;flex-wrap:wrap;gap:2px 14px;margin-top:2px;font-size:13px;color:var(--muted)}
-.status{min-width:140px;min-height:40px;padding:8px 10px;border:1px solid var(--field);border-radius:10px;background:var(--surface);color:var(--ink)}
-.status:disabled{opacity:.7;background:var(--raised)}
+.title{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0;font-size:16px;font-weight:600;line-height:1.35;color:var(--ink)}
+.flag{display:inline-flex;align-items:center;font-size:11px;font-weight:650;padding:3px 9px;border-radius:999px;background:var(--soon-bg);color:var(--soon)}
+.meta{display:flex;flex-wrap:wrap;gap:3px 13px;margin-top:6px;font-size:12px;line-height:1.5;color:var(--muted)}
+.meta span{overflow-wrap:anywhere}
+.status{min-width:145px;min-height:40px;padding:8px 30px 8px 11px;border:1px solid var(--field);border-radius:10px;background:var(--raised);color:var(--ink);font-size:13px;font-weight:550;cursor:pointer;transition:border-color var(--t-fast) var(--ease-out),background var(--t-fast) var(--ease-out)}
+.status:hover:not(:disabled){border-color:var(--focus);background:var(--surface)}
+.status:disabled{opacity:.72;cursor:not-allowed;background:var(--raised)}
 
-.activityActions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.activityActions a,.activityActions button{display:inline-flex;align-items:center;min-height:32px;padding:4px 12px;border:1px solid var(--field);border-radius:8px;background:var(--surface);color:var(--quiet-ink);font-size:13px;font-weight:500;text-decoration:none}
-.activityActions a:hover,.activityActions button:hover:not(:disabled){background:var(--quiet-h);text-decoration:none}
+.activityActions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.activityActions a,.activityActions button{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:4px 11px;border:1px solid var(--field);border-radius:8px;background:var(--surface);color:var(--quiet-ink);font-size:12px;font-weight:600;text-decoration:none;transition:background var(--t-fast) var(--ease-out),border-color var(--t-fast) var(--ease-out),transform var(--t-press) var(--ease-out)}
+.activityActions a:hover,.activityActions button:hover:not(:disabled){background:var(--quiet-h);border-color:var(--focus);text-decoration:none}
+.activityActions a:active,.activityActions button:active:not(:disabled){transform:scale(.97)}
 .activityActions .danger{color:var(--over);border-color:var(--over-line)}
-.activityActions button:disabled{opacity:.6;cursor:wait}
+.activityActions .danger:hover:not(:disabled){background:var(--over-bg);border-color:var(--over)}
+.activityActions button:disabled{opacity:.55;cursor:wait}
 
-.error,.notice{margin:0 0 16px;padding:10px 14px;border-radius:10px;font-size:14px}
-.error{background:var(--over-bg);color:var(--over)}
-.notice{background:var(--done-bg);color:var(--done)}
-.empty{margin:0;padding:20px 0;color:var(--soft)}
+.error,.notice{margin:0 0 16px;padding:11px 14px;border:1px solid transparent;border-radius:11px;font-size:13px}
+.error{background:var(--over-bg);border-color:var(--over-line);color:var(--over)}
+.notice{background:var(--done-bg);border-color:var(--done-bg);color:var(--done)}
+.empty{margin:0;padding:24px 18px;border:1px dashed var(--field);border-radius:12px;color:var(--soft);text-align:center}
 
-@media(max-width:640px){.row{grid-template-columns:44px minmax(0,1fr)}.status{grid-column:2;min-width:0;width:100%}}
+@media(max-width:760px){
+  .row{grid-template-columns:52px minmax(0,1fr);gap:12px;padding:13px}
+  .status{grid-column:2;justify-self:start;min-width:180px;max-width:100%}
+}
+@media(max-width:480px){
+  .scope{width:100%}
+  .scope button{flex:1;padding-inline:9px}
+  .group{padding-left:25px}
+  .row{grid-template-columns:44px minmax(0,1fr);gap:10px;padding:11px;border-radius:12px}
+  .day{min-height:46px;font-size:20px}
+  .day span{font-size:10px}
+  .title{font-size:15px}
+  .meta{gap:2px 9px;font-size:11px}
+  .status{grid-column:1 / -1;width:100%;min-width:0}
+  .activityActions a,.activityActions button{min-height:32px}
+}
+@media(prefers-reduced-motion:reduce){
+  .row,.scope button,.status,.activityActions a,.activityActions button{transition:none}
+}
