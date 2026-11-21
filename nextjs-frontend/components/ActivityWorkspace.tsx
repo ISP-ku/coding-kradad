@@ -76,6 +76,7 @@ type ActivityRowProps = {
   activity: CourseActivity;
   task: ActivityTask | null;
   viewerRole: Role;
+  viewerId: string;
   savingTasks: ReadonlySet<number>;
   busyActivity: number | null;
   onActivityRequest: (activity: CourseActivity, action: ActivityAction) => void;
@@ -86,6 +87,7 @@ function ActivityRow({
   activity,
   task,
   viewerRole,
+  viewerId,
   savingTasks,
   busyActivity,
   onActivityRequest,
@@ -94,7 +96,7 @@ function ActivityRow({
   const canUpdate = Boolean(
     task &&
       (viewerRole === "lecturer" ||
-        (viewerRole === "ta" && task.assignee_id === activity.tasks.find((item) => item.id === task.id)?.assignee_id)),
+        (viewerRole === "ta" && task.assignee_id === viewerId)),
   );
   const firstOfActivity = !task || activity.tasks[0]?.id === task.id;
 
@@ -319,6 +321,7 @@ export default function ActivityWorkspace({
               activity={activity}
               task={task}
               viewerRole={viewerRole}
+              viewerId={viewerId}
               savingTasks={savingTasks}
               busyActivity={busyActivity}
               onActivityRequest={(item, action) => { void activityRequest(item, action); }}
