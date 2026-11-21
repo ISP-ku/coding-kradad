@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { commentCountLabel, setTopicSaved } from "@/lib/faq-client";
+import { commentCountLabel, postComment, setTopicSaved } from "@/lib/faq-client";
 import type { Comment, SessionUser, TopicDetail } from "@/lib/types";
 import styles from "./TopicThread.module.css";
 
@@ -35,41 +35,30 @@ export default function TopicThread({ topic, viewer, preview }: Props) {
   async function onSubmitComment(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
-    if (!body.trim()) {
+    const text = body.trim();
+    if (!text) {
       setError("Please write a comment first.");
       return;
     }
 
-    setSubmitting(true);
-    try {
-      if (preview) {
-        setComments((list) => [
-          ...list,
-          { id: list.length + 1, author: viewer ? viewer.username : "You", body: body.trim(), created_at: new Date().toISOString() },
-        ]);
-      } else {
-        const res = await fetch(`/api/faq/${topic.id}/comments`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ body: body.trim() }),
-        });
-        if (res.status === 401) {
-          setError("Please sign in to comment.");
-          return;
-        }
-        if (!res.ok) {
-          setError("Could not post your comment. Please try again.");
-          return;
-        }
-        const newComment = (await res.json()) as Comment;
-        setComments((list) => [...list, newComment]);
-      }
+    if (preview) {
+      setComments((list) => [
+        ...list,
+        { id: list.length + 1, author: viewer ? viewer.username : "You", body: text, created_at: new Date().toISOString() },
+      ]);
       setBody("");
-    } catch {
-      setError("Could not reach the server. Please try again.");
-    } finally {
-      setSubmitting(false);
+      return;
     }
+
+    setSubmitting(true);
+    const result = await postComment(topic.id, text);
+    setSubmitting(false);
+    if ("error" in result) {
+      setError(result.error);
+      return;
+    }
+    setComments((list) => [...list, result.comment]);
+    setBody("");
   }
 
   return (
