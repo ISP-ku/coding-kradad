@@ -45,6 +45,25 @@ def test_requires_login():
     assert client.get("/api/consultations").status_code == 401
 
 
+@pytest.mark.parametrize("role", ["student", "lecturer"])
+def test_only_a_ta_may_log_consultations(monkeypatch, role):
+    import app as backend
+
+    monkeypatch.setattr(backend, "current_user", lambda request: {"provider": "google", "id": "x", "role": role})
+    for response in (client.post("/api/consultations", json=VALID), client.get("/api/consultations")):
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Teaching assistant access required."
+
+
+def test_a_ta_session_is_stored_under_their_provider_and_id(monkeypatch):
+    import app as backend
+
+    monkeypatch.setattr(backend, "current_user", lambda request: {"provider": "google", "id": "ta-9", "role": "ta"})
+    assert client.post("/api/consultations", json=VALID).status_code == 201
+    with SessionLocal() as db:
+        assert [c.ta_user_id for c in db.query(ConsultationSession)] == ["google:ta-9"]
+
+
 def test_create_consultation_saves_record():
     login_as("google:111")
     r = client.post("/api/consultations", json=VALID)
