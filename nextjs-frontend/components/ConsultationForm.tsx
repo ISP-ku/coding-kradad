@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   Field, FieldRow, FormActions, FormCard, FormMessage, QuickPicks, fieldAria,
 } from "./form/FormKit";
+import { recordConsultation } from "@/lib/consultations-client";
 import { daysFromNow, localDate } from "@/lib/dates";
 
 type Props = {
@@ -66,29 +67,14 @@ export default function ConsultationForm({ preview }: Props) {
     }
 
     setSaving(true);
-    try {
-      const res = await fetch("/api/consultations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (res.status === 401) {
-        setFormError("Your session has ended. Please sign in again.");
-        return;
-      }
-      if (!res.ok) {
-        setFormError(res.status === 422
-          ? "The server rejected the form. Please check every field."
-          : "Could not save right now. Please try again.");
-        return;
-      }
-      // Back to the history list, which now includes the new session (SRS-15).
-      window.location.assign("/consultations?saved=1");
-    } catch {
-      setFormError("Could not reach the server. Please try again.");
-    } finally {
-      setSaving(false);
+    const result = await recordConsultation(payload);
+    setSaving(false);
+    if ("error" in result) {
+      setFormError(result.error);
+      return;
     }
+    // Back to the history list, which now includes the new session (SRS-15).
+    window.location.assign("/consultations?saved=1");
   }
 
   return (
