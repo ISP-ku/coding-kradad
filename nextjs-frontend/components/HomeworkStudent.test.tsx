@@ -111,6 +111,16 @@ describe("HomeworkStudent to-do list", () => {
     expect(screen.getByLabelText("Your answer")).toHaveValue("x");
   });
 
+  it("says so when the server cannot be reached, keeping the answer", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+    show();
+    fireEvent.click(within(screen.getByRole("article", { name: "HW1 todo" })).getByRole("button", { name: "Hand in" }));
+    fireEvent.change(screen.getByLabelText("Your answer"), { target: { value: "x" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not reach the server. Please try again.");
+    expect(screen.getByLabelText("Your answer")).toHaveValue("x");
+  });
+
   it("tells the student when everything is handed in", () => {
     show([ITEMS[1], ITEMS[2]]);
     expect(screen.getByText("Everything is handed in.")).toBeInTheDocument();

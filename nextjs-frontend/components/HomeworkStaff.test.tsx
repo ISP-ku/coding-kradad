@@ -123,6 +123,19 @@ describe("HomeworkStaff as a TA", () => {
     expect(await within(alice).findByRole("alert")).toHaveTextContent("Score cannot be more than 20.");
   });
 
+  it("says so when a grade cannot reach the server", async () => {
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(json([sub()]))
+      .mockRejectedValueOnce(new TypeError("Failed to fetch")));
+    render(<HomeworkStaff initial={ITEMS} role="ta" />);
+    fireEvent.click(screen.getByRole("button", { name: "Review & grade" }));
+    const alice = await screen.findByRole("group", { name: "Submission from Alice" });
+    fireEvent.change(within(alice).getByLabelText("Score (max 20)"), { target: { value: "20" } });
+    fireEvent.click(within(alice).getByRole("button", { name: "Save grade" }));
+    expect(await within(alice).findByRole("alert")).toHaveTextContent("Could not reach the server. Please try again.");
+    expect(screen.getByText("2 submitted, 1 graded")).toBeInTheDocument();
+  });
+
   it("explains an empty submission list and a load failure", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(json([])));
     const { unmount } = render(<HomeworkStaff initial={ITEMS} role="ta" />);
