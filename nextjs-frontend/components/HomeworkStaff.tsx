@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatDue } from "@/lib/homework";
+import { formatDateTime } from "@/lib/dates";
 import type { HomeworkItem } from "@/lib/types";
 import HomeworkSubmissions from "./HomeworkSubmissions";
 import styles from "./Homework.module.css";
@@ -54,7 +54,7 @@ export default function HomeworkStaff({ initial, role }: { initial: HomeworkItem
               <h3 className={styles.title}>{hw.title}</h3>
               <div className={styles.meta}>
                 <span className={styles.chip}>{hw.course_id}</span>
-                <span>Due {formatDue(hw.due_at)}</span>
+                <span>Due {formatDateTime(hw.due_at)}</span>
                 <span>· {hw.max_score} points</span>
               </div>
             </div>

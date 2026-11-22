@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import Icon from "@/components/Icon";
 import { logoutUrl } from "@/lib/api";
+import { formatDateTime } from "@/lib/dates";
 import { getActivityReport, getReportCourses } from "@/lib/reports";
 import { canAccess } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
@@ -27,20 +28,6 @@ function defaultRange() {
   // Show activities completed before their scheduled date in the default view.
   end.setDate(end.getDate() + 30);
   return { start: isoDate(start), end: isoDate(end) };
-}
-
-function formatDateTime(iso: string) {
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
 }
 
 export default async function ReportsPage({

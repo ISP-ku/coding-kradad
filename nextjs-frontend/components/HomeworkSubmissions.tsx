@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatDue } from "@/lib/homework";
+import { formatDateTime } from "@/lib/dates";
 import { gradeSubmission, loadSubmissions } from "@/lib/homework-client";
 import type { HomeworkItem, HomeworkSubmission } from "@/lib/types";
 import styles from "./Homework.module.css";
@@ -48,7 +48,7 @@ function Row({ sub, max, canGrade, onSaved }: {
       <div className={styles.head}>
         <strong>{sub.student_name}</strong>
         <div className={styles.meta}>
-          <span>Submitted {formatDue(sub.submitted_at)}</span>
+          <span>Submitted {formatDateTime(sub.submitted_at)}</span>
           {sub.is_late && <span className={`${styles.chip} ${styles.chipLate}`}>Late</span>}
           {sub.score !== null && (
             <span className={`${styles.chip} ${styles.chipGraded}`}>Graded: {sub.score} / {max}</span>

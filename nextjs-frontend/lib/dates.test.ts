@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { daysFromNow, localDate, localDateTime, localTime } from "./dates";
+import { daysFromNow, formatDateTime, localDate, localDateTime, localTime } from "./dates";
 
 // Built from local parts, so these pass in any time zone.
 const at = new Date(2026, 0, 5, 9, 7); // 5 Jan 2026, 09:07 local
@@ -26,5 +26,10 @@ describe("date helpers", () => {
   it("does not change the date it starts from", () => {
     daysFromNow(3, at);
     expect(localDate(at)).toBe("2026-01-05");
+  });
+
+  it("formats an API timestamp in local time, or leaves junk as it is", () => {
+    expect(formatDateTime(at.toISOString())).toBe("5 Jan 2026, 09:07");
+    expect(formatDateTime("not a date")).toBe("not a date");
   });
 });
