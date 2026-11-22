@@ -6,13 +6,14 @@ GET  /api/consultations  -> a TA lists their own recorded sessions
 from datetime import date, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from timeutil import UtcDateTime
+from activities import authenticated_user, identity
 from database import ConsultationSession, get_db
+from timeutil import UtcDateTime
 
 router = APIRouter(prefix="/api/consultations", tags=["consultations"])
 
@@ -38,22 +39,14 @@ class ConsultationOut(BaseModel):
     created_at: UtcDateTime
 
 
-def current_ta_id(request: Request) -> str:
+def current_ta_id(user: dict = Depends(authenticated_user)) -> str:
     """Who is logged in, e.g. 'google:1234'. 401 if nobody is, 403 if the
-    account is not a TA (SRS-14, SRS-18).
-
-    Goes through app.py's current_user() like every other router, so a
-    session that /api/me rejects (old multi-provider sessions, or a local
-    test session after local login was turned off) is rejected here too."""
-    # Imported here, not at module level: app.py imports this module.
-    from app import current_user
-
-    user = current_user(request)
-    if not user:
-        raise HTTPException(status_code=401, detail="Please sign in first.")
+    account is not a TA (SRS-14, SRS-18). Built on the shared
+    authenticated_user dependency, so a session /api/me rejects is rejected
+    here too."""
     if user.get("role") != "ta":
         raise HTTPException(status_code=403, detail="Teaching assistant access required.")
-    return f"{user['provider']}:{user['id']}"
+    return identity(user)
 
 
 @router.post("", response_model=ConsultationOut, status_code=201)
