@@ -16,13 +16,15 @@ describe("lib/api (preview mode off)", () => {
     vi.unstubAllEnvs();
   });
 
-  it("points loginUrl/logoutUrl at the FastAPI backend", async () => {
-    vi.stubEnv("API_BASE_URL", "http://localhost:8000");
+  it("sends the browser to sign-in and logout on this site; next.config.mjs passes them to the backend", async () => {
+    vi.stubEnv("API_BASE_URL", "http://127.0.0.1:8000");
     const { loginUrl, logoutUrl, API_BASE } = await loadApi();
 
-    expect(API_BASE).toBe("http://localhost:8000");
-    expect(loginUrl("google")).toBe("http://localhost:8000/login/google");
-    expect(logoutUrl).toBe("http://localhost:8000/logout");
+    // API_BASE is only for server-side calls; the browser never sees it.
+    expect(API_BASE).toBe("http://127.0.0.1:8000");
+    expect(loginUrl("google")).toBe("/login/google");
+    expect(loginUrl("google-personal")).toBe("/login/google-personal");
+    expect(logoutUrl).toBe("/logout");
   });
 
   it("falls back to localhost:8000 when API_BASE_URL is unset", async () => {

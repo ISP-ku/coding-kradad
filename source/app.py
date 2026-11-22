@@ -64,6 +64,28 @@ MSG_UNVERIFIABLE = "Google sign-in could not be verified. Please try again."
 MSG_NOT_ENROLLED = "Your KU account is not registered in any course on this dashboard. Ask a lecturer to add you on the Access page."
 APP_ENV = os.getenv("APP_ENV", "development")
 LOCAL_TEST_LOGIN = os.getenv("LOCAL_TEST_LOGIN", "0") == "1"
+
+
+def production_config_problems(env) -> list[str]:
+    """Settings the deployed app cannot work without (DEPLOY.md, step 4).
+
+    Without DATABASE_URL it would fall back to a SQLite file inside the
+    container, which a free Render service loses every time it sleeps."""
+    problems = [f"{key} is not set." for key in (
+        "DATABASE_URL", "SESSION_SECRET", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET",
+        "FRONTEND_URL", "GOOGLE_REDIRECT_URI",
+    ) if not env.get(key, "").strip()]
+    site = env.get("FRONTEND_URL", "").strip().rstrip("/")
+    redirect = env.get("GOOGLE_REDIRECT_URI", "").strip()
+    if site and redirect and redirect != f"{site}/callback/google":
+        problems.append(f"GOOGLE_REDIRECT_URI must be {site}/callback/google "
+                        "(Google sends people back through this site).")
+    return problems
+
+
+if APP_ENV == "production" and (_problems := production_config_problems(os.environ)):
+    raise RuntimeError("Production settings are incomplete:\n- " + "\n- ".join(_problems) + "\nSee DEPLOY.md.")
+
 TEST_USERS_FILE = BASE_DIR / "data" / "allowed_users.json"
 
 

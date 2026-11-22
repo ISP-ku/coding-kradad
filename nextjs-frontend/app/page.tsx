@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
-import { API_BASE, authOptions, loginUrl, logoutUrl } from "@/lib/api";
+import { authOptions, loginUrl, logoutUrl } from "@/lib/api";
 import { homePathFor } from "@/lib/permissions";
 import { PREVIEW } from "@/lib/preview";
 import { getSessionUser } from "@/lib/session";
@@ -98,7 +98,7 @@ export default async function LoginPage() {
                 <a className={styles.quiet} href={loginUrl("google-personal")}>Continue with a personal Google account</a>
               )}
               {options.local_test_login && (
-                <a className={styles.quiet} href={`${API_BASE}/local-test-login`}>Use a local test account</a>
+                <a className={styles.quiet} href="/local-test-login">Use a local test account</a>
               )}
               <p className={styles.help}>
                 Use your account ending in @ku.th{options.personal_google ? ", or the Gmail address your lecturer added" : ""}.
