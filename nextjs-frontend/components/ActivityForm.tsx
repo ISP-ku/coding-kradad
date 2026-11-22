@@ -110,9 +110,9 @@ export default function ActivityForm(props: Props) {
             <datalist id="activity-courses">{courses.map((c) => <option key={c} value={c} />)}</datalist>
           )}
         </Field>
-        <Field id="act-title" label="Title" error={errors.title} count={{ value: values.title, max: 200 }}>
+        <Field id="act-title" label="Title" hint="What TAs see on their task list." error={errors.title} count={{ value: values.title, max: 200 }}>
           <input id="act-title" value={values.title} maxLength={200} placeholder="e.g. Lab 4 room setup"
-            onChange={(e) => set("title", e.target.value)} {...fieldAria("act-title", errors.title)} />
+            onChange={(e) => set("title", e.target.value)} {...fieldAria("act-title", errors.title, true)} />
         </Field>
       </FieldRow>
 

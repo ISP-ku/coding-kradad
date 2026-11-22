@@ -45,6 +45,12 @@ describe("ActivityForm (create)", () => {
     });
   });
 
+  it("gives Title a hint like Course, so the two line up side by side", () => {
+    render(<ActivityForm mode="create" assignees={TAS} onSaved={onSaved} />);
+    expect(screen.getByLabelText("Course")).toHaveAccessibleDescription("The course code, e.g. 01219245");
+    expect(screen.getByLabelText("Title")).toHaveAccessibleDescription("What TAs see on their task list.");
+  });
+
   it("fills the date and time from quick picks", () => {
     render(<ActivityForm mode="create" assignees={TAS} onSaved={onSaved} />);
     fireEvent.click(screen.getByRole("button", { name: "Tomorrow" }));

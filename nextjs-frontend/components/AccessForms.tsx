@@ -51,8 +51,9 @@ export function AccessMemberForm({ courses, defaultCourseId, onDone, allowPerson
   return (
     <FormCard label="Add people" onSubmit={submit}>
       <FieldRow>
-        <Field id="member-course" label="Course">
-          <select id="member-course" value={courseId} onChange={(e) => setCourseId(Number(e.target.value))}>
+        <Field id="member-course" label="Course" hint="The course to add them to.">
+          <select id="member-course" value={courseId} onChange={(e) => setCourseId(Number(e.target.value))}
+            {...fieldAria("member-course", undefined, true)}>
             {courses.map((c) => <option key={c.id} value={c.id}>{c.code}{c.name && c.name !== c.code ? `, ${c.name}` : ""}</option>)}
           </select>
         </Field>
