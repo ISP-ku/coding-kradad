@@ -7,7 +7,7 @@ Who may do what (checked on the server, never trusted from the browser):
 Everyone must be signed in. Role checks run before any database lookup, so a
 wrong-role caller gets 403 whether or not the id exists.
 """
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from activities import authenticated_user, identity, require_lecturer, require_staff
 from database import Homework, HomeworkSubmission, get_db
-from timeutil import UtcDateTime
+from timeutil import UtcDateTime, to_naive_utc, utcnow_naive
 
 router = APIRouter(prefix="/api/homework", tags=["homework"])
 
@@ -39,17 +39,6 @@ def require_ta(user: dict = Depends(authenticated_user)) -> dict:
     if user.get("role") != "ta":
         raise HTTPException(status_code=403, detail="Only teaching assistants can grade homework.")
     return user
-
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
-
-
-def _naive_utc(value: datetime) -> datetime:
-    """The database keeps naive UTC. Treat a value with no zone as UTC."""
-    if value.tzinfo is not None:
-        value = value.astimezone(timezone.utc).replace(tzinfo=None)
-    return value
 
 
 # --- Request / response shapes ------------------------------------------------
@@ -128,7 +117,7 @@ def _get_homework(db: Session, homework_id: int) -> Homework:
 def list_homework(user: dict = Depends(authenticated_user), db: Session = Depends(get_db)):
     """Every homework, soonest due first. The extra fields depend on the role."""
     items = db.scalars(select(Homework).order_by(Homework.due_at, Homework.id)).all()
-    now = _utcnow()
+    now = utcnow_naive()
 
     if user.get("role") in ("ta", "lecturer"):
         counts = {
@@ -167,7 +156,7 @@ def assign_homework(
 ):
     hw = Homework(
         course_id=data.course_id, title=data.title, description=data.description,
-        due_at=_naive_utc(data.due_at), max_score=data.max_score, created_by=identity(user),
+        due_at=to_naive_utc(data.due_at), max_score=data.max_score, created_by=identity(user),
     )
     db.add(hw)
     db.commit()
@@ -207,7 +196,7 @@ def submit_homework(
         response.status_code = 200  # replacing an earlier submission
     sub.student_name = user.get("username") or "Student"
     sub.answer = data.answer
-    sub.submitted_at = _utcnow()
+    sub.submitted_at = utcnow_naive()
     db.commit()
     db.refresh(sub)
     return submission_out(sub, hw)
@@ -228,7 +217,7 @@ def grade_submission(
     sub.score = data.score
     sub.feedback = data.feedback or None
     sub.graded_by = identity(user)
-    sub.graded_at = _utcnow()
+    sub.graded_at = utcnow_naive()
     db.commit()
     db.refresh(sub)
     return submission_out(sub, hw)
