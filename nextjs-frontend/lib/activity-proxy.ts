@@ -1,17 +1,10 @@
-import { cookies } from "next/headers";
-import { API_BASE } from "./api";
+import { backendFetch } from "./backend";
 
 export async function proxyActivityRequest(path: string, method: string, body?: string) {
-  const cookieHeader = cookies().getAll().map(({ name, value }) => `${name}=${value}`).join("; ");
   try {
-    const upstream = await fetch(`${API_BASE}${path}`, {
+    const upstream = await backendFetch(path, {
       method,
-      headers: {
-        cookie: cookieHeader,
-        ...(body ? { "content-type": "application/json" } : {}),
-      },
-      ...(body ? { body } : {}),
-      cache: "no-store",
+      ...(body ? { headers: { "content-type": "application/json" }, body } : {}),
     });
     return new Response(await upstream.text(), {
       status: upstream.status,
