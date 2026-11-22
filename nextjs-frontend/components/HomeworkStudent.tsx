@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { errorMessage } from "@/lib/homework";
-import type { HomeworkItem, HomeworkSubmission } from "@/lib/types";
+import { dayKey, dueText, fmt } from "@/lib/homework";
+import { submitHomework } from "@/lib/homework-client";
+import type { HomeworkItem } from "@/lib/types";
+import HomeworkByCourse from "./HomeworkByCourse";
+import HomeworkCalendar, { type Month } from "./HomeworkCalendar";
 import Icon from "./Icon";
 import styles from "./HomeworkStudent.module.css";
 
@@ -24,12 +27,6 @@ const VIEWS: { key: View; label: string; icon: "list" | "calendar" | "columns" }
 ];
 const COURSE_COLOURS = ["c1", "c2", "c3", "c4"] as const;
 
-const fmt = (opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-GB", opts);
-const dayKey = (d: Date) => d.toLocaleDateString("en-CA"); // YYYY-MM-DD, local time
-const dueText = (iso: string) =>
-  `Due ${fmt({ weekday: "short", day: "numeric", month: "short" }).format(new Date(iso))}, ${fmt({ hour: "2-digit", minute: "2-digit" }).format(new Date(iso))}`;
-const longDay = (d: Date) => fmt({ weekday: "long", day: "numeric", month: "long" }).format(d);
-
 /**
  * Student homework: split by course, shown as a to-do list grouped by
  * urgency, a month calendar, or one section per course. Every view hands
@@ -40,7 +37,7 @@ export default function HomeworkStudent({ initial, today: todayProp }: { initial
   const [items, setItems] = useState(initial);
   const [view, setView] = useState<View>("list");
   const [course, setCourse] = useState<string>("all");
-  const [month, setMonth] = useState({ y: today.getFullYear(), m: today.getMonth() });
+  const [month, setMonth] = useState<Month>({ y: today.getFullYear(), m: today.getMonth() });
   const [selected, setSelected] = useState(dayKey(today));
   const [openId, setOpenId] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
@@ -84,25 +81,16 @@ export default function HomeworkStudent({ initial, today: todayProp }: { initial
     }
     setBusy(true);
     setError(null);
-    try {
-      const res = await fetch(`/api/homework/${item.id}/submissions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answer: draft.trim() }),
-      });
-      if (!res.ok) {
-        setError({ id: item.id, message: await errorMessage(res, "Could not hand this in right now. Please try again.") });
-        return;
-      }
-      const saved = (await res.json()) as HomeworkSubmission;
-      setItems((list) => list.map((h) => (h.id === item.id ? { ...h, status: "submitted", is_overdue: false, my_submission: saved } : h)));
-      setOpenId(null);
-      setNotice(`"${item.title}" was handed in. You can change it until it is graded.`);
-    } catch {
-      setError({ id: item.id, message: "Could not reach the server. Please try again." });
-    } finally {
-      setBusy(false);
+    const result = await submitHomework(item.id, draft.trim());
+    setBusy(false);
+    if ("error" in result) {
+      setError({ id: item.id, message: result.error });
+      return;
     }
+    const saved = result.submission;
+    setItems((list) => list.map((h) => (h.id === item.id ? { ...h, status: "submitted", is_overdue: false, my_submission: saved } : h)));
+    setOpenId(null);
+    setNotice(`"${item.title}" was handed in. You can change it until it is graded.`);
   }
 
   const card = (h: HomeworkItem) => {
@@ -177,8 +165,6 @@ export default function HomeworkStudent({ initial, today: todayProp }: { initial
     );
   };
 
-  // ---- views -------------------------------------------------------------
-
   const listView = () => {
     const groups = BUCKETS.map((b) => {
       const rows = shown.filter((h) => bucketOf(h) === b.key);
@@ -197,95 +183,6 @@ export default function HomeworkStudent({ initial, today: todayProp }: { initial
       </div>
     );
   };
-
-  const calendarView = () => {
-    const first = new Date(month.y, month.m, 1);
-    const offset = (first.getDay() + 6) % 7; // Monday first
-    const daysInMonth = new Date(month.y, month.m + 1, 0).getDate();
-    const cells = Array.from({ length: 42 }, (_, i) => i - offset + 1);
-    const byDay = new Map<string, HomeworkItem[]>();
-    for (const h of shown) {
-      const k = dayKey(new Date(h.due_at));
-      byDay.set(k, [...(byDay.get(k) ?? []), h]);
-    }
-    const monthName = fmt({ month: "long" }).format(first);
-    const selectedDate = new Date(`${selected}T12:00:00`);
-    const selectedItems = byDay.get(selected) ?? [];
-    const step = (n: number) => setMonth(({ y, m }) => ({ y: m + n < 0 ? y - 1 : m + n > 11 ? y + 1 : y, m: (m + n + 12) % 12 }));
-    return (
-      <div className={styles.calendarWrap}>
-        <div className={styles.calHead}>
-          <button type="button" className={styles.quiet} aria-label="Previous month" onClick={() => step(-1)}>‹</button>
-          <h2>{monthName} {month.y}</h2>
-          <button type="button" className={styles.quiet} aria-label="Next month" onClick={() => step(1)}>›</button>
-        </div>
-        <div className={styles.calendar}>
-          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => <div key={d} className={styles.calDay}>{d}</div>)}
-          {cells.map((n, i) => {
-            if (n < 1 || n > daysInMonth) return <div key={i} className={styles.outCell} aria-hidden="true" />;
-            const date = new Date(month.y, month.m, n);
-            const k = dayKey(date);
-            const its = byDay.get(k) ?? [];
-            const cls = [styles.cell, k === dayKey(today) ? styles.isToday : "", k === selected ? styles.isSelected : ""].join(" ");
-            return (
-              <button key={i} type="button" className={cls} aria-pressed={k === selected}
-                aria-label={`${n} ${monthName}, ${its.length ? `${its.length} due` : "nothing due"}`} onClick={() => setSelected(k)}>
-                <span className={styles.num}>{n}</span>
-                {its.slice(0, 3).map((h) => (
-                  <span key={h.id} className={`${styles.ev} ${colourOf(h.course_id)} ${h.status !== "todo" ? styles.evDone : ""}`}>
-                    <i aria-hidden="true" /><span>{h.title}</span>
-                  </span>
-                ))}
-                {its.length > 3 && <span className={styles.more}>{its.length - 3} more</span>}
-              </button>
-            );
-          })}
-        </div>
-        <section className={styles.dayPanel} aria-label={longDay(selectedDate)} aria-live="polite">
-          <h3>{longDay(selectedDate)}</h3>
-          {selectedItems.length ? selectedItems.map(card) : <p className={styles.empty}>Nothing is due on this day.</p>}
-        </section>
-      </div>
-    );
-  };
-
-  const courseView = () => (
-    <div className={styles.board}>
-      {(course === "all" ? courses : [course]).map((code) => {
-        const posts = items.filter((h) => h.course_id === code).sort((a, b) => b.due_at.localeCompare(a.due_at));
-        const left = todoIn(code);
-        return (
-          <section key={code} className={`${styles.courseCard} ${colourOf(code)}`} aria-label={code}>
-            <div className={styles.band}>
-              <strong>{code}</strong>
-              <span>{left ? `${left} to hand in` : "All handed in"}</span>
-            </div>
-            {posts.map((h) => {
-              const sub = h.my_submission;
-              const state = h.status === "graded" && sub ? `Graded ${sub.score} / ${h.max_score}`
-                : h.status === "submitted" ? "Handed in" : h.is_overdue ? "Missing" : "Assigned";
-              const stateCls = h.status === "graded" ? styles.graded : h.is_overdue && h.status === "todo" ? styles.missing : styles.handed;
-              return (
-                <div className={styles.post} key={h.id}>
-                  <div className={styles.postTop}>
-                    <span className={styles.postTitle}>{h.title}</span>
-                    <span className={stateCls}>{state}</span>
-                  </div>
-                  <span className={styles.postDue}>{dueText(h.due_at)}</span>
-                  {h.status !== "graded" && (
-                    <button type="button" className={styles.quiet} aria-label={`Open ${h.title}`}
-                      onClick={() => { setView("list"); setCourse(code); open(h); }}>
-                      Open
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </section>
-        );
-      })}
-    </div>
-  );
 
   return (
     <div className={styles.wrap}>
@@ -319,8 +216,18 @@ export default function HomeworkStudent({ initial, today: todayProp }: { initial
       {notice && <div className={styles.notice} role="status">{notice}</div>}
 
       {view === "list" && listView()}
-      {view === "calendar" && calendarView()}
-      {view === "course" && courseView()}
+      {view === "calendar" && (
+        <HomeworkCalendar
+          items={shown} today={today} month={month} onMonth={setMonth}
+          selected={selected} onSelect={setSelected} colourOf={colourOf} renderCard={card}
+        />
+      )}
+      {view === "course" && (
+        <HomeworkByCourse
+          items={items} courses={course === "all" ? courses : [course]} colourOf={colourOf} todoIn={todoIn}
+          onOpen={(h) => { setView("list"); setCourse(h.course_id); open(h); }}
+        />
+      )}
     </div>
   );
 }

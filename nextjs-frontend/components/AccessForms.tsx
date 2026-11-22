@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { errorMessage } from "@/lib/homework";
+import { errorMessage } from "@/lib/errors";
 import { normaliseKuEmail, type AccessCourse, type AccessRole } from "@/lib/access";
 import { ChoiceGroup, Field, FieldRow, FormActions, FormCard, FormMessage, FormNote, fieldAria, type Choice } from "./form/FormKit";
 

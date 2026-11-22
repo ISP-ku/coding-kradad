@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { errorMessage } from "@/lib/homework";
+import { errorMessage } from "@/lib/errors";
 import {
   ROLE_LABEL,
   type AccessAccount, type AccessCourse, type AccessData, type AccessRole,

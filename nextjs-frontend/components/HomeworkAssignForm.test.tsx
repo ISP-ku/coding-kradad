@@ -69,4 +69,15 @@ describe("HomeworkAssignForm", () => {
     render(<HomeworkAssignForm onCreated={onCreated} courses={["01219245"]} />);
     expect(screen.getByLabelText("Course")).toHaveAttribute("list", "homework-courses");
   });
+
+  it("says so when the server cannot be reached", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+    render(<HomeworkAssignForm onCreated={onCreated} />);
+    fireEvent.change(screen.getByLabelText("Course"), { target: { value: "01219245" } });
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "HW9" } });
+    fireEvent.change(screen.getByLabelText("Due date and time"), { target: { value: "2099-03-01T09:30" } });
+    fireEvent.click(screen.getByRole("button", { name: "Assign homework" }));
+    expect(await screen.findByText("Could not reach the server. Please try again.")).toBeInTheDocument();
+    expect(onCreated).not.toHaveBeenCalled();
+  });
 });
