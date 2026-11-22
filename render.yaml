@@ -1,0 +1,47 @@
+# Render Blueprint: one free web service running both apps (see DEPLOY.md).
+# Values marked sync: false are entered in the Render dashboard, never here.
+services:
+  - type: web
+    name: coding-kradad
+    runtime: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./Dockerfile
+    # Goes through Next.js to FastAPI, so it checks both are up.
+    healthCheckPath: /api/auth-options
+    autoDeploy: true
+    envVars:
+      # Fixed for production. Local test login stays off: APP_ENV must be
+      # "development" for it, and behind the proxy every request is local.
+      - key: APP_ENV
+        value: production
+      - key: LOCAL_TEST_LOGIN
+        value: "0"
+      - key: COOKIE_SECURE
+        value: "1"
+      # Any @ku.th Google account can sign in, as a student unless it is in
+      # LECTURER_EMAILS / TA_EMAILS or a lecturer sets its role on Access.
+      - key: REQUIRE_COURSE_MEMBERSHIP
+        value: "0"
+      - key: ALLOW_PERSONAL_GOOGLE
+        value: "0"
+      # Start with no courses (the default roster has fake test.* accounts).
+      - key: COURSE_ROSTER_FILE
+        value: /app/data/course_roster.empty.json
+      - key: SESSION_SECRET
+        generateValue: true
+      # Entered in the dashboard when the Blueprint is created.
+      - key: DATABASE_URL          # Neon direct connection string
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: FRONTEND_URL          # https://<service>.onrender.com
+        sync: false
+      - key: GOOGLE_REDIRECT_URI   # https://<service>.onrender.com/callback/google
+        sync: false
+      - key: LECTURER_EMAILS       # comma-separated, e.g. your @ku.th address
+        sync: false
+      - key: TA_EMAILS
+        sync: false

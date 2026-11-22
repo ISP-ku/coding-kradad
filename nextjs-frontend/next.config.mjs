@@ -16,6 +16,9 @@ const BACKEND_PATHS = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // A self-contained server in .next/standalone, small enough for a 512 MB
+  // container (see the Dockerfile). `npm run dev` works as before.
+  output: "standalone",
   async rewrites() {
     return BACKEND_PATHS.map((path) => ({ source: path, destination: `${API_BASE}${path}` }));
   },

@@ -1,0 +1,15 @@
+# Never send secrets, local data or build output into the image.
+.env
+.env.*
+!.env.example
+**/.env.local
+*.db
+.git
+.github
+.venv
+venv
+**/__pycache__
+**/.pytest_cache
+nextjs-frontend/node_modules
+nextjs-frontend/.next
+docs
