@@ -42,4 +42,12 @@ describe("PasswordSignIn", () => {
     render(<PasswordSignIn apiBase={API} email="a@ku.th" error={error} />);
     expect(screen.getByRole("alert")).toHaveTextContent(text);
   });
+
+  it("falls back to a general message for an unknown error, and shows none without one", () => {
+    const { unmount } = render(<PasswordSignIn apiBase={API} error="something_new" />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Something went wrong. Please try again.");
+    unmount();
+    render(<PasswordSignIn apiBase={API} />);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
 });
