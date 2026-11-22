@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import PasswordSignIn from "@/components/PasswordSignIn";
 import ThemeToggle from "@/components/ThemeToggle";
-import { API_BASE, authOptions } from "@/lib/api";
+import { authOptions } from "@/lib/api";
 import { homePathFor } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
@@ -32,7 +32,6 @@ export default async function PasswordSignInPage({ searchParams }: { searchParam
           <h1>Sign in with a password</h1>
           <p className={styles.lead}>For when KU ALL will not let you through. No Google or KU ALL needed.</p>
           <PasswordSignIn
-            apiBase={API_BASE}
             email={searchParams?.email}
             error={searchParams?.error}
             allowPersonal={options.personal_google}

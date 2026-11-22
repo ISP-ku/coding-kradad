@@ -1,12 +1,14 @@
 import { PREVIEW } from "./preview";
 
-// Base URL of the FastAPI backend (source/app.py). Set in .env.local.
+// Where this server reaches the FastAPI backend (source/app.py). Set in
+// .env.local. Server-side only: the browser always uses this site's own
+// address, and next.config.mjs passes those routes on to the backend.
 export const API_BASE = process.env.API_BASE_URL ?? "http://localhost:8000";
 
 export const loginUrl = (provider: "google" | "google-personal" = "google") =>
-  PREVIEW ? `/preview-login?provider=${provider}` : `${API_BASE}/login/${provider}`;
+  PREVIEW ? `/preview-login?provider=${provider}` : `/login/${provider}`;
 
-export const logoutUrl = PREVIEW ? "/preview-logout" : `${API_BASE}/logout`;
+export const logoutUrl = PREVIEW ? "/preview-logout" : "/logout";
 
 export type AuthOptions = { local_test_login: boolean; password: boolean; personal_google: boolean };
 const NO_OPTIONS: AuthOptions = { local_test_login: false, password: false, personal_google: false };

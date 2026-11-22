@@ -2,8 +2,6 @@ import kit from "./form/FormKit.module.css";
 import styles from "./PasswordSignIn.module.css";
 
 type Props = {
-  /** Backend address the form posts to (the session cookie is set there). */
-  apiBase: string;
   email?: string;
   error?: string;
   /** Personal Gmail accounts are turned on (ALLOW_PERSONAL_GOOGLE). */
@@ -29,16 +27,17 @@ function errorText(error: string | undefined, allowPersonal: boolean): string {
 
 /**
  * Sign in with a password a lecturer created on the Access page, for people
- * KU ALL will not let through. A plain HTML form that posts to the backend,
- * so it works without JavaScript and the backend sets the session cookie.
+ * KU ALL will not let through. A plain HTML form that posts to /password-login
+ * (passed on to the backend), so it works without JavaScript and the backend
+ * sets the session cookie on this site.
  */
-export default function PasswordSignIn({ apiBase, email = "", error, allowPersonal = false }: Props) {
+export default function PasswordSignIn({ email = "", error, allowPersonal = false }: Props) {
   const message = errorText(error, allowPersonal);
 
   return (
     <div className={styles.wrap}>
       {message && <div className={kit.formError} role="alert">{message}</div>}
-      <form className={kit.card} action={`${apiBase}/password-login`} method="post" aria-label="Sign in with a password">
+      <form className={kit.card} action="/password-login" method="post" aria-label="Sign in with a password">
         <div className={kit.field}>
           <div className={kit.labelRow}><label htmlFor="signin-email">Email address</label></div>
           <p className={kit.hint} id="signin-email-hint">
