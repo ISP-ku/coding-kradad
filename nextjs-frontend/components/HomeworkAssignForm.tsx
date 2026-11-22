@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { errorMessage, localInputToIso } from "@/lib/homework";
+import { errorMessage } from "@/lib/errors";
+import { localInputToIso } from "@/lib/homework";
 import type { HomeworkItem } from "@/lib/types";
 import {
   Field, FieldRow, FormActions, FormCard, FormMessage, QuickPicks, fieldAria,

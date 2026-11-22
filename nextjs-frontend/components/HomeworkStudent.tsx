@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { errorMessage } from "@/lib/homework";
+import { errorMessage } from "@/lib/errors";
 import type { HomeworkItem, HomeworkSubmission } from "@/lib/types";
 import Icon from "./Icon";
 import styles from "./HomeworkStudent.module.css";

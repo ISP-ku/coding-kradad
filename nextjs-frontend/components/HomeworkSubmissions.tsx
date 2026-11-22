@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { errorMessage, formatDue } from "@/lib/homework";
+import { errorMessage } from "@/lib/errors";
+import { formatDue } from "@/lib/homework";
 import type { HomeworkItem, HomeworkSubmission } from "@/lib/types";
 import styles from "./Homework.module.css";
 

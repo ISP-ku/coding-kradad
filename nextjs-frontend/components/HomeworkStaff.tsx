@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { byDueDate, formatDue } from "@/lib/homework";
+import { formatDue } from "@/lib/homework";
 import type { HomeworkItem } from "@/lib/types";
 import HomeworkSubmissions from "./HomeworkSubmissions";
 import styles from "./Homework.module.css";
