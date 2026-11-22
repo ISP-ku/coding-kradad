@@ -1,9 +1,9 @@
-import { proxyActivityRequest } from "@/lib/activity-proxy";
+import { proxyApiRequest } from "@/lib/api-proxy";
 
 export function GET() {
-  return proxyActivityRequest("/api/homework", "GET");
+  return proxyApiRequest("/api/homework", "GET");
 }
 
 export async function POST(request: Request) {
-  return proxyActivityRequest("/api/homework", "POST", await request.text());
+  return proxyApiRequest("/api/homework", "POST", await request.text());
 }

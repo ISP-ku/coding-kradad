@@ -1,5 +1,5 @@
-import { proxyActivityRequest } from "@/lib/activity-proxy";
+import { proxyApiRequest } from "@/lib/api-proxy";
 
 export function GET() {
-  return proxyActivityRequest("/api/activities/assignees", "GET");
+  return proxyApiRequest("/api/activities/assignees", "GET");
 }
