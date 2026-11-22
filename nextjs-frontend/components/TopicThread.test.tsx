@@ -9,7 +9,7 @@ const student: SessionUser = { id: "s1", username: "Student", provider: "google"
 const topic: TopicDetail = {
   id: 4, title: "When is the midterm?", description: "Week 8?", status: "Published", submitted_by: "google:1",
   created_at: "2026-11-01T09:00:00Z", comment_count: 1, saved: false,
-  comments: [{ id: 1, author: "google:2", body: "Week 8, room 204.", created_at: "2026-11-02T09:00:00Z" }],
+  comments: [{ id: 1, author: "google:2", author_name: "Aj. Malee", body: "Week 8, room 204.", created_at: "2026-11-02T09:00:00Z" }],
 };
 
 const thread = (viewer: SessionUser | null = student) =>
@@ -21,6 +21,8 @@ describe("TopicThread", () => {
   it("shows the topic and its discussion", () => {
     thread();
     expect(screen.getByText("Week 8, room 204.")).toBeInTheDocument();
+    expect(screen.getByText("Aj. Malee")).toBeInTheDocument();
+    expect(screen.queryByText("google:2")).not.toBeInTheDocument();
     expect(screen.getByText("1 comment")).toBeInTheDocument();
   });
 
@@ -40,7 +42,7 @@ describe("TopicThread", () => {
   });
 
   it("posts the trimmed comment, adds it to the thread and clears the box", async () => {
-    const saved = { id: 2, author: "google:s1", body: "Thanks!", created_at: "2026-11-03T09:00:00Z" };
+    const saved = { id: 2, author: "google:s1", author_name: "Student", body: "Thanks!", created_at: "2026-11-03T09:00:00Z" };
     const fetcher = vi.fn().mockResolvedValue({ ok: true, status: 201, json: async () => saved });
     vi.stubGlobal("fetch", fetcher);
     thread();

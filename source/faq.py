@@ -62,6 +62,7 @@ from database import (
     Comment,
     SavedTopic,
     Topic,
+    User,
     get_db,
 )
 from timeutil import UtcDateTime
@@ -85,11 +86,14 @@ class CommentIn(BaseModel):
     body: RequiredText
 
 
-class CommentOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+# Shown when a comment's author has no users row (e.g. the account was removed).
+UNKNOWN_AUTHOR = "Unknown user"
 
+
+class CommentOut(BaseModel):
     id: int
-    author: str
+    author: str  # "provider:id", stable for code; never shown to people
+    author_name: str  # the name to show in the thread
     body: str
     created_at: UtcDateTime
 
@@ -136,6 +140,30 @@ def _saved_ids(db: Session, user: Optional[dict]) -> set[int]:
         return set()
     rows = db.scalars(select(SavedTopic.topic_id).where(SavedTopic.user_id == identity(user))).all()
     return set(rows)
+
+
+def _display_names(db: Session, identities: set[str]) -> dict[str, str]:
+    """{"google:123": "Somchai J.", ...} from the users table, which records
+    every account's display name at sign-in. Identities with no row are left
+    out, so callers fall back to UNKNOWN_AUTHOR."""
+    user_ids = {i.partition(":")[2] for i in identities}
+    if not user_ids:
+        return {}
+    rows = db.execute(
+        select(User.provider, User.provider_user_id, User.display_name)
+        .where(User.provider_user_id.in_(user_ids))
+    ).all()
+    names = {f"{provider}:{user_id}": name for provider, user_id, name in rows}
+    return {i: names[i] for i in identities if i in names}
+
+
+def _comments_out(db: Session, comments: list[Comment]) -> list[CommentOut]:
+    names = _display_names(db, {c.author for c in comments})
+    return [
+        CommentOut(id=c.id, author=c.author, author_name=names.get(c.author, UNKNOWN_AUTHOR),
+                   body=c.body, created_at=c.created_at)
+        for c in comments
+    ]
 
 
 def _saved_row(db: Session, user: dict, topic_id: int) -> Optional[SavedTopic]:
@@ -209,8 +237,7 @@ def get_topic(
 ):
     topic = _get_topic(db, topic_id)
     saved_ids = _saved_ids(db, viewer)
-    comments = [CommentOut.model_validate(c) for c in topic.comments]
-    return TopicDetailOut.from_topic(topic, saved_ids, comments=comments)
+    return TopicDetailOut.from_topic(topic, saved_ids, comments=_comments_out(db, topic.comments))
 
 
 @router.post("", response_model=TopicOut, status_code=201)
@@ -273,7 +300,7 @@ def add_comment(
     db.add(comment)
     db.commit()
     db.refresh(comment)
-    return comment
+    return _comments_out(db, [comment])[0]
 
 
 @router.post("/{topic_id}/save", status_code=204)
