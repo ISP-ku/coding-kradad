@@ -63,6 +63,11 @@ npm run dev
 
 Open http://localhost:3000, and use `localhost` (not `127.0.0.1`) for both.
 
+## Deploying
+
+The app deploys for free as one Render web service with a Neon PostgreSQL
+database. Step-by-step instructions are in [DEPLOY.md](DEPLOY.md).
+
 ## Tests
 
 From the repo root:

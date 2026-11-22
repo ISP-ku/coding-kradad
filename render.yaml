@@ -5,6 +5,8 @@ services:
     name: coding-kradad
     runtime: docker
     plan: free
+    # Close to Thailand; create the Neon database in Singapore too.
+    region: singapore
     branch: main
     dockerfilePath: ./Dockerfile
     # Goes through Next.js to FastAPI, so it checks both are up.
