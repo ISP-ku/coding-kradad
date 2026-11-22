@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from activities import authenticated_user, require_lecturer, require_staff
+from activities import authenticated_user, identity, require_lecturer, require_staff
 from database import Homework, HomeworkSubmission, get_db
 from timeutil import UtcDateTime
 
@@ -39,10 +39,6 @@ def require_ta(user: dict = Depends(authenticated_user)) -> dict:
     if user.get("role") != "ta":
         raise HTTPException(status_code=403, detail="Only teaching assistants can grade homework.")
     return user
-
-
-def identity(user: dict) -> str:
-    return f"{user['provider']}:{user['id']}"
 
 
 def _utcnow() -> datetime:
