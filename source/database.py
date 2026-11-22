@@ -68,6 +68,12 @@ engine = create_engine(DATABASE_URL, **engine_options(DATABASE_URL))
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 
 
+# Columns that hold who did something: "provider:id", e.g. "google:1234" or
+# "password:" + an email address (up to 200 characters). SQLite ignores
+# lengths, but PostgreSQL enforces them (test_long_identity.py).
+IDENTITY_LENGTH = 255
+
+
 class Base(DeclarativeBase):
     pass
 
@@ -112,7 +118,7 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     provider: Mapped[str] = mapped_column(String(20))
-    provider_user_id: Mapped[str] = mapped_column(String(100))
+    provider_user_id: Mapped[str] = mapped_column(String(IDENTITY_LENGTH))
     email: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     display_name: Mapped[str] = mapped_column(String(200))
     role: Mapped[str] = mapped_column(String(20), default="student")
@@ -183,7 +189,7 @@ class Activity(Base):
     type: Mapped[str] = mapped_column(String(50))
     starts_at: Mapped[datetime] = mapped_column(DateTime)
     location: Mapped[str] = mapped_column(String(200))
-    created_by: Mapped[str] = mapped_column(String(100))
+    created_by: Mapped[str] = mapped_column(String(IDENTITY_LENGTH))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     # Set when a lecturer archives the activity (SRS-19, SRS-20). Archiving
     # only hides it from the active schedule; the row is never deleted.
@@ -201,7 +207,7 @@ class Task(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     activity_id: Mapped[int] = mapped_column(ForeignKey("activities.id"), index=True)
-    assignee_id: Mapped[str] = mapped_column(String(100), index=True)
+    assignee_id: Mapped[str] = mapped_column(String(IDENTITY_LENGTH), index=True)
     status: Mapped[str] = mapped_column(String(30), default="Not Started")
     assigned_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     status_changed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
@@ -231,7 +237,7 @@ class ConsultationSession(Base):
     __tablename__ = "consultation_sessions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    ta_user_id: Mapped[str] = mapped_column(String(100), index=True)
+    ta_user_id: Mapped[str] = mapped_column(String(IDENTITY_LENGTH), index=True)
     session_date: Mapped[date] = mapped_column(Date)
     duration_minutes: Mapped[int] = mapped_column(Integer)
     topic: Mapped[str] = mapped_column(String(200))
@@ -252,9 +258,9 @@ class Topic(Base):
     title: Mapped[str] = mapped_column(String(300))
     description: Mapped[str] = mapped_column(String(2000), default="")
     status: Mapped[str] = mapped_column(String(20), default=TOPIC_STATUS_PENDING)
-    submitted_by: Mapped[str] = mapped_column(String(100))
+    submitted_by: Mapped[str] = mapped_column(String(IDENTITY_LENGTH))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
-    reviewed_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    reviewed_by: Mapped[Optional[str]] = mapped_column(String(IDENTITY_LENGTH), nullable=True)
     reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     comments: Mapped[list["Comment"]] = relationship(
@@ -269,7 +275,7 @@ class Comment(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     topic_id: Mapped[int] = mapped_column(ForeignKey("topics.id"), index=True)
-    author: Mapped[str] = mapped_column(String(100))
+    author: Mapped[str] = mapped_column(String(IDENTITY_LENGTH))
     body: Mapped[str] = mapped_column(String(2000))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
@@ -283,7 +289,7 @@ class SavedTopic(Base):
     __table_args__ = (UniqueConstraint("user_id", "topic_id", name="uq_saved_topics_user_topic"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(100), index=True)
+    user_id: Mapped[str] = mapped_column(String(IDENTITY_LENGTH), index=True)
     topic_id: Mapped[int] = mapped_column(ForeignKey("topics.id"), index=True)
     saved_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
@@ -299,7 +305,7 @@ class Homework(Base):
     description: Mapped[str] = mapped_column(String(2000), default="")
     due_at: Mapped[datetime] = mapped_column(DateTime)
     max_score: Mapped[int] = mapped_column(Integer, default=100)
-    created_by: Mapped[str] = mapped_column(String(100))
+    created_by: Mapped[str] = mapped_column(String(IDENTITY_LENGTH))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
     submissions: Mapped[list["HomeworkSubmission"]] = relationship(back_populates="homework")
@@ -317,13 +323,13 @@ class HomeworkSubmission(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     homework_id: Mapped[int] = mapped_column(ForeignKey("homework.id"), index=True)
-    student_id: Mapped[str] = mapped_column(String(100), index=True)
+    student_id: Mapped[str] = mapped_column(String(IDENTITY_LENGTH), index=True)
     student_name: Mapped[str] = mapped_column(String(200))
     answer: Mapped[str] = mapped_column(String(5000))
     submitted_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     feedback: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
-    graded_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    graded_by: Mapped[Optional[str]] = mapped_column(String(IDENTITY_LENGTH), nullable=True)
     graded_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     homework: Mapped["Homework"] = relationship(back_populates="submissions")
