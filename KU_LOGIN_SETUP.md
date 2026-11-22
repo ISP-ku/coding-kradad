@@ -111,7 +111,7 @@ A KU account can sign in only if it is a member of at least one course (SRS-23).
 - **`data/course_roster.json`** (or `COURSE_ROSTER_FILE`). Loaded once, on the first start with no courses. After that the database is the source of truth. A missing or invalid file loads nothing, so only `LECTURER_EMAILS` can sign in until a lecturer adds people.
 - A lecturer cannot remove or demote themselves, so at least one lecturer always keeps access.
 
-See `source/users.py` and `source/access.py`.
+See `source/users.py`, `source/access.py` and `source/roster.py`.
 
 `source/test_ui.py` remains a separate fake UI demonstration and must not be used as the real backend. Next.js UI_PREVIEW=1 is available only in development and is disabled in production builds.
 

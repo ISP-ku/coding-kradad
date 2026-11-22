@@ -20,7 +20,8 @@ from google.oauth2 import id_token
 from starlette.middleware.sessions import SessionMiddleware
 
 from activities import router as activities_router
-from access import router as access_router, seed_roster_if_empty
+from access import router as access_router
+from roster import seed_roster_if_empty
 from consultations import router as consultations_router
 from database import SessionLocal, init_db
 
