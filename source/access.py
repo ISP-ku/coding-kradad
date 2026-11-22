@@ -19,7 +19,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from activities import require_lecturer
-from database import AccessAccount, Course, CourseMember, SignInPassword, User, get_db
+from database import ROLE_LECTURER, AccessAccount, Course, CourseMember, SignInPassword, User, get_db
 from password_login import set_password as create_password
 from roster import MAX_CODE, MAX_NAME
 from users import normalise_member_email, protected_lecturers, role_for_email
@@ -86,12 +86,23 @@ def _path_email(raw: str) -> str:
         raise HTTPException(404, "No such account.")
 
 
+def _existing_account(db: Session, email: str) -> AccessAccount:
+    account = db.get(AccessAccount, email)
+    if account is None:
+        raise HTTPException(404, "No such account.")
+    return account
+
+
+def _membership(db: Session, course_id: int, email: str) -> Optional[CourseMember]:
+    return db.scalar(select(CourseMember).where(CourseMember.course_id == course_id, CourseMember.email == email))
+
+
 def _account_out(db: Session, email: str, viewer: str) -> AccountOut:
     account = db.get(AccessAccount, email)
     protected = email in protected_lecturers()
     course_ids = sorted(db.scalars(select(CourseMember.course_id).where(CourseMember.email == email)))
     return AccountOut(
-        email=email, role="lecturer" if protected else account.role, course_ids=course_ids,
+        email=email, role=ROLE_LECTURER if protected else account.role, course_ids=course_ids,
         protected=protected, is_self=email == viewer,
         has_password=db.get(SignInPassword, email) is not None,
     )
@@ -139,13 +150,12 @@ def add_member(course_id: int, data: MemberIn, user: dict = Depends(require_lect
     viewer = _viewer_email(user)
     if db.get(Course, course_id) is None:
         raise HTTPException(404, "No such course.")
-    if db.scalar(select(CourseMember.id).where(CourseMember.course_id == course_id,
-                                               CourseMember.email == data.email)) is not None:
+    if _membership(db, course_id, data.email) is not None:
         raise HTTPException(409, f"{data.email} is already in this course.")
     account = db.get(AccessAccount, data.email)
     if account is None:
         account = AccessAccount(email=data.email, role=data.role or role_for_email(data.email))
-        if data.email in protected_lecturers() and account.role != "lecturer":
+        if data.email in protected_lecturers() and account.role != ROLE_LECTURER:
             _check_can_change(data.email, viewer, "changed")
         db.add(account)
         db.flush()
@@ -160,8 +170,7 @@ def add_member(course_id: int, data: MemberIn, user: dict = Depends(require_lect
 def remove_member(course_id: int, email: str, user: dict = Depends(require_lecturer),
                   db: Session = Depends(get_db)):
     email = _path_email(email)
-    member = db.scalar(select(CourseMember).where(CourseMember.course_id == course_id,
-                                                  CourseMember.email == email))
+    member = _membership(db, course_id, email)
     if member is None:
         raise HTTPException(404, f"{email} is not in this course.")
     _check_can_change(email, _viewer_email(user), "removed")
@@ -181,9 +190,7 @@ def change_role(email: str, data: RoleIn, user: dict = Depends(require_lecturer)
                 db: Session = Depends(get_db)):
     email = _path_email(email)
     viewer = _viewer_email(user)
-    account = db.get(AccessAccount, email)
-    if account is None:
-        raise HTTPException(404, "No such account.")
+    account = _existing_account(db, email)
     _set_role(db, account, data.role, viewer)
     db.commit()
     return _account_out(db, email, viewer)
@@ -196,8 +203,7 @@ def _password_account(db: Session, raw: str, viewer: str) -> str:
         if email != viewer:
             raise HTTPException(400, f"{email} is a lecturer set in the server configuration (LECTURER_EMAILS). Only they can create their own password.")
         return email
-    if db.get(AccessAccount, email) is None:
-        raise HTTPException(404, "No such account.")
+    _existing_account(db, email)
     return email
 
 
