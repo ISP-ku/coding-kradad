@@ -19,11 +19,12 @@ Nothing in this module ever deletes a record - retention for reporting
 and future reference (SRS-20) is satisfied simply by there being no
 delete endpoint here.
 
-Role enforcement (SRS-18): `require_lecturer` goes through app.py's
-current_user() - the same check /api/me uses, so a session that app.py
-no longer accepts (old multi-provider sessions, or a local test session
-after local login was turned off) is rejected here too - and then checks
-the role that app.py copied from the users table at login (users.py).
+Role enforcement (SRS-18): the shared `require_lecturer` from activities.py,
+the same one faq.py, homework.py and access.py use. It goes through app.py's
+current_user() - the check /api/me uses, so a session that app.py no longer
+accepts (old multi-provider sessions, or a local test session after local
+login was turned off) is rejected here too - and then checks the role that
+app.py copied from the users table at login (users.py).
 
 Known gap: consultation sessions aren't scoped by course (that table
 has no course_id - see database.py's ConsultationSession docstring), so
@@ -32,34 +33,19 @@ courses; the response says so (`consultations.scope`) so the UI can label
 it. Redesigning that schema belongs to whoever owns
 feature/consultation-logging, not this branch.
 """
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from timeutil import UtcDateTime
-from database import ROLE_LECTURER, TASK_STATUS_DONE, Activity, Task, ConsultationSession, get_db
+from activities import require_lecturer
+from database import TASK_STATUS_DONE, Activity, ConsultationSession, Task, get_db
+from timeutil import UtcDateTime, utcnow_naive
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
-
-
-def require_lecturer(request: Request) -> dict:
-    """Who is logged in, and that they're a Lecturer (SRS-18, SRS-19).
-    401 if nobody is signed in, 403 if they're signed in but not a
-    Lecturer."""
-    # Imported here, not at module level: app.py imports this module to
-    # register the router, so a top-level import would be circular.
-    from app import current_user
-
-    user = current_user(request)
-    if not user:
-        raise HTTPException(status_code=401, detail="Please sign in first.")
-    if user.get("role") != ROLE_LECTURER:
-        raise HTTPException(status_code=403, detail="Lecturer access required.")
-    return user
 
 
 class TaskOut(BaseModel):
@@ -103,11 +89,6 @@ class ActivityReport(BaseModel):
     consultations: ConsultationSummary
 
 
-def _utcnow_naive() -> datetime:
-    """Naive UTC now, matching how database.py stores starts_at."""
-    return datetime.now(timezone.utc).replace(tzinfo=None)
-
-
 @router.get("/courses", response_model=list[str])
 def list_report_courses(
     _user: dict = Depends(require_lecturer),
@@ -138,7 +119,7 @@ def get_activity_report(
             Activity.starts_at <= range_end,
             # History only: completed (already happened) or archived (SRS-19).
             or_(
-                Activity.starts_at < _utcnow_naive(),
+                Activity.starts_at < utcnow_naive(),
                 Activity.archived_at.is_not(None),
                 Activity.tasks.any() & ~Activity.tasks.any(Task.status != TASK_STATUS_DONE),
             ),
