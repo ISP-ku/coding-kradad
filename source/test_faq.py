@@ -1,13 +1,6 @@
 """Tests for the FAQ / Issue board API (SRS-16, SRS-17, SRS-18)."""
 import json
-import os
-import tempfile
 from base64 import b64encode
-
-# Use a throwaway database so tests never touch the real dashboard.db.
-# This must be set BEFORE app/database are imported.
-_tmp_dir = tempfile.mkdtemp()
-os.environ["DATABASE_URL"] = f"sqlite:///{os.path.join(_tmp_dir, 'test.db')}"
 
 import pytest
 from fastapi.testclient import TestClient

@@ -37,11 +37,34 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship,
 from sqlalchemy.ext.hybrid import hybrid_property
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATABASE_URL = os.environ.get("DATABASE_URL", f"sqlite:///{BASE_DIR / 'dashboard.db'}")
 
-# check_same_thread is a SQLite-only option; other databases don't accept it.
-_connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(DATABASE_URL, connect_args=_connect_args)
+
+def normalise_database_url(url: str) -> str:
+    """Hosted Postgres (Neon, Render) hands out postgres:// or postgresql://
+    URLs. SQLAlchemy 2 refuses the first, and both need the psycopg driver
+    named, so turn them into postgresql+psycopg://. Anything else is kept."""
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
+    return url
+
+
+def engine_options(url: str) -> dict:
+    if url.startswith("sqlite"):
+        # SQLite-only option: FastAPI may use a connection from another thread.
+        return {"connect_args": {"check_same_thread": False}}
+    return {
+        # Neon closes idle connections (it sleeps after 5 minutes), so check
+        # each one before use instead of failing the first request after.
+        "pool_pre_ping": True,
+        # Times are stored as naive UTC (see timeutil.py); a session in any
+        # other time zone would shift them when aware datetimes are saved.
+        "connect_args": {"options": "-c timezone=UTC"},
+    }
+
+
+DATABASE_URL = normalise_database_url(os.environ.get("DATABASE_URL", f"sqlite:///{BASE_DIR / 'dashboard.db'}"))
+engine = create_engine(DATABASE_URL, **engine_options(DATABASE_URL))
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 
 
