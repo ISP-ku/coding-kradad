@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { cookies } from "next/headers";
 import AppShell from "@/components/AppShell";
 import ui from "@/components/ui.module.css";
 import ConsultationHistory from "@/components/ConsultationHistory";
 import Icon from "@/components/Icon";
-import { API_BASE, logoutUrl } from "@/lib/api";
+import { logoutUrl } from "@/lib/api";
+import { backendFetch } from "@/lib/backend";
 import { historySummary } from "@/lib/consultations";
 import { PREVIEW, previewConsultations } from "@/lib/preview";
 import { canAccess } from "@/lib/permissions";
@@ -19,10 +19,7 @@ export const metadata: Metadata = { title: "Consultation Log · Course Support" 
 // `signedIn` is false when the backend answers 401 (nobody is logged in).
 async function getConsultations(): Promise<{ entries: Consultation[]; signedIn: boolean }> {
   try {
-    const res = await fetch(`${API_BASE}/api/consultations`, {
-      headers: { cookie: cookies().getAll().map(({ name, value }) => `${name}=${value}`).join("; ") },
-      cache: "no-store",
-    });
+    const res = await backendFetch("/api/consultations");
     if (res.status === 401) return { entries: [], signedIn: false };
     if (!res.ok) return { entries: [], signedIn: true };
     return { entries: (await res.json()) as Consultation[], signedIn: true };

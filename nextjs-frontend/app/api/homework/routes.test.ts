@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const proxy = vi.hoisted(() => vi.fn().mockResolvedValue(new Response("{}")));
-vi.mock("@/lib/activity-proxy", () => ({ proxyActivityRequest: proxy }));
+vi.mock("@/lib/api-proxy", () => ({ proxyApiRequest: proxy }));
 
 afterEach(() => vi.clearAllMocks());
 

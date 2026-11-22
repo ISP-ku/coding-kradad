@@ -1,6 +1,6 @@
-import { proxyActivityRequest } from "@/lib/activity-proxy";
+import { proxyApiRequest } from "@/lib/api-proxy";
 
 export async function PATCH(request: Request, context: { params: { email: string } }) {
-  return proxyActivityRequest(
+  return proxyApiRequest(
     `/api/access/accounts/${encodeURIComponent(decodeURIComponent(context.params.email))}`, "PATCH", await request.text());
 }

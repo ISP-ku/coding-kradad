@@ -1,6 +1,6 @@
-import { proxyActivityRequest } from "@/lib/activity-proxy";
+import { proxyApiRequest } from "@/lib/api-proxy";
 
 export async function POST(request: Request, context: { params: { courseId: string } }) {
-  return proxyActivityRequest(
+  return proxyApiRequest(
     `/api/access/courses/${encodeURIComponent(context.params.courseId)}/members`, "POST", await request.text());
 }

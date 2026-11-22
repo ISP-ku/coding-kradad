@@ -1,31 +1,18 @@
 import { cookies } from "next/headers";
-import { API_BASE } from "./api";
+import { backendJson } from "./backend";
 import { PREVIEW, makePreviewReport, previewReportCourses } from "./preview";
 import type { ActivityReport } from "./types";
 
 /**
- * GETs a lecturer-only reports endpoint, forwarding the backend session
- * cookie the same way `getSessionUser` does. Returns null on any failure
- * (not logged in, not a lecturer, backend down, bad params) so the page
- * can fall back to an empty state instead of crashing.
+ * GETs a lecturer-only reports endpoint, forwarding the browser's cookies.
+ * Null on any failure (not logged in, not a lecturer, backend down, bad
+ * params) so the page can fall back to an empty state instead of crashing.
+ * A visitor with no session skips the request entirely.
  */
 async function fetchReportsApi<T>(path: string, params?: Record<string, string>): Promise<T | null> {
-  const session = cookies().get("ku_session")?.value;
-  if (!session) return null;
-
-  try {
-    const url = new URL(`${API_BASE}/api/reports/${path}`);
-    for (const [key, value] of Object.entries(params ?? {})) url.searchParams.set(key, value);
-
-    const res = await fetch(url, {
-      headers: { cookie: `ku_session=${session}` },
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as T;
-  } catch {
-    return null;
-  }
+  if (!cookies().get("ku_session")) return null;
+  const query = params ? `?${new URLSearchParams(params)}` : "";
+  return backendJson<T>(`/api/reports/${path}${query}`);
 }
 
 /** Course ids that have activities, for the report's course picker. */

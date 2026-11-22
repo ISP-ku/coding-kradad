@@ -1,29 +1,17 @@
 import { cookies } from "next/headers";
-import { API_BASE } from "./api";
+import { backendJson } from "./backend";
 import { PREVIEW, previewPendingTopics, previewTopicDetail, previewTopics } from "./preview";
 import type { Topic, TopicDetail } from "./types";
 
 /**
- * GETs an FAQ endpoint from the server, forwarding the browser's cookies.
- * The board and topic pages are public, but forwarding the session lets
- * the first render show this viewer's own "saved" stars. Returns null on
- * any failure so the page can show an empty or not-found state instead
- * of crashing.
+ * GETs an FAQ endpoint, forwarding the browser's cookies. The board and
+ * topic pages are public, but forwarding the session lets the first render
+ * show this viewer's own "saved" stars. Null on any failure, so the page
+ * shows an empty or not-found state instead of crashing.
  */
-async function fetchFaqApi<T>(path: string, params?: Record<string, string>): Promise<T | null> {
-  try {
-    const url = new URL(`${API_BASE}/api/faq${path}`);
-    for (const [key, value] of Object.entries(params ?? {})) url.searchParams.set(key, value);
-
-    const res = await fetch(url, {
-      headers: { cookie: cookies().getAll().map(({ name, value }) => `${name}=${value}`).join("; ") },
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as T;
-  } catch {
-    return null;
-  }
+function fetchFaqApi<T>(path: string, params?: Record<string, string>): Promise<T | null> {
+  const query = params ? `?${new URLSearchParams(params)}` : "";
+  return backendJson<T>(`/api/faq${path}${query}`);
 }
 
 /** Published topics matching the keyword, newest first (SRS-16). */

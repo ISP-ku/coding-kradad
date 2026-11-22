@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import Icon from "@/components/Icon";
 import ActivityWorkspace from "@/components/ActivityWorkspace";
 import WaitingPanel, { waitingItems } from "@/components/WaitingPanel";
-import { API_BASE, logoutUrl } from "@/lib/api";
+import { logoutUrl } from "@/lib/api";
+import { backendFetch } from "@/lib/backend";
 import { PREVIEW } from "@/lib/preview";
 import { canAccess, homePathFor } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
@@ -17,9 +17,10 @@ export const metadata: Metadata = { title: "Dashboard · Course Support" };
 
 const WEEK = 7 * 24 * 60 * 60 * 1000;
 
-async function getJson<T>(path: string, cookieHeader: string): Promise<{ data: T | null; detail: string }> {
+/** A backend GET, keeping the backend's own error message for the page. */
+async function getJson<T>(path: string): Promise<{ data: T | null; detail: string }> {
   try {
-    const response = await fetch(`${API_BASE}${path}`, { headers: { cookie: cookieHeader }, cache: "no-store" });
+    const response = await backendFetch(path);
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
       return { data: null, detail: body.detail ?? "" };
@@ -50,11 +51,10 @@ export default async function DashboardPage({ searchParams }: { searchParams?: {
   if (!canAccess(user, "dashboard")) redirect(homePathFor(user));
 
   const role = user.role === "lecturer" ? "lecturer" : "ta";
-  const cookieHeader = cookies().getAll().map(({ name, value }) => `${name}=${value}`).join("; ");
   const [activityResult, homeworkResult, pendingResult] = await Promise.all([
-    getJson<CourseActivity[]>("/api/activities", cookieHeader),
-    getJson<HomeworkItem[]>("/api/homework", cookieHeader),
-    role === "lecturer" ? getJson<Topic[]>("/api/faq/pending", cookieHeader) : Promise.resolve({ data: [] as Topic[], detail: "" }),
+    getJson<CourseActivity[]>("/api/activities"),
+    getJson<HomeworkItem[]>("/api/homework"),
+    role === "lecturer" ? getJson<Topic[]>("/api/faq/pending") : Promise.resolve({ data: [] as Topic[], detail: "" }),
   ]);
   const activities = activityResult.data ?? [];
   const activityError = activityResult.data

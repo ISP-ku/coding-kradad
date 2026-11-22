@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import ActivityForm from "@/components/ActivityForm";
 import ui from "@/components/ui.module.css";
-import { API_BASE, logoutUrl } from "@/lib/api";
+import { logoutUrl } from "@/lib/api";
+import { backendFetch } from "@/lib/backend";
 import { canAccess, homePathFor } from "@/lib/permissions";
 import { PREVIEW } from "@/lib/preview";
 import { getSessionUser } from "@/lib/session";
@@ -20,13 +20,10 @@ export default async function EditActivityPage({ params }: { params: { activityI
 
   const activityId = Number(params.activityId);
   if (!Number.isSafeInteger(activityId) || activityId <= 0) notFound();
-  const cookieHeader = cookies().getAll().map(({ name, value }) => `${name}=${value}`).join("; ");
 
   let activity: CourseActivity | null = null;
   try {
-    const response = await fetch(`${API_BASE}/api/activities/${activityId}`, {
-      headers: { cookie: cookieHeader }, cache: "no-store",
-    });
+    const response = await backendFetch(`/api/activities/${activityId}`);
     if (response.status === 404 || response.status === 409) notFound();
     if (response.ok) activity = (await response.json()) as CourseActivity;
   } catch (error) {
