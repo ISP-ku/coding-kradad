@@ -18,3 +18,14 @@ export const daysFromNow = (n: number, from = new Date()) => {
   d.setDate(d.getDate() + n);
   return d;
 };
+
+/** "5 Jan 2026, 09:07" in local time, for timestamps from the API. Falls back to the raw text if it cannot parse. */
+export function formatDateTime(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
