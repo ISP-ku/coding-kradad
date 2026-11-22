@@ -89,6 +89,51 @@ class ActivityReport(BaseModel):
     consultations: ConsultationSummary
 
 
+def _history_activities(db: Session, course_id: str, start_date: date, end_date: date) -> list[Activity]:
+    """The course's activities in the range that count as history (SRS-19):
+    completed (already happened, or every task Done) or archived."""
+    range_start = datetime.combine(start_date, datetime.min.time())
+    range_end = datetime.combine(end_date, datetime.max.time())
+    query = (
+        select(Activity)
+        .where(
+            Activity.course_id == course_id,
+            Activity.starts_at >= range_start,
+            Activity.starts_at <= range_end,
+            or_(
+                Activity.starts_at < utcnow_naive(),
+                Activity.archived_at.is_not(None),
+                Activity.tasks.any() & ~Activity.tasks.any(Task.status != TASK_STATUS_DONE),
+            ),
+        )
+        .order_by(Activity.starts_at)
+    )
+    return list(db.scalars(query).unique().all())
+
+
+def _status_summary(activities: list[Activity]) -> dict[str, int]:
+    """How many tasks are in each status, across the given activities."""
+    summary: dict[str, int] = {}
+    for activity in activities:
+        for task in activity.tasks:
+            summary[task.status] = summary.get(task.status, 0) + 1
+    return summary
+
+
+def _support_load(db: Session, start_date: date, end_date: date) -> tuple[int, int]:
+    """(sessions, minutes) of consultations in the range, across all courses."""
+    count, minutes = db.execute(
+        select(
+            func.count(ConsultationSession.id),
+            func.coalesce(func.sum(ConsultationSession.duration_minutes), 0),
+        ).where(
+            ConsultationSession.session_date >= start_date,
+            ConsultationSession.session_date <= end_date,
+        )
+    ).one()
+    return count, minutes
+
+
 @router.get("/courses", response_model=list[str])
 def list_report_courses(
     _user: dict = Depends(require_lecturer),
@@ -108,40 +153,8 @@ def get_activity_report(
     if end_date < start_date:
         raise HTTPException(status_code=400, detail="end_date must not be before start_date.")
 
-    range_start = datetime.combine(start_date, datetime.min.time())
-    range_end = datetime.combine(end_date, datetime.max.time())
-
-    query = (
-        select(Activity)
-        .where(
-            Activity.course_id == course_id,
-            Activity.starts_at >= range_start,
-            Activity.starts_at <= range_end,
-            # History only: completed (already happened) or archived (SRS-19).
-            or_(
-                Activity.starts_at < utcnow_naive(),
-                Activity.archived_at.is_not(None),
-                Activity.tasks.any() & ~Activity.tasks.any(Task.status != TASK_STATUS_DONE),
-            ),
-        )
-        .order_by(Activity.starts_at)
-    )
-    activities = db.scalars(query).unique().all()
-
-    status_summary: dict[str, int] = {}
-    for activity in activities:
-        for task in activity.tasks:
-            status_summary[task.status] = status_summary.get(task.status, 0) + 1
-
-    consultation_count, consultation_minutes = db.execute(
-        select(
-            func.count(ConsultationSession.id),
-            func.coalesce(func.sum(ConsultationSession.duration_minutes), 0),
-        ).where(
-            ConsultationSession.session_date >= start_date,
-            ConsultationSession.session_date <= end_date,
-        )
-    ).one()
+    activities = _history_activities(db, course_id, start_date, end_date)
+    consultation_count, consultation_minutes = _support_load(db, start_date, end_date)
 
     return ActivityReport(
         course_id=course_id,
@@ -149,8 +162,8 @@ def get_activity_report(
         end_date=end_date,
         has_records=bool(activities) or consultation_count > 0,
         activity_count=len(activities),
-        status_summary=status_summary,
-        activities=list(activities),
+        status_summary=_status_summary(activities),
+        activities=activities,
         consultations=ConsultationSummary(
             count=consultation_count, total_minutes=consultation_minutes
         ),
