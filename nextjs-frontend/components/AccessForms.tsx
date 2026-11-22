@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { errorMessage } from "@/lib/errors";
+import { addMember, createCourse } from "@/lib/access-client";
 import { normaliseKuEmail, type AccessCourse, type AccessRole } from "@/lib/access";
 import { ChoiceGroup, Field, FieldRow, FormActions, FormCard, FormMessage, FormNote, fieldAria, type Choice } from "./form/FormKit";
 
@@ -10,16 +10,6 @@ const ROLES: Choice<AccessRole>[] = [
   { value: "ta", label: "Teaching assistant", hint: "Gets tasks, grades and logs consultations" },
   { value: "lecturer", label: "Lecturer", hint: "Manages activities, homework and access" },
 ];
-
-async function post<T>(url: string, body: unknown, fallback: string): Promise<{ data?: T; error?: string }> {
-  try {
-    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    if (!res.ok) return { error: await errorMessage(res, fallback) };
-    return { data: (await res.json()) as T };
-  } catch {
-    return { error: "Could not reach the server. Please try again." };
-  }
-}
 
 /** Add a KU account to a course with a role (SRS-23). Its own page: /access/members/new. */
 export function AccessMemberForm({ courses, defaultCourseId, onDone, allowPersonal = false }: {
@@ -48,10 +38,10 @@ export function AccessMemberForm({ courses, defaultCourseId, onDone, allowPerson
       : "Enter a KU email address ending in @ku.th.");
     if (!clean) return;
     setBusy(true);
-    const { error: failed } = await post(`/api/access/courses/${courseId}/members`, { email: clean, role }, "Could not add this account.");
+    const result = await addMember(courseId, clean, role);
     setBusy(false);
-    if (failed) {
-      setError(failed);
+    if ("error" in result) {
+      setError(result.error);
       return;
     }
     if (onDone) onDone(courseId, clean);
@@ -96,15 +86,15 @@ export function AccessCourseForm({ onDone }: { onDone?: (courseId: number) => vo
     setCodeError(code.trim() ? "" : "Enter a course code.");
     if (!code.trim()) return;
     setBusy(true);
-    const { data, error: failed } = await post<AccessCourse>("/api/access/courses",
-      { code: code.trim(), name: name.trim() || null }, "Could not create the course.");
+    const result = await createCourse(code.trim(), name.trim() || null);
     setBusy(false);
-    if (failed || !data) {
-      setError(failed ?? "Could not create the course.");
+    if ("error" in result) {
+      setError(result.error);
       return;
     }
-    if (onDone) onDone(data.id);
-    else window.location.assign(`/access?course=${data.id}&created=1`);
+    const created = result.data;
+    if (onDone) onDone(created.id);
+    else window.location.assign(`/access?course=${created.id}&created=1`);
   }
 
   return (
