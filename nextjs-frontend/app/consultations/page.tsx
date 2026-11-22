@@ -3,9 +3,10 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import AppShell from "@/components/AppShell";
 import ui from "@/components/ui.module.css";
-import ConsultationHistory, { formatDuration } from "@/components/ConsultationHistory";
+import ConsultationHistory from "@/components/ConsultationHistory";
 import Icon from "@/components/Icon";
 import { API_BASE, logoutUrl } from "@/lib/api";
+import { historySummary } from "@/lib/consultations";
 import { PREVIEW, previewConsultations } from "@/lib/preview";
 import { canAccess } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
@@ -40,7 +41,6 @@ export default async function ConsultationsPage({ searchParams }: { searchParams
     : forbidden
       ? { entries: [], signedIn: true }
       : await getConsultations();
-  const totalMinutes = entries.reduce((sum, e) => sum + e.duration_minutes, 0);
 
   return (
     <AppShell
@@ -62,9 +62,7 @@ export default async function ConsultationsPage({ searchParams }: { searchParams
             <div>
               <h2>Consultation history</h2>
               {entries.length > 0 && (
-                <p className={styles.summary}>
-                  {entries.length} {entries.length === 1 ? "session" : "sessions"}, {formatDuration(totalMinutes)} in total
-                </p>
+                <p className={styles.summary}>{historySummary(entries)}</p>
               )}
             </div>
           </div>
