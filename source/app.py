@@ -161,7 +161,7 @@ def with_role(user, fallback_role=None):
         return {**user, "provider": provider, "id": provider_user_id, "role": row.role}
 
 
-def build_authorize_url(state, nonce, personal=False):
+def build_authorize_url(state, nonce):
     params = {
         "client_id": GOOGLE_CLIENT_ID,
         "redirect_uri": GOOGLE_REDIRECT_URI,
@@ -169,11 +169,11 @@ def build_authorize_url(state, nonce, personal=False):
         "scope": "openid email profile",
         "state": state,
         "nonce": nonce,
-        "hd": KU_DOMAIN,  # Account-picker hint; the backend enforces it below.
+        # No "hd" hint. For KU's domain it makes Google go straight to KU ALL,
+        # even when the browser is already signed in to a KU Google account.
+        # The KU domain is checked on the returned token instead (ku_profile).
         "prompt": "select_account",
     }
-    if personal:
-        del params["hd"]  # a personal Gmail account has no KU hosted domain
     return "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode(params)
 
 
@@ -293,7 +293,7 @@ def login(request: Request, provider: str):
     request.session.clear()
     state, nonce = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
     request.session.update(oauth_state=state, oauth_nonce=nonce, oauth_started=time.time(), oauth_personal=personal)
-    return RedirectResponse(build_authorize_url(state, nonce, personal=personal))
+    return RedirectResponse(build_authorize_url(state, nonce))
 
 
 @app.get("/login")

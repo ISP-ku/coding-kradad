@@ -60,7 +60,10 @@ def test_removed_providers_rejected(client, provider, route):
 def test_authorize_request(client):
     params = start(client)
     assert params["scope"] == "openid email profile"
-    assert params["hd"] == "ku.th"
+    # No hd hint: with it, Google sends a KU account straight to KU ALL even
+    # when the browser is already signed in. The KU domain is enforced on the
+    # returned token instead (see the MSG_NOT_KU / MSG_NOT_WORKSPACE tests).
+    assert "hd" not in params
     assert params["prompt"] == "select_account"
     assert params["client_id"] == "ci-client-id"
     assert params["state"] and params["nonce"]
