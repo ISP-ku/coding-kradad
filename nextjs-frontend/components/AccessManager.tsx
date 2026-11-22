@@ -7,9 +7,9 @@ import {
   ROLE_LABEL,
   type AccessAccount, type AccessCourse, type AccessData, type AccessRole,
 } from "@/lib/access";
+import AccessMemberRow from "./AccessMemberRow";
 import styles from "./AccessManager.module.css";
 
-const ROLES: AccessRole[] = ["student", "ta", "lecturer"];
 const byEmail = (a: AccessAccount, b: AccessAccount) => a.email.localeCompare(b.email);
 
 /**
@@ -98,12 +98,6 @@ export default function AccessManager({ initial, initialCourseId, initialNotice 
     } catch { /* the password stays on screen to copy by hand */ }
   }
 
-  const locked = (a: AccessAccount) => a.protected || a.is_self;
-  // Only the server-configured lecturer may create their own password.
-  const passwordLocked = (a: AccessAccount) => a.protected && !a.is_self;
-  const lockReason = (a: AccessAccount) =>
-    a.protected ? "Set in server configuration" : a.is_self ? "You" : "";
-
   return (
     <div className={styles.wrap}>
       <p className={styles.intro}>
@@ -159,58 +153,11 @@ export default function AccessManager({ initial, initialCourseId, initialNotice 
                 </thead>
                 <tbody>
                   {members.map((a) => (
-                    <tr key={a.email}>
-                      <td className={styles.email}>
-                        {a.email}
-                        {lockReason(a) && <span className={styles.chip}>{lockReason(a)}</span>}
-                      </td>
-                      <td>
-                        <select
-                          aria-label={`Role for ${a.email}`}
-                          value={a.role}
-                          disabled={busy || locked(a)}
-                          onChange={(e) => changeRole(a, e.target.value as AccessRole)}
-                        >
-                          {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
-                        </select>
-                      </td>
-                      <td>{a.course_ids.map(codeOf).join(", ")}</td>
-                      <td>
-                        <div className={styles.passwordCell}>
-                          <button
-                            type="button"
-                            className={styles.small}
-                            aria-label={`${a.has_password ? "New password" : "Create password"} for ${a.email}`}
-                            disabled={busy || passwordLocked(a)}
-                            onClick={() => makePassword(a)}
-                          >
-                            {a.has_password ? "New password" : "Create password"}
-                          </button>
-                          {a.has_password && (
-                            <button
-                              type="button"
-                              className={styles.linkish}
-                              aria-label={`Remove password for ${a.email}`}
-                              disabled={busy || passwordLocked(a)}
-                              onClick={() => removePassword(a)}
-                            >
-                              Remove
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className={styles.remove}
-                          aria-label={`Remove ${a.email} from ${course.code}`}
-                          disabled={busy || locked(a)}
-                          onClick={() => remove(a)}
-                        >
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
+                    <AccessMemberRow
+                      key={a.email} account={a} courseCode={course.code} courseCodes={a.course_ids.map(codeOf)} busy={busy}
+                      onRole={(role) => changeRole(a, role)} onRemove={() => remove(a)}
+                      onMakePassword={() => makePassword(a)} onRemovePassword={() => removePassword(a)}
+                    />
                   ))}
                 </tbody>
               </table>
