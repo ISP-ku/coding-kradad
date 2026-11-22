@@ -1,29 +1,91 @@
 # Project D: Course Support & Activity Dashboard
 
+A course dashboard for lecturers, teaching assistants and students: a shared
+activity schedule with TA tasks, homework, a consultation log, a FAQ board and
+history reports. FastAPI backend, Next.js frontend.
+
 ## Group members
 
-1.Sirapat Pringprom(pringpromn-lang)
-2.Chatthaya Tipatnaranan(chatthaya)
-3.Thanutdit Jiravichalert(thanutdit-ku)
-4.Kasithat Panya(zortorrrr)
+| # | Name | GitHub |
+|---|------|--------|
+| 1 | Sirapat Pringprom | [pringpromn-lang](https://github.com/pringpromn-lang) |
+| 2 | Chatthaya Tipatnaranan | [chatthaya](https://github.com/chatthaya) |
+| 3 | Thanutdit Jiravichalert | [thanutdit-ku](https://github.com/thanutdit-ku) |
+| 4 | Kasithat Panya | [zortorrrr](https://github.com/zortorrrr) |
 
-## Current project status
+## What each role can do
 
-FastAPI backend and Next.js frontend with KU Google (@ku.th) sign-in only.
-Discord and LINE login are removed. Google Classroom permissions are no longer requested.
+| Page | Student | TA | Lecturer |
+|------|:-------:|:--:|:--------:|
+| Dashboard: activities and TA tasks (`/dashboard`) | | ✓ | ✓ (also adds activities) |
+| Homework (`/homework`) | to do and hand in | grade | assign and track |
+| Consultation log (`/consultations`) | | ✓ | |
+| Reports: activity and support-load history (`/reports`) | | | ✓ |
+| Course access: courses, members and roles (`/access`) | | | ✓ |
+| FAQ board (`/faq`) | ✓ | ✓ | ✓ (also approves topics) |
 
-Start with [KU_LOGIN_SETUP.md](KU_LOGIN_SETUP.md) for Google OAuth configuration, local startup commands, tests and troubleshooting.
+The backend checks every role on the server; the frontend only hides what a
+role cannot use.
 
-The real backend is source/app.py. source/test_ui.py is a separate fake UI preview only.
+## Signing in
 
-## Local testing without Google
+- **KU Google (@ku.th)** is the normal way in. Only members of at least one
+  course can sign in; lecturers manage who is in each course on the Access page.
+- **Lecturer-set password**, for people KU ALL will not let through. A lecturer
+  creates it on the Access page.
+- **Personal Gmail** (optional, off by default with `ALLOW_PERSONAL_GOOGLE=0`),
+  for accounts a lecturer added on the Access page.
+- **Local test login** (development only), to try the app without Google. See
+  [LOCAL_TEST_LOGIN.md](LOCAL_TEST_LOGIN.md).
 
-See [LOCAL_TEST_LOGIN.md](LOCAL_TEST_LOGIN.md). This mode runs through source/app.py and reads test users from data/allowed_users.json. Real Google login remains available.
+`LECTURER_EMAILS` in `.env` are always lecturers and always allowed in, so set
+at least one before the first start.
+
+## Running it locally
+
+Full setup, including Google OAuth and troubleshooting, is in
+[KU_LOGIN_SETUP.md](KU_LOGIN_SETUP.md). In short:
+
+```bash
+# Backend (http://localhost:8000)
+cp .env.example .env          # then fill in the values
+python -m venv .venv
+.venv\Scripts\Activate.ps1    # Windows; on macOS/Linux: source .venv/bin/activate
+python -m pip install -r source/requirements-dev.txt
+python source/app.py
+
+# Frontend (http://localhost:3000), in a second terminal
+cd nextjs-frontend
+cp .env.local.example .env.local
+npm ci
+npm run dev
+```
+
+Open http://localhost:3000, and use `localhost` (not `127.0.0.1`) for both.
+
+## Tests
+
+From the repo root:
+
+```bash
+(cd source && python -m pytest -q)                                     # backend
+(cd nextjs-frontend && npx tsc --noEmit && npm test && npm run build)  # frontend
+```
+
+GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs the
+same checks on every push and pull request.
 
 ## Project layout
 
-- source/: FastAPI authentication and backend tests
-- nextjs-frontend/: Next.js interface and frontend tests
-- templates/: fallback backend login page and legacy UI preview
-- .github/workflows/ci.yml: backend tests, frontend tests and production build
-- docs/: existing course documents
+- `source/`: FastAPI backend. `app.py` is the real server (sign-in and
+  sessions); each feature has its own router (`activities.py`, `homework.py`,
+  `consultations.py`, `faq.py`, `reports.py`, `access.py`), with tests in
+  `test_*.py`. `roster.py` loads `data/course_roster.json` on first start.
+  `test_ui.py` is a separate fake UI preview, not the real backend.
+- `nextjs-frontend/`: Next.js app. Pages in `app/`, components in
+  `components/`, and shared helpers and API clients in `lib/`.
+- `data/`: the starting course roster and the local test users.
+- `templates/`: the backend's fallback login page and the legacy UI preview.
+- `docs/`: course documents.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for branches, commit messages and pull requests.
