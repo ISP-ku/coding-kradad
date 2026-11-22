@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from activities import authenticated_user, identity, require_lecturer, require_staff
+from activities import STAFF_ROLES, authenticated_user, identity, require_lecturer, require_staff
 from database import Homework, HomeworkSubmission, get_db
 from timeutil import UtcDateTime, to_naive_utc, utcnow_naive
 
@@ -111,43 +111,64 @@ def _get_homework(db: Session, homework_id: int) -> Homework:
     return hw
 
 
+def _get_submission(db: Session, hw: Homework, submission_id: int) -> HomeworkSubmission:
+    sub = db.scalar(select(HomeworkSubmission).where(
+        HomeworkSubmission.id == submission_id, HomeworkSubmission.homework_id == hw.id))
+    if sub is None:
+        raise HTTPException(status_code=404, detail="Submission not found.")
+    return sub
+
+
+def _staff_view(db: Session, items: list[Homework]) -> list[HomeworkOut]:
+    """Each homework with how many submissions came in and how many are graded."""
+    counts = {
+        hid: (total, graded or 0)
+        for hid, total, graded in db.execute(
+            select(HomeworkSubmission.homework_id, func.count(), func.count(HomeworkSubmission.score))
+            .group_by(HomeworkSubmission.homework_id)
+        )
+    }
+    result = []
+    for hw in items:
+        total, graded = counts.get(hw.id, (0, 0))
+        result.append(homework_out(hw, submission_count=total, graded_count=graded))
+    return result
+
+
+def _student_status(hw: Homework, sub: Optional[HomeworkSubmission], now: datetime) -> tuple[str, bool]:
+    """(status, is_overdue). Only work not handed in yet can be overdue."""
+    if sub is None:
+        return STATUS_TODO, hw.due_at < now
+    return (STATUS_GRADED if sub.score is not None else STATUS_SUBMITTED), False
+
+
+def _student_view(db: Session, items: list[Homework], user: dict) -> list[HomeworkOut]:
+    """Each homework with this student's own status and submission."""
+    mine = {
+        s.homework_id: s
+        for s in db.scalars(select(HomeworkSubmission).where(HomeworkSubmission.student_id == identity(user)))
+    }
+    now = utcnow_naive()
+    result = []
+    for hw in items:
+        sub = mine.get(hw.id)
+        status, overdue = _student_status(hw, sub, now)
+        result.append(homework_out(
+            hw, status=status, is_overdue=overdue,
+            my_submission=submission_out(sub, hw) if sub else None,
+        ))
+    return result
+
+
 # --- Endpoints ----------------------------------------------------------------
 
 @router.get("", response_model=list[HomeworkOut])
 def list_homework(user: dict = Depends(authenticated_user), db: Session = Depends(get_db)):
     """Every homework, soonest due first. The extra fields depend on the role."""
     items = db.scalars(select(Homework).order_by(Homework.due_at, Homework.id)).all()
-    now = utcnow_naive()
-
-    if user.get("role") in ("ta", "lecturer"):
-        counts = {
-            hid: (total, graded or 0)
-            for hid, total, graded in db.execute(
-                select(HomeworkSubmission.homework_id, func.count(), func.count(HomeworkSubmission.score))
-                .group_by(HomeworkSubmission.homework_id)
-            )
-        }
-        return [
-            homework_out(hw, submission_count=counts.get(hw.id, (0, 0))[0], graded_count=counts.get(hw.id, (0, 0))[1])
-            for hw in items
-        ]
-
-    mine = {
-        s.homework_id: s
-        for s in db.scalars(select(HomeworkSubmission).where(HomeworkSubmission.student_id == identity(user)))
-    }
-    result = []
-    for hw in items:
-        sub = mine.get(hw.id)
-        if sub is None:
-            status, overdue = STATUS_TODO, hw.due_at < now
-        else:
-            status, overdue = (STATUS_GRADED if sub.score is not None else STATUS_SUBMITTED), False
-        result.append(homework_out(
-            hw, status=status, is_overdue=overdue,
-            my_submission=submission_out(sub, hw) if sub else None,
-        ))
-    return result
+    if user.get("role") in STAFF_ROLES:
+        return _staff_view(db, items)
+    return _student_view(db, items, user)
 
 
 @router.post("", response_model=HomeworkOut, status_code=201)
@@ -208,10 +229,7 @@ def grade_submission(
     user: dict = Depends(require_ta), db: Session = Depends(get_db),
 ):
     hw = _get_homework(db, homework_id)
-    sub = db.scalar(select(HomeworkSubmission).where(
-        HomeworkSubmission.id == submission_id, HomeworkSubmission.homework_id == hw.id))
-    if sub is None:
-        raise HTTPException(status_code=404, detail="Submission not found.")
+    sub = _get_submission(db, hw, submission_id)
     if data.score > hw.max_score:
         raise HTTPException(status_code=422, detail=f"Score cannot be more than {hw.max_score}.")
     sub.score = data.score
