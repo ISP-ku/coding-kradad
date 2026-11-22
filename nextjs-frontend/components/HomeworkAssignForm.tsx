@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { errorMessage } from "@/lib/errors";
 import { localInputToIso } from "@/lib/homework";
+import { assignHomework } from "@/lib/homework-client";
 import type { HomeworkItem } from "@/lib/types";
 import {
   Field, FieldRow, FormActions, FormCard, FormMessage, QuickPicks, fieldAria,
@@ -46,35 +46,25 @@ export default function HomeworkAssignForm({ onCreated, courses = [] }: {
     const points = Number(max);
     if (!Number.isInteger(points) || points < 1 || points > 1000) found.max_score = "Enter a whole number from 1 to 1000.";
     setErrors(found);
-    if (Object.keys(found).length > 0) return;
+    if (Object.keys(found).length > 0 || !dueIso) return;
 
     setBusy(true);
-    try {
-      const res = await fetch("/api/homework", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          course_id: course.trim(), title: title.trim(), description: description.trim(),
-          due_at: dueIso, max_score: points,
-        }),
-      });
-      if (!res.ok) {
-        setFormError(await errorMessage(res, "Could not assign the homework. Please check every field."));
-        return;
-      }
-      const created = (await res.json()) as HomeworkItem;
-      if (!onCreated) {
-        window.location.assign("/homework?assigned=1");
-        return;
-      }
-      onCreated(created);
-      setCourse(""); setTitle(""); setDescription(""); setDue(""); setMax("100");
-      setNotice("Homework assigned. Students can see it now.");
-    } catch {
-      setFormError("Could not reach the server. Please try again.");
-    } finally {
-      setBusy(false);
+    const result = await assignHomework({
+      course_id: course.trim(), title: title.trim(), description: description.trim(),
+      due_at: dueIso, max_score: points,
+    });
+    setBusy(false);
+    if ("error" in result) {
+      setFormError(result.error);
+      return;
     }
+    if (!onCreated) {
+      window.location.assign("/homework?assigned=1");
+      return;
+    }
+    onCreated(result.homework);
+    setCourse(""); setTitle(""); setDescription(""); setDue(""); setMax("100");
+    setNotice("Homework assigned. Students can see it now.");
   }
 
   return (

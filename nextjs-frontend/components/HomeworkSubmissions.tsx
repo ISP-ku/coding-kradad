@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { errorMessage } from "@/lib/errors";
 import { formatDue } from "@/lib/homework";
+import { gradeSubmission, loadSubmissions } from "@/lib/homework-client";
 import type { HomeworkItem, HomeworkSubmission } from "@/lib/types";
 import styles from "./Homework.module.css";
 
@@ -33,23 +33,14 @@ function Row({ sub, max, canGrade, onSaved }: {
     }
     setError("");
     setBusy(true);
-    try {
-      const res = await fetch(`/api/homework/${sub.homework_id}/submissions/${sub.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ score: n, feedback: feedback.trim() }),
-      });
-      if (!res.ok) {
-        setError(await errorMessage(res, "Could not save the grade. Please try again."));
-        return;
-      }
-      onSaved((await res.json()) as HomeworkSubmission);
-      setSaved(true);
-    } catch {
-      setError("Could not reach the server. Please try again.");
-    } finally {
-      setBusy(false);
+    const result = await gradeSubmission(sub, n, feedback.trim());
+    setBusy(false);
+    if ("error" in result) {
+      setError(result.error);
+      return;
     }
+    onSaved(result.submission);
+    setSaved(true);
   }
 
   return (
@@ -107,15 +98,11 @@ export default function HomeworkSubmissions({ homework, canGrade, onNewlyGraded 
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`/api/homework/${homework.id}/submissions`);
-        if (!res.ok) throw new Error(await errorMessage(res, "Could not load submissions."));
-        if (!cancelled) setSubs((await res.json()) as HomeworkSubmission[]);
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Could not load submissions.");
-      }
-    })();
+    loadSubmissions(homework.id).then((result) => {
+      if (cancelled) return;
+      if ("error" in result) setError(result.error);
+      else setSubs(result.submissions);
+    });
     return () => { cancelled = true; };
   }, [homework.id]);
 

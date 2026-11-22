@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { errorMessage } from "@/lib/errors";
-import type { HomeworkItem, HomeworkSubmission } from "@/lib/types";
+import { submitHomework } from "@/lib/homework-client";
+import type { HomeworkItem } from "@/lib/types";
 import Icon from "./Icon";
 import styles from "./HomeworkStudent.module.css";
 
@@ -84,25 +84,16 @@ export default function HomeworkStudent({ initial, today: todayProp }: { initial
     }
     setBusy(true);
     setError(null);
-    try {
-      const res = await fetch(`/api/homework/${item.id}/submissions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answer: draft.trim() }),
-      });
-      if (!res.ok) {
-        setError({ id: item.id, message: await errorMessage(res, "Could not hand this in right now. Please try again.") });
-        return;
-      }
-      const saved = (await res.json()) as HomeworkSubmission;
-      setItems((list) => list.map((h) => (h.id === item.id ? { ...h, status: "submitted", is_overdue: false, my_submission: saved } : h)));
-      setOpenId(null);
-      setNotice(`"${item.title}" was handed in. You can change it until it is graded.`);
-    } catch {
-      setError({ id: item.id, message: "Could not reach the server. Please try again." });
-    } finally {
-      setBusy(false);
+    const result = await submitHomework(item.id, draft.trim());
+    setBusy(false);
+    if ("error" in result) {
+      setError({ id: item.id, message: result.error });
+      return;
     }
+    const saved = result.submission;
+    setItems((list) => list.map((h) => (h.id === item.id ? { ...h, status: "submitted", is_overdue: false, my_submission: saved } : h)));
+    setOpenId(null);
+    setNotice(`"${item.title}" was handed in. You can change it until it is graded.`);
   }
 
   const card = (h: HomeworkItem) => {
