@@ -15,6 +15,12 @@ describe("AccessMemberForm", () => {
     expect(screen.getByText("Sees homework and the FAQ")).toBeInTheDocument();
   });
 
+  it("gives Course a hint like the email box, so the two line up side by side", () => {
+    render(<AccessMemberForm courses={COURSES} onDone={onDone} />);
+    expect(screen.getByLabelText("Course")).toHaveAccessibleDescription("The course to add them to.");
+    expect(screen.getByLabelText("KU email")).toHaveAccessibleDescription("They sign in with this address.");
+  });
+
   it("checks the email before sending", () => {
     const fetcher = vi.fn();
     vi.stubGlobal("fetch", fetcher);
