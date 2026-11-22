@@ -63,6 +63,8 @@ describe("ConsultationForm saving", () => {
   it.each([
     [json({}, 401), "Your session has ended. Please sign in again."],
     [new Response("<html>", { status: 500 }), "Could not save right now. Please try again."],
+    [json({ detail: "Teaching assistant access required." }, 403), "Your account is not allowed to do this."],
+    [json({ detail: [{ msg: "Field required" }] }, 422), "Could not save right now. Please try again."],
   ])("explains a refused save", async (response, message) => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response));
     render(<ConsultationForm preview={false} />);
