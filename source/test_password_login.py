@@ -193,7 +193,7 @@ def test_wrong_password_and_unknown_address_look_the_same(lecturer):
 
 
 def test_invalid_address(lecturer):
-    assert query(sign_in(client(), "a@gmail.com", "x"))["error"] == "invalid_email"
+    assert query(sign_in(client(), "not-an-email", "x"))["error"] == "invalid_email"
 
 
 def test_five_wrong_tries_lock_the_password(lecturer):
@@ -322,14 +322,62 @@ def test_personal_google_still_refuses_other_domains(monkeypatch):
     assert response.status_code == 403
 
 
-def test_access_page_accepts_gmail_only_when_enabled(monkeypatch):
+# --- members without a KU address: password sign-in only -------------------
+
+OUTSIDER = "outsider@example.com"
+
+
+@pytest.mark.parametrize("raw,expected", [
+    ("  Out.Sider@Example.COM ", "out.sider@example.com"),
+    ("a@ku.th", "a@ku.th"),
+    (" SomeOne@Gmail.com ", GMAIL),          # with personal Google off, too
+    ("first.last@student.mahidol.ac.th", "first.last@student.mahidol.ac.th"),
+])
+def test_access_page_accepts_any_valid_address(raw, expected):
+    assert users.normalise_member_email(raw) == expected
+
+
+@pytest.mark.parametrize("raw", [
+    "", "not-an-email", "a@b", "a@b.", "a@.com", "a b@x.com", "a@@x.com", "@x.com", "a@x..com",
+    ("a" * 195) + "@x.com",                   # 201 characters
+])
+def test_access_page_rejects_malformed_addresses(raw):
     with pytest.raises(ValueError):
-        users.normalise_member_email(GMAIL)
-    monkeypatch.setenv("ALLOW_PERSONAL_GOOGLE", "1")
-    assert users.normalise_member_email(" SomeOne@Gmail.com ") == GMAIL
-    assert users.normalise_member_email("a@ku.th") == "a@ku.th"
-    with pytest.raises(ValueError):
-        users.normalise_member_email("a@outlook.com")
+        users.normalise_member_email(raw)
+
+
+def course_id():
+    with SessionLocal() as db:
+        return db.query(Course).one().id
+
+
+def test_lecturer_adds_an_outsider_who_signs_in_with_a_password(lecturer):
+    added = lecturer.post(f"/api/access/courses/{course_id()}/members", json={"email": OUTSIDER, "role": "student"})
+    assert added.status_code == 201, added.text
+    password = set_password(lecturer, OUTSIDER).json()["password"]
+    c = client()
+    response = sign_in(c, " Outsider@Example.com ", password)
+    assert response.status_code == 303 and response.headers["location"] == FRONT + "/homework"
+    me = c.get("/api/me").json()
+    assert (me["email"], me["role"]) == (OUTSIDER, "student")
+
+
+def test_an_outsider_needs_a_course_even_with_the_gate_off(lecturer, monkeypatch):
+    monkeypatch.setenv("REQUIRE_COURSE_MEMBERSHIP", "0")
+    add_member(OUTSIDER)
+    password = set_password(lecturer, OUTSIDER).json()["password"]
+    with SessionLocal() as db:   # out of every course, but the account and password remain
+        db.query(CourseMember).filter_by(email=OUTSIDER).delete()
+        db.commit()
+    assert query(sign_in(client(), OUTSIDER, password))["error"] == "denied"
+
+
+@pytest.mark.parametrize("hd", [None, "example.com"])
+def test_being_in_a_course_never_lets_an_outsider_use_google(monkeypatch, hd):
+    add_member(OUTSIDER)
+    _, _, response = google_login(monkeypatch, OUTSIDER, hd=hd)
+    assert response.status_code == 403
+    assert "Sign in with a password from your lecturer" in response.text
 
 
 def test_auth_options_shows_personal_google_when_enabled(monkeypatch):
