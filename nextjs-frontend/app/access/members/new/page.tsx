@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AccessMemberForm } from "@/components/AccessForms";
 import AppShell from "@/components/AppShell";
 import ui from "@/components/ui.module.css";
-import { authOptions, logoutUrl } from "@/lib/api";
+import { logoutUrl } from "@/lib/api";
 import { getAccess } from "@/lib/access-server";
 import { canAccess, homePathFor } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
@@ -14,7 +14,7 @@ export default async function AddPeoplePage({ searchParams }: { searchParams?: {
   const viewer = await getSessionUser();
   if (!viewer) redirect("/");
   if (!canAccess(viewer, "access")) redirect(homePathFor(viewer));
-  const [data, options] = await Promise.all([getAccess(), authOptions()]);
+  const data = await getAccess();
   // Nobody can be added before a course exists.
   if (data && data.courses.length === 0) redirect("/access/courses/new");
 
@@ -23,14 +23,14 @@ export default async function AddPeoplePage({ searchParams }: { searchParams?: {
       page="access"
       title="Add people"
       heading="Add people to a course"
-      subtitle="Only people in a course can sign in. Use their KU email."
+      subtitle="Only people in a course can sign in. Use their KU email, or any email for a password sign-in."
       viewer={viewer}
       logoutHref={logoutUrl}
     >
       <div className={ui.formPage}>
         <a className={ui.backLink} href={searchParams?.course ? `/access?course=${searchParams.course}` : "/access"}>← Back to course access</a>
         {data ? (
-          <AccessMemberForm courses={data.courses} defaultCourseId={Number(searchParams?.course) || undefined} allowPersonal={options.personal_google} />
+          <AccessMemberForm courses={data.courses} defaultCourseId={Number(searchParams?.course) || undefined} />
         ) : (
           <p role="alert">Courses could not be loaded right now. Please try again in a moment.</p>
         )}

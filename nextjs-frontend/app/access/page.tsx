@@ -5,6 +5,7 @@ import AppShell from "@/components/AppShell";
 import Icon from "@/components/Icon";
 import ui from "@/components/ui.module.css";
 import { logoutUrl } from "@/lib/api";
+import { addedNotice } from "@/lib/access";
 import { getAccess } from "@/lib/access-server";
 import { canAccess, homePathFor } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
@@ -25,7 +26,7 @@ export default async function AccessPage({ searchParams }: { searchParams?: Sear
   const notice = searchParams?.created === "1" && course
     ? `Course ${course.code} created. Use Add people to add its lecturers, TAs and students.`
     : searchParams?.added
-      ? `${searchParams.added} now has access${course ? ` to ${course.code}` : ""}.`
+      ? addedNotice(searchParams.added, course?.code)
       : "";
   const addHref = course ? `/access/members/new?course=${course.id}` : "/access/members/new";
 

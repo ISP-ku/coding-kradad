@@ -24,12 +24,12 @@ describe("PasswordSignIn", () => {
 
   it("explains a bad address", () => {
     render(<PasswordSignIn email="x@gmail.com" error="invalid_email" />);
-    expect(screen.getByRole("alert")).toHaveTextContent("Enter your KU email address, ending in @ku.th.");
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter the email address your lecturer added.");
   });
 
-  it("mentions Gmail when personal accounts are allowed", () => {
-    render(<PasswordSignIn error="invalid_email" allowPersonal />);
-    expect(screen.getByRole("alert")).toHaveTextContent("@ku.th, or the Gmail address your lecturer added");
+  it("asks for the address the lecturer added, KU or not", () => {
+    render(<PasswordSignIn />);
+    expect(screen.getByLabelText("Email address")).toHaveAccessibleDescription("The email address your lecturer added.");
   });
 
   it.each([

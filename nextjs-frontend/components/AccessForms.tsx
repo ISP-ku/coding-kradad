@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { addMember, createCourse } from "@/lib/access-client";
-import { normaliseKuEmail, type AccessCourse, type AccessRole } from "@/lib/access";
+import { normaliseMemberEmail, type AccessCourse, type AccessRole } from "@/lib/access";
 import { ChoiceGroup, Field, FieldRow, FormActions, FormCard, FormMessage, FormNote, fieldAria, type Choice } from "./form/FormKit";
 
 const ROLES: Choice<AccessRole>[] = [
@@ -11,11 +11,13 @@ const ROLES: Choice<AccessRole>[] = [
   { value: "lecturer", label: "Lecturer", hint: "Manages activities, homework and access" },
 ];
 
-/** Add a KU account to a course with a role (SRS-23). Its own page: /access/members/new. */
-export function AccessMemberForm({ courses, defaultCourseId, onDone, allowPersonal = false }: {
+/**
+ * Add someone to a course with a role (SRS-23). Its own page: /access/members/new.
+ * Any email works; without @ku.th the person can only sign in with a password
+ * the lecturer creates on the Access page.
+ */
+export function AccessMemberForm({ courses, defaultCourseId, onDone }: {
   courses: AccessCourse[];
-  /** Personal Gmail accounts are turned on (ALLOW_PERSONAL_GOOGLE). */
-  allowPersonal?: boolean;
   defaultCourseId?: number;
   /** Called with the course and email after adding; without it the page returns to Access. */
   onDone?: (courseId: number, email: string) => void;
@@ -32,10 +34,8 @@ export function AccessMemberForm({ courses, defaultCourseId, onDone, allowPerson
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
-    const clean = normaliseKuEmail(email, allowPersonal);
-    setEmailError(clean ? "" : allowPersonal
-      ? "Enter a KU address ending in @ku.th, or a Gmail address."
-      : "Enter a KU email address ending in @ku.th.");
+    const clean = normaliseMemberEmail(email);
+    setEmailError(clean ? "" : "Enter a valid email address.");
     if (!clean) return;
     setBusy(true);
     const result = await addMember(courseId, clean, role);
@@ -57,8 +57,8 @@ export function AccessMemberForm({ courses, defaultCourseId, onDone, allowPerson
             {courses.map((c) => <option key={c.id} value={c.id}>{c.code}{c.name && c.name !== c.code ? `, ${c.name}` : ""}</option>)}
           </select>
         </Field>
-        <Field id="member-email" label={allowPersonal ? "Email" : "KU email"} error={emailError}
-          hint={allowPersonal ? "A KU address, or a personal Gmail address for someone who cannot use KU sign-in." : "They sign in with this address."}>
+        <Field id="member-email" label="Email" error={emailError}
+          hint="A KU address, or any other email. Without @ku.th they can only sign in with a password you create.">
           <input id="member-email" type="email" value={email} autoComplete="off" placeholder="name.s@ku.th"
             onChange={(e) => setEmail(e.target.value)} {...fieldAria("member-email", emailError, true)} />
         </Field>

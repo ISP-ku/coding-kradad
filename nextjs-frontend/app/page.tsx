@@ -92,7 +92,7 @@ export default async function LoginPage() {
                 </svg>
                 Continue with KU Google
               </a>
-              {(options.password || options.personal_google) && <p className={styles.or}>Can&apos;t get through KU ALL?</p>}
+              {(options.password || options.personal_google) && <p className={styles.or}>Can&apos;t use KU Google?</p>}
               {options.password && <a className={styles.quiet} href="/sign-in/password">Sign in with a password from your lecturer</a>}
               {options.personal_google && (
                 <a className={styles.quiet} href={loginUrl("google-personal")}>Continue with a personal Google account</a>
@@ -102,7 +102,8 @@ export default async function LoginPage() {
               )}
               <p className={styles.help}>
                 Use your account ending in @ku.th{options.personal_google ? ", or the Gmail address your lecturer added" : ""}.
-                If you are new to the course and cannot get in, ask your lecturer to add you.
+                If your lecturer added you with another email, use the password sign-in. If you are new to the
+                course and cannot get in, ask your lecturer to add you.
               </p>
             </>
           )}

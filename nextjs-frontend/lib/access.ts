@@ -20,13 +20,26 @@ export type AccessData = { courses: AccessCourse[]; accounts: AccessAccount[] };
 export const ROLE_LABEL: Record<AccessRole, string> = { student: "Student", ta: "TA", lecturer: "Lecturer" };
 
 /**
- * Same rule as the backend's normalise_member_email: a KU address, or a
- * Gmail address when personal Google accounts are turned on. Null when invalid.
+ * Any valid address a lecturer may add, lower-cased, or null. Same rule as the
+ * backend's normalise_member_email: one @, something before it, a domain with
+ * a dot and no empty parts, no spaces, at most 200 characters.
  */
-const KU_ONLY = /^[^@\s]+@ku\.th$/;
-const KU_OR_GMAIL = /^[^@\s]+@(ku\.th|gmail\.com)$/;
-
-export function normaliseKuEmail(raw: string, allowPersonal = false): string | null {
+export function normaliseMemberEmail(raw: string): string | null {
   const email = raw.trim().toLowerCase();
-  return (allowPersonal ? KU_OR_GMAIL : KU_ONLY).test(email) && email.length <= 200 ? email : null;
+  const [local, domain, ...rest] = email.split("@");
+  const labels = (domain ?? "").split(".");
+  const ok = rest.length === 0 && !!local && labels.length >= 2 && labels.every(Boolean)
+    && !/\s/.test(email) && email.length <= 200;
+  return ok ? email : null;
+}
+
+/** KU addresses can use Google sign-in; anyone else signs in with a lecturer-made password. */
+export const isKuEmail = (email: string) => email.trim().toLowerCase().split("@").pop() === "ku.th";
+
+/** The confirmation shown on the Access page after someone is added. */
+export function addedNotice(email: string, courseCode?: string): string {
+  const base = `${email} now has access${courseCode ? ` to ${courseCode}` : ""}.`;
+  return isKuEmail(email)
+    ? base
+    : `${base} Without a @ku.th address they can only sign in with a password: click Create password next to their name.`;
 }

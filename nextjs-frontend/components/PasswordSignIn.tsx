@@ -4,8 +4,6 @@ import styles from "./PasswordSignIn.module.css";
 type Props = {
   email?: string;
   error?: string;
-  /** Personal Gmail accounts are turned on (ALLOW_PERSONAL_GOOGLE). */
-  allowPersonal?: boolean;
 };
 
 const MESSAGES: Record<string, string> = {
@@ -15,13 +13,9 @@ const MESSAGES: Record<string, string> = {
 };
 
 /** What to tell the person after a failed try; empty when there was none. */
-function errorText(error: string | undefined, allowPersonal: boolean): string {
+function errorText(error: string | undefined): string {
   if (!error) return "";
-  if (error === "invalid_email") {
-    return allowPersonal
-      ? "Enter your KU email address ending in @ku.th, or the Gmail address your lecturer added."
-      : "Enter your KU email address, ending in @ku.th.";
-  }
+  if (error === "invalid_email") return "Enter the email address your lecturer added.";
   return MESSAGES[error] ?? "Something went wrong. Please try again.";
 }
 
@@ -31,8 +25,8 @@ function errorText(error: string | undefined, allowPersonal: boolean): string {
  * (passed on to the backend), so it works without JavaScript and the backend
  * sets the session cookie on this site.
  */
-export default function PasswordSignIn({ email = "", error, allowPersonal = false }: Props) {
-  const message = errorText(error, allowPersonal);
+export default function PasswordSignIn({ email = "", error }: Props) {
+  const message = errorText(error);
 
   return (
     <div className={styles.wrap}>
@@ -41,7 +35,7 @@ export default function PasswordSignIn({ email = "", error, allowPersonal = fals
         <div className={kit.field}>
           <div className={kit.labelRow}><label htmlFor="signin-email">Email address</label></div>
           <p className={kit.hint} id="signin-email-hint">
-            {allowPersonal ? "Your @ku.th address, or the Gmail address your lecturer added." : "Your KU address, ending in @ku.th."}
+            The email address your lecturer added.
           </p>
           <input id="signin-email" name="email" type="email" required autoComplete="username" defaultValue={email}
             autoFocus={!email} placeholder="name.s@ku.th" aria-describedby="signin-email-hint"
