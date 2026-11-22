@@ -67,6 +67,23 @@ describe("AccessManager", () => {
     expect(fetcher).toHaveBeenCalledWith("/api/access/courses/1/members/somchai%40ku.th", expect.objectContaining({ method: "DELETE" }));
   });
 
+  it("keeps the member and says so when removing cannot reach the server", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+    render(<AccessManager initial={DATA} />);
+    fireEvent.click(within(rowFor("somchai@ku.th")).getByRole("button", { name: "Remove somchai@ku.th from CS101" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not reach the server. Please try again.");
+    expect(screen.getByText("somchai@ku.th")).toBeInTheDocument();
+  });
+
+  it("keeps a member who is still in another course", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
+    render(<AccessManager initial={DATA} />);
+    fireEvent.click(within(rowFor("nida@ku.th")).getByRole("button", { name: "Remove nida@ku.th from CS101" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("nida@ku.th was removed from CS101.");
+    fireEvent.change(screen.getByLabelText("Course"), { target: { value: "2" } });
+    expect(within(rowFor("nida@ku.th")).getByText("CS202")).toBeInTheDocument();
+  });
+
   it("points to New course when there are no courses", () => {
     render(<AccessManager initial={{ courses: [], accounts: [] }} />);
     expect(screen.getByText(/Use New course to create one/)).toBeInTheDocument();

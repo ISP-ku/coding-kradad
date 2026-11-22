@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { errorMessage } from "@/lib/errors";
+import type { Outcome } from "@/lib/request";
+import * as api from "@/lib/access-client";
 import {
   ROLE_LABEL,
   type AccessAccount, type AccessCourse, type AccessData, type AccessRole,
 } from "@/lib/access";
+import AccessMemberRow from "./AccessMemberRow";
 import styles from "./AccessManager.module.css";
 
-const ROLES: AccessRole[] = ["student", "ta", "lecturer"];
 const byEmail = (a: AccessAccount, b: AccessAccount) => a.email.localeCompare(b.email);
 
 /**
@@ -42,82 +43,52 @@ export default function AccessManager({ initial, initialCourseId, initialNotice 
   const upsert = (account: AccessAccount) =>
     setAccounts((list) => [...list.filter((a) => a.email !== account.email), account].sort(byEmail));
 
-  /** Runs one request; returns the parsed body, or null after showing the error. */
-  async function send<T>(url: string, init: RequestInit, fallback: string): Promise<T | null | undefined> {
+  /** Clears the last message, runs one call, then shows its error or hands its data to `then`. */
+  async function run<T>(call: () => Promise<Outcome<T>>, then: (data: T) => void): Promise<void> {
     setError("");
     setNotice("");
     setFresh(null);
     setBusy(true);
-    try {
-      const res = await fetch(url, {
-        ...init,
-        headers: init.body ? { "Content-Type": "application/json" } : undefined,
-      });
-      if (!res.ok) {
-        setError(await errorMessage(res, fallback));
-        return null;
-      }
-      return res.status === 204 ? undefined : ((await res.json()) as T);
-    } catch {
-      setError("Could not reach the server. Please try again.");
-      return null;
-    } finally {
-      setBusy(false);
-    }
+    const result = await call();
+    setBusy(false);
+    if ("error" in result) setError(result.error);
+    else then(result.data);
   }
 
-  async function changeRole(account: AccessAccount, next: AccessRole) {
-    const updated = await send<AccessAccount>(
-      `/api/access/accounts/${encodeURIComponent(account.email)}`,
-      { method: "PATCH", body: JSON.stringify({ role: next }) },
-      "Could not change the role.",
-    );
-    if (!updated) return;
-    upsert(updated);
-    setNotice(`${updated.email} is now a ${ROLE_LABEL[updated.role]}.`);
-  }
+  const changeRole = (account: AccessAccount, next: AccessRole) =>
+    run(() => api.changeRole(account.email, next), (updated) => {
+      upsert(updated);
+      setNotice(`${updated.email} is now a ${ROLE_LABEL[updated.role]}.`);
+    });
 
   async function remove(account: AccessAccount) {
     if (!course) return;
-    const done = await send<never>(
-      `/api/access/courses/${course.id}/members/${encodeURIComponent(account.email)}`,
-      { method: "DELETE" },
-      "Could not remove this account.",
-    );
-    if (done === null) return;
-    const left = account.course_ids.filter((id) => id !== course.id);
-    setAccounts((list) =>
-      left.length === 0 && !account.protected
-        ? list.filter((a) => a.email !== account.email)
-        : list.map((a) => (a.email === account.email ? { ...a, course_ids: left } : a)),
-    );
-    setNotice(`${account.email} was removed from ${course.code}.`);
+    await run(() => api.removeMember(course.id, account.email), () => {
+      const left = account.course_ids.filter((id) => id !== course.id);
+      setAccounts((list) =>
+        left.length === 0 && !account.protected
+          ? list.filter((a) => a.email !== account.email)
+          : list.map((a) => (a.email === account.email ? { ...a, course_ids: left } : a)),
+      );
+      setNotice(`${account.email} was removed from ${course.code}.`);
+    });
   }
 
   async function makePassword(account: AccessAccount) {
     if (account.has_password && !window.confirm(
       `Create a new password for ${account.email}? Their current password will stop working.`)) return;
-    const made = await send<{ password: string; account: AccessAccount }>(
-      `/api/access/accounts/${encodeURIComponent(account.email)}/password`,
-      { method: "POST" },
-      "Could not create a password.",
-    );
-    if (!made) return;
-    upsert(made.account);
-    setCopied(false);
-    setFresh({ email: made.account.email, password: made.password });
+    await run(() => api.createPassword(account.email), (made) => {
+      upsert(made.account);
+      setCopied(false);
+      setFresh({ email: made.account.email, password: made.password });
+    });
   }
 
-  async function removePassword(account: AccessAccount) {
-    const updated = await send<AccessAccount>(
-      `/api/access/accounts/${encodeURIComponent(account.email)}/password`,
-      { method: "DELETE" },
-      "Could not remove the password.",
-    );
-    if (!updated) return;
-    upsert(updated);
-    setNotice(`${updated.email} can no longer sign in with a password.`);
-  }
+  const removePassword = (account: AccessAccount) =>
+    run(() => api.removePassword(account.email), (updated) => {
+      upsert(updated);
+      setNotice(`${updated.email} can no longer sign in with a password.`);
+    });
 
   async function copyPassword() {
     if (!fresh) return;
@@ -126,12 +97,6 @@ export default function AccessManager({ initial, initialCourseId, initialNotice 
       setCopied(true);
     } catch { /* the password stays on screen to copy by hand */ }
   }
-
-  const locked = (a: AccessAccount) => a.protected || a.is_self;
-  // Only the server-configured lecturer may create their own password.
-  const passwordLocked = (a: AccessAccount) => a.protected && !a.is_self;
-  const lockReason = (a: AccessAccount) =>
-    a.protected ? "Set in server configuration" : a.is_self ? "You" : "";
 
   return (
     <div className={styles.wrap}>
@@ -188,58 +153,11 @@ export default function AccessManager({ initial, initialCourseId, initialNotice 
                 </thead>
                 <tbody>
                   {members.map((a) => (
-                    <tr key={a.email}>
-                      <td className={styles.email}>
-                        {a.email}
-                        {lockReason(a) && <span className={styles.chip}>{lockReason(a)}</span>}
-                      </td>
-                      <td>
-                        <select
-                          aria-label={`Role for ${a.email}`}
-                          value={a.role}
-                          disabled={busy || locked(a)}
-                          onChange={(e) => changeRole(a, e.target.value as AccessRole)}
-                        >
-                          {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
-                        </select>
-                      </td>
-                      <td>{a.course_ids.map(codeOf).join(", ")}</td>
-                      <td>
-                        <div className={styles.passwordCell}>
-                          <button
-                            type="button"
-                            className={styles.small}
-                            aria-label={`${a.has_password ? "New password" : "Create password"} for ${a.email}`}
-                            disabled={busy || passwordLocked(a)}
-                            onClick={() => makePassword(a)}
-                          >
-                            {a.has_password ? "New password" : "Create password"}
-                          </button>
-                          {a.has_password && (
-                            <button
-                              type="button"
-                              className={styles.linkish}
-                              aria-label={`Remove password for ${a.email}`}
-                              disabled={busy || passwordLocked(a)}
-                              onClick={() => removePassword(a)}
-                            >
-                              Remove
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className={styles.remove}
-                          aria-label={`Remove ${a.email} from ${course.code}`}
-                          disabled={busy || locked(a)}
-                          onClick={() => remove(a)}
-                        >
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
+                    <AccessMemberRow
+                      key={a.email} account={a} courseCode={course.code} courseCodes={a.course_ids.map(codeOf)} busy={busy}
+                      onRole={(role) => changeRole(a, role)} onRemove={() => remove(a)}
+                      onMakePassword={() => makePassword(a)} onRemovePassword={() => removePassword(a)}
+                    />
                   ))}
                 </tbody>
               </table>

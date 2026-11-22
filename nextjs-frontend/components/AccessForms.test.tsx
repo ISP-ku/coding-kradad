@@ -46,6 +46,14 @@ describe("AccessMemberForm", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("already in this course");
     expect(onDone).not.toHaveBeenCalled();
   });
+  it("says so when the server cannot be reached", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+    render(<AccessMemberForm courses={COURSES} onDone={onDone} />);
+    fireEvent.change(screen.getByLabelText("KU email"), { target: { value: "nida@ku.th" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add to course" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not reach the server. Please try again.");
+    expect(onDone).not.toHaveBeenCalled();
+  });
 });
 
 describe("AccessCourseForm", () => {
@@ -67,5 +75,14 @@ describe("AccessCourseForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create course" }));
     await waitFor(() => expect(onDone).toHaveBeenCalledWith(3));
     expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual({ code: "CS303", name: "Systems" });
+  });
+
+  it("shows the server's reason when the code is taken", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ detail: "A course with code CS101 already exists." }, 409)));
+    render(<AccessCourseForm onDone={onDone} />);
+    fireEvent.change(screen.getByLabelText("Course code"), { target: { value: "CS101" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create course" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("A course with code CS101 already exists.");
+    expect(onDone).not.toHaveBeenCalled();
   });
 });
