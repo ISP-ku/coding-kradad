@@ -31,8 +31,10 @@ role cannot use.
 
 - **KU Google (@ku.th)** is the normal way in. Only members of at least one
   course can sign in; lecturers manage who is in each course on the Access page.
-- **Lecturer-set password**, for people KU ALL will not let through. A lecturer
-  creates it on the Access page.
+- **Lecturer-set password**, for people KU ALL will not let through, and for
+  people without an @ku.th address: a lecturer can add any email address to a
+  course on the Access page, and that person can only sign in with a password
+  the lecturer creates there (never with Google).
 - **Personal Gmail** (optional, off by default with `ALLOW_PERSONAL_GOOGLE=0`),
   for accounts a lecturer added on the Access page.
 - **Local test login** (development only), to try the app without Google. See

@@ -18,17 +18,27 @@ describe("AccessMemberForm", () => {
   it("gives Course a hint like the email box, so the two line up side by side", () => {
     render(<AccessMemberForm courses={COURSES} onDone={onDone} />);
     expect(screen.getByLabelText("Course")).toHaveAccessibleDescription("The course to add them to.");
-    expect(screen.getByLabelText("KU email")).toHaveAccessibleDescription("They sign in with this address.");
+    expect(screen.getByLabelText("Email")).toHaveAccessibleDescription("Non-KU emails sign in with a password you create.");
   });
 
   it("checks the email before sending", () => {
     const fetcher = vi.fn();
     vi.stubGlobal("fetch", fetcher);
     render(<AccessMemberForm courses={COURSES} onDone={onDone} />);
-    fireEvent.change(screen.getByLabelText("KU email"), { target: { value: "someone@gmail.com" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "not-an-email" } });
     fireEvent.click(screen.getByRole("button", { name: "Add to course" }));
-    expect(screen.getByText("Enter a KU email address ending in @ku.th.")).toBeInTheDocument();
+    expect(screen.getByText("Enter a valid email address.")).toBeInTheDocument();
     expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("adds someone without a KU address", async () => {
+    const fetcher = vi.fn().mockResolvedValue(json({ email: "out@example.com" }, 201));
+    vi.stubGlobal("fetch", fetcher);
+    render(<AccessMemberForm courses={COURSES} onDone={onDone} />);
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: " Out@Example.com " } });
+    fireEvent.click(screen.getByRole("button", { name: "Add to course" }));
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith(1, "out@example.com"));
+    expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual({ email: "out@example.com", role: "student" });
   });
 
   it("adds the person to the chosen course with the chosen role", async () => {
@@ -36,7 +46,7 @@ describe("AccessMemberForm", () => {
     vi.stubGlobal("fetch", fetcher);
     render(<AccessMemberForm courses={COURSES} onDone={onDone} />);
     fireEvent.change(screen.getByLabelText("Course"), { target: { value: "2" } });
-    fireEvent.change(screen.getByLabelText("KU email"), { target: { value: " New@KU.th " } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: " New@KU.th " } });
     fireEvent.click(screen.getByRole("radio", { name: /Teaching assistant/ }));
     fireEvent.click(screen.getByRole("button", { name: "Add to course" }));
     await waitFor(() => expect(onDone).toHaveBeenCalledWith(2, "new@ku.th"));
@@ -47,7 +57,7 @@ describe("AccessMemberForm", () => {
   it("shows the server's reason", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json({ detail: "nida@ku.th is already in this course." }, 409)));
     render(<AccessMemberForm courses={COURSES} onDone={onDone} />);
-    fireEvent.change(screen.getByLabelText("KU email"), { target: { value: "nida@ku.th" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "nida@ku.th" } });
     fireEvent.click(screen.getByRole("button", { name: "Add to course" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("already in this course");
     expect(onDone).not.toHaveBeenCalled();
@@ -55,7 +65,7 @@ describe("AccessMemberForm", () => {
   it("says so when the server cannot be reached", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
     render(<AccessMemberForm courses={COURSES} onDone={onDone} />);
-    fireEvent.change(screen.getByLabelText("KU email"), { target: { value: "nida@ku.th" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "nida@ku.th" } });
     fireEvent.click(screen.getByRole("button", { name: "Add to course" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not reach the server. Please try again.");
     expect(onDone).not.toHaveBeenCalled();

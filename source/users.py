@@ -15,7 +15,12 @@ Who may sign in, and with which role (Iteration 6, R-08):
 - Anyone else is refused (SRS-23: "not registered as a member of the
   selected course").
 
-REQUIRE_COURSE_MEMBERSHIP=0 switches the membership check off. A non-member
+A lecturer may also add an address outside @ku.th (normalise_member_email).
+Google sign-in refuses it (app.ku_profile), so its only way in is a password
+the lecturer creates on the Access page (password_login.py), and it always
+needs a course membership, even with the check below switched off.
+
+REQUIRE_COURSE_MEMBERSHIP=0 switches the membership check off. A KU non-member
 then falls back to the old behaviour: the role passed in (local test login)
 or the TA_EMAILS allowlist, defaulting to student. TA_EMAILS otherwise only
 gives the starting role when a lecturer adds an email without choosing one.
@@ -73,29 +78,20 @@ def is_ku_email(email: str | None) -> bool:
 
 
 def normalise_member_email(raw: str) -> str:
-    """An address that may be given access: KU always, Gmail only when
-    personal Google accounts are turned on. Lower-cased, or ValueError."""
+    """Any valid address a lecturer may add to a course, lower-cased, or
+    ValueError. KU addresses can use Google sign-in; any other address can
+    only sign in with a password the lecturer creates (and, when personal
+    Google accounts are turned on, a Gmail address may also use Google).
+
+    The same rule as normaliseMemberEmail in nextjs-frontend/lib/access.ts:
+    one @, something before it, a domain with a dot that does not start or
+    end with a dot and has no empty parts, no spaces, at most 200 characters."""
     email = (raw or "").strip().lower()
     local, at, domain = email.partition("@")
-    if (personal_google_allowed() and domain in PERSONAL_DOMAINS and local and "@" not in domain
-            and not any(c.isspace() for c in email) and len(email) <= 200):
-        return email
-    try:
-        return normalise_ku_email(raw)
-    except ValueError:
-        if personal_google_allowed():
-            raise ValueError("Enter a KU address ending in @ku.th, or a Gmail address.")
-        raise
-
-
-def normalise_ku_email(raw: str) -> str:
-    """Lower-cased, trimmed KU email, or ValueError. Sign-in only accepts KU
-    Google accounts, so nothing else is worth storing."""
-    email = (raw or "").strip().lower()
-    local, at, domain = email.partition("@")
-    if (not at or not local or "@" in domain or domain != KU_DOMAIN
+    labels = domain.split(".")
+    if (not at or not local or "@" in domain or len(labels) < 2 or not all(labels)
             or any(c.isspace() for c in email) or len(email) > 200):
-        raise ValueError("Enter a KU email address ending in @ku.th.")
+        raise ValueError("Enter a valid email address.")
     return email
 
 

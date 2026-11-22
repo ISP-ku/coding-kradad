@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import PasswordSignIn from "@/components/PasswordSignIn";
 import ThemeToggle from "@/components/ThemeToggle";
-import { authOptions } from "@/lib/api";
 import { homePathFor } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/session";
 import styles from "../../page.module.css";
@@ -12,7 +11,7 @@ export const metadata: Metadata = { title: "Sign in with a password · Course Su
 type Search = { email?: string; error?: string };
 
 export default async function PasswordSignInPage({ searchParams }: { searchParams?: Search }) {
-  const [user, options] = await Promise.all([getSessionUser(), authOptions()]);
+  const user = await getSessionUser();
   if (user) redirect(homePathFor(user));
 
   return (
@@ -34,7 +33,6 @@ export default async function PasswordSignInPage({ searchParams }: { searchParam
           <PasswordSignIn
             email={searchParams?.email}
             error={searchParams?.error}
-            allowPersonal={options.personal_google}
           />
         </div>
         <p className={styles.footer}>Kasetsart University course support and activity dashboard</p>

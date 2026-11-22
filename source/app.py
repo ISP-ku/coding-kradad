@@ -54,7 +54,8 @@ MSG_STATE_INVALID = "Login request expired or could not be verified. Please star
 MSG_CANCELLED = "Google sign-in was cancelled. Please try again when you are ready."
 MSG_GOOGLE_ERROR = "Google could not complete the sign-in and reported a problem. Please try again, or contact the course team if it keeps happening."
 MSG_NO_CODE = "Google did not return an authorization code. Please start again."
-MSG_NOT_KU = "Please sign in with your KU Google account ending in @ku.th. Personal Gmail and other accounts are not allowed."
+MSG_NOT_KU = ("Please sign in with your KU Google account ending in @ku.th. If your lecturer added another "
+              "email address for you, use “Sign in with a password from your lecturer” instead.")
 MSG_BAD_EMAIL = "Google did not return a valid email address for this account. Please try again with your KU Google account."
 MSG_UNVERIFIED = "Google has not verified this email address, so it cannot be used to sign in. Verify it with Google and try again."
 MSG_NOT_WORKSPACE = "Google did not confirm that this account belongs to the KU Google Workspace. Please sign in with your KU Google account."

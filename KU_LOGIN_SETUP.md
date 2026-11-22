@@ -137,7 +137,9 @@ KU's Google Workspace sends every @ku.th Google sign-in to KU ALL. If KU ALL can
 
 ### Password sign-in
 
-On the Access page, a lecturer clicks **Create password** next to the person. The server makes a random 14-character password and shows it once; the lecturer passes it on. The person chooses **Sign in with a password from your lecturer** on the sign-in page (`/sign-in/password`) and types their @ku.th address and that password. No Google, KU ALL or email is involved, and nothing needs to be configured.
+On the Access page, a lecturer clicks **Create password** next to the person. The server makes a random 14-character password and shows it once; the lecturer passes it on. The person chooses **Sign in with a password from your lecturer** on the sign-in page (`/sign-in/password`) and types the address they were added with and that password. No Google, KU ALL or email is involved, and nothing needs to be configured.
+
+The same works for people **without an @ku.th address**: on **Add people** a lecturer can enter any valid email address. Google sign-in refuses such an address, so a password from the Access page is their only way in, and they always need to be in at least one course, even when `REQUIRE_COURSE_MEMBERSHIP=0`.
 
 - Only a scrypt hash is stored. **New password** replaces it (the old one stops working); **Remove** turns password sign-in off for that person. Removing someone from their last course also deletes their password.
 - 5 wrong tries lock the password for 15 minutes (a new password unlocks it). A wrong address and a wrong password get the same answer.

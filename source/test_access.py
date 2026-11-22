@@ -116,20 +116,6 @@ def test_account_without_courses_is_not_a_member():
         assert users.resolve_role(db, STRANGER, None) is None
 
 
-@pytest.mark.parametrize("raw,expected", [
-    ("  Somchai.S@KU.TH ", "somchai.s@ku.th"),
-    ("a@ku.th", "a@ku.th"),
-])
-def test_normalise_ku_email_accepts(raw, expected):
-    assert users.normalise_ku_email(raw) == expected
-
-
-@pytest.mark.parametrize("raw", ["", "nobody", "@ku.th", "a@gmail.com", "a@ku.th.evil.com", "a@b@ku.th", "a b@ku.th"])
-def test_normalise_ku_email_rejects(raw):
-    with pytest.raises(ValueError):
-        users.normalise_ku_email(raw)
-
-
 # --- Task 2: sign-in gate and per-request refresh ----------------------------
 
 def test_non_member_google_login_denied(monkeypatch):
@@ -235,7 +221,7 @@ def test_seed_roster_creates_courses_and_members(tmp_path):
 
 @pytest.mark.parametrize("bad", [
     "not json",
-    json.dumps({"courses": [{"code": "X", "members": [{"email": "a@gmail.com"}]}]}),
+    json.dumps({"courses": [{"code": "X", "members": [{"email": "not-an-email"}]}]}),
     json.dumps({"courses": [{"code": "X", "members": [{"email": "a@ku.th", "role": "admin"}]}]}),
     json.dumps({"courses": [{"code": "X", "members": [{"email": "a@ku.th", "role": "ta"}]},
                             {"code": "Y", "members": [{"email": "a@ku.th", "role": "student"}]}]}),
@@ -355,7 +341,7 @@ def test_add_member_default_role_uses_ta_allowlist(sign_in, monkeypatch):
     assert added.json()["role"] == "ta"
 
 
-@pytest.mark.parametrize("payload", [{"email": "x@gmail.com"}, {"email": "x@ku.th", "role": "admin"}, {}])
+@pytest.mark.parametrize("payload", [{"email": "not-an-email"}, {"email": "x@ku.th", "role": "admin"}, {}])
 def test_add_member_rejects_bad_input(sign_in, payload):
     response = sign_in(LECTURER).post(f"/api/access/courses/{course_id()}/members", json=payload)
     assert response.status_code == 422
