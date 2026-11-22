@@ -16,17 +16,24 @@ const MESSAGES: Record<string, string> = {
   denied: "This account is not registered in any course. Ask a lecturer to add you.",
 };
 
+/** What to tell the person after a failed try; empty when there was none. */
+function errorText(error: string | undefined, allowPersonal: boolean): string {
+  if (!error) return "";
+  if (error === "invalid_email") {
+    return allowPersonal
+      ? "Enter your KU email address ending in @ku.th, or the Gmail address your lecturer added."
+      : "Enter your KU email address, ending in @ku.th.";
+  }
+  return MESSAGES[error] ?? "Something went wrong. Please try again.";
+}
+
 /**
  * Sign in with a password a lecturer created on the Access page, for people
  * KU ALL will not let through. A plain HTML form that posts to the backend,
  * so it works without JavaScript and the backend sets the session cookie.
  */
 export default function PasswordSignIn({ apiBase, email = "", error, allowPersonal = false }: Props) {
-  const message = error === "invalid_email"
-    ? allowPersonal
-      ? "Enter your KU email address ending in @ku.th, or the Gmail address your lecturer added."
-      : "Enter your KU email address, ending in @ku.th."
-    : error ? MESSAGES[error] ?? "Something went wrong. Please try again." : "";
+  const message = errorText(error, allowPersonal);
 
   return (
     <div className={styles.wrap}>
