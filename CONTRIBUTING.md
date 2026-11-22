@@ -50,7 +50,7 @@ Avoid: `update`, `fix bug`, `asdf`
    ```bash
    python -m py_compile source/*.py
    ```
-3. **Never commit secrets** — `DISCORD_CLIENT_SECRET`, `FLASK_SECRET_KEY` must come from environment variables only. Don't hardcode them in code or push a `.env` file to the repo.
+3. **Never commit secrets** — `GOOGLE_CLIENT_SECRET` and `SESSION_SECRET` must come from environment variables only. Don't hardcode them in code or push a `.env` file to the repo.
 
 ## Pull Request
 
@@ -63,8 +63,9 @@ Avoid: `update`, `fix bug`, `asdf`
 ## Code style
 
 - Python: follow PEP8 (meaningful variable names, consistent spacing).
-- Route/variable names in Flask should match what's used in `templates/` (keep consistent with what's already in `app.py`).
-- If you add a new page, also add a fake-data version in `test_ui.py` so teammates can preview the UI without setting up Discord OAuth.
+- Backend (FastAPI): give each feature its own router module in `source/` with tests in `test_<feature>.py`, and reuse the shared sign-in and role checks from `activities.py` (`authenticated_user`, `require_lecturer`, `require_staff`, `identity`).
+- Frontend (Next.js): add the page under `nextjs-frontend/app/`, list which roles may open it in `lib/permissions.ts`, and put its API calls in a `lib/<feature>-client.ts` built on `lib/request.ts`.
+- If you add a new page, also add preview data in `nextjs-frontend/lib/preview.ts` so teammates can try it with `UI_PREVIEW=1` without signing in.
 
 ## Reporting issues
 

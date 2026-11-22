@@ -6,10 +6,12 @@ history reports. FastAPI backend, Next.js frontend.
 
 ## Group members
 
-1. Sirapat Pringprom (pringpromn-lang)
-2. Chatthaya Tipatnaranan (chatthaya)
-3. Thanutdit Jiravichalert (thanutdit-ku)
-4. Kasithat Panya (zortorrrr)
+| # | Name | GitHub |
+|---|------|--------|
+| 1 | Sirapat Pringprom | [pringpromn-lang](https://github.com/pringpromn-lang) |
+| 2 | Chatthaya Tipatnaranan | [chatthaya](https://github.com/chatthaya) |
+| 3 | Thanutdit Jiravichalert | [thanutdit-ku](https://github.com/thanutdit-ku) |
+| 4 | Kasithat Panya | [zortorrrr](https://github.com/zortorrrr) |
 
 ## What each role can do
 
