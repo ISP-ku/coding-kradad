@@ -23,7 +23,7 @@ export default async function AddPeoplePage({ searchParams }: { searchParams?: {
       page="access"
       title="Add people"
       heading="Add people to a course"
-      subtitle="Only people in a course can sign in. Use their KU email, or any email for a password sign-in."
+      subtitle="Only people in a course can sign in. Use their KU or other email."
       viewer={viewer}
       logoutHref={logoutUrl}
     >

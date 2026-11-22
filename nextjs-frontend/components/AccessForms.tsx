@@ -58,7 +58,7 @@ export function AccessMemberForm({ courses, defaultCourseId, onDone }: {
           </select>
         </Field>
         <Field id="member-email" label="Email" error={emailError}
-          hint="A KU address, or any other email. Without @ku.th they can only sign in with a password you create.">
+          hint="Non-KU emails sign in with a password you create.">
           <input id="member-email" type="email" value={email} autoComplete="off" placeholder="name.s@ku.th"
             onChange={(e) => setEmail(e.target.value)} {...fieldAria("member-email", emailError, true)} />
         </Field>

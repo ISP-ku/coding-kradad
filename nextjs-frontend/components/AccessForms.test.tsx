@@ -18,8 +18,7 @@ describe("AccessMemberForm", () => {
   it("gives Course a hint like the email box, so the two line up side by side", () => {
     render(<AccessMemberForm courses={COURSES} onDone={onDone} />);
     expect(screen.getByLabelText("Course")).toHaveAccessibleDescription("The course to add them to.");
-    expect(screen.getByLabelText("Email")).toHaveAccessibleDescription(
-      "A KU address, or any other email. Without @ku.th they can only sign in with a password you create.");
+    expect(screen.getByLabelText("Email")).toHaveAccessibleDescription("Non-KU emails sign in with a password you create.");
   });
 
   it("checks the email before sending", () => {
