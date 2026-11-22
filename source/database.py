@@ -63,7 +63,9 @@ def engine_options(url: str) -> dict:
     }
 
 
-DATABASE_URL = normalise_database_url(os.environ.get("DATABASE_URL", f"sqlite:///{BASE_DIR / 'dashboard.db'}"))
+# An empty value counts as unset (a blank box on a hosting dashboard).
+DATABASE_URL = normalise_database_url(os.environ.get("DATABASE_URL", "").strip()
+                                      or f"sqlite:///{BASE_DIR / 'dashboard.db'}")
 engine = create_engine(DATABASE_URL, **engine_options(DATABASE_URL))
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 

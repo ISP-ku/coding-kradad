@@ -51,6 +51,9 @@ steps 3 and 4 if it differs. Below, `<site>` means this address.
 
 ## 4. Create the service (Render)
 
+Do this after the deployment pull request is merged: Render reads
+`render.yaml` from the `main` branch.
+
 1. Sign up at <https://render.com> with **GitHub**.
 2. **New → Blueprint**, and connect the `ISP-ku/coding-kradad` repository.
    `ISP-ku` is a GitHub organization: GitHub may ask an **organization owner**
@@ -99,7 +102,9 @@ tab; Render restarts the service.
 | Google says the app is not verified or access is blocked | The consent screen is still in Testing (step 3.3). |
 | You sign in but land back on the sign-in page | `FRONTEND_URL` is not exactly `https://<site>`. |
 | The first page after a while takes about a minute | Normal: the free service was asleep. |
-| Errors mentioning the database | `DATABASE_URL` is wrong, or the pooled Neon string was used; use the direct one (step 1.3). |
+| The deploy fails and the log says `Production settings are incomplete` | A value from step 4.3 is empty or mistyped; the log lists which. The app refuses to start without them rather than run with lost data or broken sign-in. |
+| The log says `unsupported startup parameter: options` | The **pooled** Neon string was used. Copy it again with connection pooling turned off (step 1.3). |
+| Other errors mentioning the database | `DATABASE_URL` is wrong; copy it again from Neon. |
 | Render shows the build failed | Open the service's **Events → Deploy** log. |
 
 ## Trying the production image locally
@@ -114,13 +119,15 @@ docker run --rm -p 10000:10000 --memory=512m \
   -e GOOGLE_REDIRECT_URI=http://localhost:10000/callback/google \
   -e GOOGLE_CLIENT_ID=... -e GOOGLE_CLIENT_SECRET=... \
   -e SESSION_SECRET=any-long-random-text \
+  -e DATABASE_URL=sqlite:////app/local-test.db \
   -e LECTURER_EMAILS=you@ku.th \
   -e COURSE_ROSTER_FILE=/app/data/course_roster.empty.json \
   coding-kradad:local
 ```
 
-Then open http://localhost:10000. Without `DATABASE_URL` it uses a SQLite
-file inside the container, which is lost when the container stops.
+Then open http://localhost:10000. In production mode the app will not start
+unless every setting from step 4.3 is given; here `DATABASE_URL` points at a
+SQLite file inside the container, which is lost when the container stops.
 `COOKIE_SECURE=0` is only for plain-HTTP local testing; Render uses HTTPS.
 In Git Bash on Windows, put `MSYS_NO_PATHCONV=1` before `docker run` so the
 `/app/...` path is not rewritten.
