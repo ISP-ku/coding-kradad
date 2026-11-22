@@ -3,7 +3,7 @@
 POST /api/consultations  -> a TA records a consultation session
 GET  /api/consultations  -> a TA lists their own recorded sessions
 """
-from datetime import date, datetime
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
