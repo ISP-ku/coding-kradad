@@ -24,7 +24,7 @@ import base64
 import hashlib
 import hmac
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from urllib.parse import urlencode, urlparse
 
 from fastapi import APIRouter, Form, HTTPException, Request
@@ -33,6 +33,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from database import SessionLocal, SignInPassword, User
+from timeutil import utcnow_naive
 from users import normalise_member_email
 
 router = APIRouter(tags=["password-login"])
@@ -44,10 +45,6 @@ _N, _R, _P = 2**14, 8, 1
 # Easy to read aloud or copy: no 0/O, 1/l/I.
 _ALPHABET = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 PASSWORD_LENGTH = 14
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def _app():
@@ -62,11 +59,14 @@ def new_password() -> str:
     return "".join(secrets.choice(_ALPHABET) for _ in range(PASSWORD_LENGTH))
 
 
+def _b64(data: bytes) -> str:
+    return base64.b64encode(data).decode()
+
+
 def hash_password(password: str) -> str:
     salt = secrets.token_bytes(16)
     digest = hashlib.scrypt(password.encode(), salt=salt, n=_N, r=_R, p=_P, dklen=32)
-    b64 = lambda b: base64.b64encode(b).decode()  # noqa: E731
-    return f"scrypt${_N}${_R}${_P}${b64(salt)}${b64(digest)}"
+    return f"scrypt${_N}${_R}${_P}${_b64(salt)}${_b64(digest)}"
 
 
 def check_password(password: str, stored: str) -> bool:
@@ -96,7 +96,7 @@ def set_password(db: Session, email: str, set_by: str) -> str:
         db.add(row)
     row.password_hash = hash_password(password)
     row.set_by = set_by
-    row.set_at = _now()
+    row.set_at = utcnow_naive()
     row.failed_attempts = 0
     row.locked_until = None
     return password
@@ -122,42 +122,44 @@ def _back(**params) -> RedirectResponse:
     return RedirectResponse(f"{_app().FRONTEND_URL}/sign-in/password?{query}", status_code=303)
 
 
+def _row_update(email: str, *conditions):
+    """An UPDATE of this address's password row, only if every condition holds."""
+    return update(SignInPassword).where(SignInPassword.email == email, *conditions)
+
+
+def _lock(db: Session, email: str, now: datetime, *conditions) -> None:
+    db.execute(_row_update(email, *conditions).values(locked_until=now + LOCK_TIME))
+    db.commit()
+
+
 def _verify(db: Session, email: str, password: str) -> str | None:
     """None when the password is right, otherwise "wrong" or "locked"."""
-    now = _now()
+    now = utcnow_naive()
     row = db.get(SignInPassword, email)
     if row is None:
         check_password(password, _DUMMY_HASH)
         return "wrong"
     # A lock that has run out starts a fresh set of tries.
-    db.execute(update(SignInPassword)
-               .where(SignInPassword.email == email, SignInPassword.locked_until <= now)
+    db.execute(_row_update(email, SignInPassword.locked_until <= now)
                .values(failed_attempts=0, locked_until=None))
     # Claim a try before checking, atomically: at most MAX_ATTEMPTS checks
     # however many requests arrive at once.
-    claimed = db.execute(update(SignInPassword)
-                         .where(SignInPassword.email == email, SignInPassword.locked_until.is_(None),
-                                SignInPassword.failed_attempts < MAX_ATTEMPTS)
+    claimed = db.execute(_row_update(email, SignInPassword.locked_until.is_(None),
+                                     SignInPassword.failed_attempts < MAX_ATTEMPTS)
                          .values(failed_attempts=SignInPassword.failed_attempts + 1)).rowcount
     if not claimed:
         # Out of tries but not yet locked (the last try is still running, or
         # it never finished): lock now, so the lock always runs out.
-        db.execute(update(SignInPassword)
-                   .where(SignInPassword.email == email, SignInPassword.locked_until.is_(None))
-                   .values(locked_until=now + LOCK_TIME))
-        db.commit()
+        _lock(db, email, now, SignInPassword.locked_until.is_(None))
         return "locked"
     db.commit()
     if check_password(password, row.password_hash):
-        db.execute(update(SignInPassword).where(SignInPassword.email == email)
-                   .values(failed_attempts=0, locked_until=None))
+        db.execute(_row_update(email).values(failed_attempts=0, locked_until=None))
         db.commit()
         return None
     attempts = db.scalar(select(SignInPassword.failed_attempts).where(SignInPassword.email == email))
     if attempts is not None and attempts >= MAX_ATTEMPTS:
-        db.execute(update(SignInPassword).where(SignInPassword.email == email)
-                   .values(locked_until=now + LOCK_TIME))
-        db.commit()
+        _lock(db, email, now)
         return "locked"
     return "wrong"
 
